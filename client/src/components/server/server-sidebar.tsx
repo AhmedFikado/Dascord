@@ -2,6 +2,7 @@ import { Channel } from "@/types/models/channel";
 import ChannelList from "../channel/channel-list";
 import ServerHeaderSide from "./server-header-side";
 import { Server } from "@/types/models/Server";
+import CreateChannelDialog from "../channel/create-channel-dialog";
 
 
 export default function ServerSidebar({ serverId }) {
@@ -41,6 +42,10 @@ export default function ServerSidebar({ serverId }) {
                 <ServerHeaderSide server={server} />
             </div>
             <div className="flex-1 overflow-y-auto">
+                <div className="px-3 mb-3 py-3 flex items-center justify-between border-b border-gray-200 text-gray-light">
+                    Créer un channel
+                    <CreateChannelDialog />
+                </div>
                 <ChannelList channels={channelsList} />
             </div>
         </aside>

@@ -24,14 +24,14 @@ export default function CreateServerDialog() {
                 onClose={() => setIsDialogOpen(false)}
                 title="Créer un serveur"
             >
-                <form action="submit" className="flex flex-col gap-6">
+                <form action="submit" className="flex flex-col gap-8">
                     <Input
                         label="Nom du serveur"
                         type="text"
                         placeholder="Nom du serveur"
                     />
 
-                    <Button variant={'primary'} type="submit">Créer le serveur</Button>
+                    <Button variant={'primary'} width="250px" style={{ alignSelf: 'center' }} type="submit">Créer le serveur</Button>
 
                 </form>
             </Dialog>
