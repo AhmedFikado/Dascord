@@ -40,3 +40,31 @@ CREATE INDEX idx_server_members_user_id ON server_members(user_id);
 
 -- Recherche rapide des channels d'un serveur
 CREATE INDEX idx_channels_server_id ON channels(server_id);
+
+-- Utilisateurs de test
+INSERT INTO users (id, username, email, password_hash, status) VALUES
+    ('00000000-0000-0000-0000-000000000001', 'alice', 'alice@example.com', '$2a$10$abcdefghijklmnopqrstuvwxyz123456789', 'ONLINE'),
+    ('00000000-0000-0000-0000-000000000002', 'bob', 'bob@example.com', '$2a$10$abcdefghijklmnopqrstuvwxyz123456789', 'ONLINE'),
+    ('00000000-0000-0000-0000-000000000003', 'charlie', 'charlie@example.com', '$2a$10$abcdefghijklmnopqrstuvwxyz123456789', 'OFFLINE'),
+    ('00000000-0000-0000-0000-000000000004', 'diana', 'diana@example.com', '$2a$10$abcdefghijklmnopqrstuvwxyz123456789', 'ONLINE');
+
+-- Serveurs de test
+INSERT INTO servers (id, name, owner_id, invitation_code) VALUES
+    ('10000000-0000-0000-0000-000000000001', 'Gaming Squad', '00000000-0000-0000-0000-000000000001', 'GAME2025'),
+    ('10000000-0000-0000-0000-000000000002', 'Dev Team', '00000000-0000-0000-0000-000000000002', 'DEV2025');
+
+-- Membres des serveurs
+INSERT INTO server_members (server_id, user_id, role) VALUES
+    ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000001', 'OWNER'),
+    ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000002', 'ADMIN'),
+    ('10000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000003', 'MEMBER'),
+    ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000002', 'OWNER'),
+    ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000001', 'MEMBER'),
+    ('10000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000004', 'MEMBER');
+
+-- Channels
+INSERT INTO channels (id, server_id, name) VALUES
+    ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'general'),
+    ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000001', 'gaming'),
+    ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000002', 'general'),
+    ('20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000002', 'tech-discussion');
