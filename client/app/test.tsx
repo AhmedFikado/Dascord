@@ -6,9 +6,13 @@ import { Loading as LoadingSpinner } from "@/components/shared/loading-spinner";
 import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 import { Dropdown, Option } from "@/components/ui/dropdown";
-import { Role } from "@/types/models/role"
+import { Role } from "@/types/models/role";
+import { useSnackbar } from "@/components/shared/error-message";
 
 export default function Test() {
+    // Hook pour les snackbars
+    const { showSnackbar } = useSnackbar();
+
     // État nécessaire pour l'exemple de l'input contrôlé (Email)
     const [email, setEmail] = useState('');
 
@@ -21,13 +25,13 @@ export default function Test() {
 
     // Définition des options
     const roles: Option[] = Object.keys(Role).filter((key) => isNaN(Number(key))).map((key) => ({
-            label: {
-                OWNER: "Propriétaire",
-                ADMIN: "Administrateur",
-                MEMBER: "Membre",
-            }[key as keyof typeof Role],
-            value: key.toLowerCase(),
-        }));
+        label: {
+            OWNER: "Propriétaire",
+            ADMIN: "Administrateur",
+            MEMBER: "Membre",
+        }[key as keyof typeof Role],
+        value: key.toLowerCase(),
+    }));
 
 
     const handleClick = (message: string) => {
@@ -118,72 +122,99 @@ export default function Test() {
                     label="Pays (Exemple erreur)"
                     options={[{ label: 'France', value: 'fr' }]}
                     value=""
-                    onChange={() => {}}
+                    onChange={() => { }}
                     error="Veuillez sélectionner un pays."
                 />
 
             </section>
 
-    {/* --- SECTION 3 : DIALOGS / MODALES --- */}
-    <section className="flex flex-col items-center gap-5 w-full max-w-md p-6 bg-gray-300 rounded-xl shadow-sm border border-gray-200">
-        <h2 className="text-lg font-semibold text-white uppercase tracking-wider">Dialogs</h2>
+            {/* --- SECTION 3 : DIALOGS / MODALES --- */}
+            <section className="flex flex-col items-center gap-5 w-full max-w-md p-6 bg-gray-300 rounded-xl shadow-sm border border-gray-200">
+                <h2 className="text-lg font-semibold text-white uppercase tracking-wider">Dialogs</h2>
 
-        <div className="flex gap-4">
-            {/* Bouton pour ouvrir une modale simple */}
-            <Button onClick={() => setIsDialogOpen(true)}>
-                Ouvrir Info
-            </Button>
+                <div className="flex gap-4">
+                    {/* Bouton pour ouvrir une modale simple */}
+                    <Button onClick={() => setIsDialogOpen(true)}>
+                        Ouvrir Info
+                    </Button>
 
-            {/* Bouton pour ouvrir une modale de confirmation (Rouge) */}
-            <Button variant="danger" onClick={() => setIsDeleteOpen(true)}>
-                Supprimer
-            </Button>
-        </div>
-    </section>
+                    {/* Bouton pour ouvrir une modale de confirmation (Rouge) */}
+                    <Button variant="danger" onClick={() => setIsDeleteOpen(true)}>
+                        Supprimer
+                    </Button>
+                </div>
+            </section>
 
-    {/* 1. Modale d'Information */}
-    <Dialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        title="Bienvenue !"
-        description="Ceci est une description optionnelle en dessous du titre."
-        footer={
-            <Button variant={"primary"} onClick={() => setIsDialogOpen(false)}>Compris</Button>
-        }
-    >
-        <p className="text-white">
-            Ceci est le corps de la modale. Tu peux y mettre ce que tu veux :
-            du texte, des images, ou même des formulaires.
-        </p>
-        <div className="mt-4 p-4 bg-blurple/20 text-blurple rounded-lg border border-blurple/30">
-            Info : Tu peux fermer en cliquant sur le fond noir ou Echap.
-        </div>
-    </Dialog>
+            {/* 1. Modale d'Information */}
+            <Dialog
+                isOpen={isDialogOpen}
+                onClose={() => setIsDialogOpen(false)}
+                title="Bienvenue !"
+                description="Ceci est une description optionnelle en dessous du titre."
+                footer={
+                    <Button variant={"primary"} onClick={() => setIsDialogOpen(false)}>Compris</Button>
+                }
+            >
+                <p className="text-white">
+                    Ceci est le corps de la modale. Tu peux y mettre ce que tu veux :
+                    du texte, des images, ou même des formulaires.
+                </p>
+                <div className="mt-4 p-4 bg-blurple/20 text-blurple rounded-lg border border-blurple/30">
+                    Info : Tu peux fermer en cliquant sur le fond noir ou Echap.
+                </div>
+            </Dialog>
 
-    {/* 2. Modale de Suppression (Action critique) */}
-    <Dialog
-        isOpen={isDeleteOpen}
-        onClose={() => setIsDeleteOpen(false)}
-        title="Confirmer la suppression"
-        preventCloseOnOverlay={true} // Oblige l'utilisateur à choisir
-        footer={
-            <>
-                <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-                    Annuler
+            {/* 2. Modale de Suppression (Action critique) */}
+            <Dialog
+                isOpen={isDeleteOpen}
+                onClose={() => setIsDeleteOpen(false)}
+                title="Confirmer la suppression"
+                preventCloseOnOverlay={true} // Oblige l'utilisateur à choisir
+                footer={
+                    <>
+                        <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
+                            Annuler
+                        </Button>
+                        <Button variant="danger" onClick={() => {
+                            alert("Supprimé !");
+                            setIsDeleteOpen(false);
+                        }}>
+                            Confirmer la suppression
+                        </Button>
+                    </>
+                }
+            >
+                <p className="text-gray-100">Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible.</p>
+            </Dialog>
+
+            {/* --- SECTION 5 : SNACKBARS --- */}
+            <section className="flex flex-col items-center gap-5 w-full max-w-md p-6 bg-gray-300 rounded-xl shadow-sm border border-gray-200">
+                <h2 className="text-lg font-semibold text-white uppercase tracking-wider">Snackbars</h2>
+
+                <Button
+                    variant="danger"
+                    onClick={() => showSnackbar({
+                        message: "Erreur : Quelque chose s'est mal passé !",
+                        severity: "error",
+                        position: { vertical: "top", horizontal: "center" }
+                    })}
+                >
+                    Erreur en haut au centre
                 </Button>
-                <Button variant="danger" onClick={() => {
-                    alert("Supprimé !");
-                    setIsDeleteOpen(false);
-                }}>
-                    Confirmer la suppression
-                </Button>
-            </>
-        }
-    >
-        <p className="text-gray-100">Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible.</p>
-    </Dialog>
 
-</div>
+                <Button
+                    variant="primary"
+                    onClick={() => showSnackbar({
+                        message: "Opération réussie !",
+                        severity: "success",
+                        position: { vertical: "bottom", horizontal: "center" }
+                    })}
+                >
+                    Succès en bas au centre
+                </Button>
+            </section>
+
+        </div>
 
     );
 }
