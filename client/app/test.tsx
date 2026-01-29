@@ -8,6 +8,8 @@ import { Dialog } from "@/components/ui/dialog";
 import { Dropdown, Option } from "@/components/ui/dropdown";
 import { Role } from "@/types/models/role";
 import { useSnackbar } from "@/components/shared/error-message";
+import ChannelList from "@/components/channel/channel-list";
+import { Channel } from "@/types/models/channel";
 
 export default function Test() {
     // Hook pour les snackbars
@@ -33,6 +35,27 @@ export default function Test() {
         value: key.toLowerCase(),
     }));
 
+    const channelsList: Channel[] = [
+        {
+            id: 1,
+            server_id: 1,
+            name: 'Général',
+            created_at: new Date(),
+        },
+        {
+            id: 2,
+            server_id: 2,
+            name: 'information',
+            created_at: new Date(),
+        },
+        {
+            id: 3,
+            server_id: 3,
+            name: 'Invites',
+            created_at: new Date(),
+        },
+
+    ]
 
     const handleClick = (message: string) => {
         console.log(message);
@@ -212,6 +235,12 @@ export default function Test() {
                 >
                     Succès en bas au centre
                 </Button>
+            </section>
+
+
+
+            <section>
+                <ChannelList channels={channelsList}></ChannelList>
             </section>
 
         </div>
