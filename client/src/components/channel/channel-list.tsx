@@ -9,7 +9,7 @@ export default function ChannelList({ channels }: { channels: Channel[] }) {
         <nav>
             <ul>
                 {channels.map((channel) => (
-                    <ChannelItem channel={channel} />
+                    <ChannelItem channel={channel} key={channel.id} />
                 ))}
             </ul>
         </nav>

@@ -6,7 +6,7 @@ import { Loading } from '../shared/loading-spinner';
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     width?: string;
     height?: string;
-    variant?: 'primary' | 'secondary' | 'danger' | 'outline';
+    variant?: 'primary' | 'secondary' | 'danger' | 'outline' | 'noBackground';
     isLoading?: boolean;
     children: React.ReactNode;
 }
