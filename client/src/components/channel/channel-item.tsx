@@ -6,7 +6,7 @@ export default function ChannelItem({ channel }: { channel: Channel }) {
 
 
     return (
-        <li key={channel.id} className='group p-2 rounded-sm cursor-pointer hover:bg-hoverSide flex justify-between items-center'>
+        <li key={channel.id} className='group px-3  py-[6px] rounded-lg cursor-pointer hover:bg-hoverSide flex justify-between items-center'>
             <div className="flex items-center text-gray-light group-hover:text-white text-left">
                 {channel.name}
             </div>

@@ -15,15 +15,15 @@ interface DialogProps {
 }
 
 export const Dialog: React.FC<DialogProps> = ({
-                                                  isOpen,
-                                                  onClose,
-                                                  title,
-                                                  description,
-                                                  children,
-                                                  footer,
-                                                  size = 'md',
-                                                  preventCloseOnOverlay = false,
-                                              }) => {
+    isOpen,
+    onClose,
+    title,
+    description,
+    children,
+    footer,
+    size = 'md',
+    preventCloseOnOverlay = false,
+}) => {
 
     const sizeClasses = {
         sm: 'max-w-sm',
@@ -85,7 +85,7 @@ export const Dialog: React.FC<DialogProps> = ({
                         height={"50px"}
                         variant={"noBackground"}
                     >
-                        <svg className="w-50 h-50" fill="none" viewBox="0 0 20 20" stroke="currentColor">
+                        <svg className="w-50 h-50" fill="none" viewBox="0 0 20 20" stroke="white">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </Button>

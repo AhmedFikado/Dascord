@@ -15,14 +15,14 @@ const config: Config = {
         white: "#FFFFFF",
         background: "#1D1D21",
         backgroundSide: "#121214",
-        hoverSide:"#2C2C30",
+        hoverSide: "#2C2C30",
         gray: {
           gray: "#adadad",
           50: "#68696e",
           100: "#4E5058",
           200: "#36393F",
           300: "#2F3136",
-          400: "#202225",
+          400: "#222327",
 
         },
       },
