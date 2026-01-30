@@ -1,8 +1,4 @@
-use axum::{
-    http::StatusCode,
-    response::{IntoResponse, Response},
-    Json,
-};
+use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
 use serde::Serialize;
 use std::fmt;
 
@@ -14,7 +10,6 @@ pub enum AppError {
     Conflict(String),
     Unauthorized(String),
     NotFound(String),
-    DatabaseError(String),
     InternalServerError(String),
 }
 
@@ -30,7 +25,6 @@ impl fmt::Display for AppError {
             AppError::Conflict(msg) => write!(f, "Conflict: {}", msg),
             AppError::Unauthorized(msg) => write!(f, "Unauthorized: {}", msg),
             AppError::NotFound(msg) => write!(f, "Not found: {}", msg),
-            AppError::DatabaseError(msg) => write!(f, "Database error: {}", msg),
             AppError::InternalServerError(msg) => write!(f, "Internal server error: {}", msg),
         }
     }
@@ -43,7 +37,6 @@ impl IntoResponse for AppError {
             AppError::Conflict(msg) => (StatusCode::CONFLICT, msg),
             AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
-            AppError::DatabaseError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
             AppError::InternalServerError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
         };
 

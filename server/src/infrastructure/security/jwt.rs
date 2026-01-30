@@ -1,8 +1,8 @@
-use crate::application::dto::JWTToken;
 use crate::utils::error::{AppError, AppResult};
-use chrono::{Duration, Utc};
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use crate::application::dto::security::JWTToken;
+use jsonwebtoken::{encode, decode, Header, Validation, EncodingKey, DecodingKey};
 use uuid::Uuid;
+use chrono::{Utc, Duration};
 
 #[derive(Clone)]
 pub struct JWTService {
@@ -14,22 +14,18 @@ impl JWTService {
         Self { secret }
     }
 
-    /// Créer un token JWT
     pub fn create_token(&self, user_id: Uuid) -> AppResult<String> {
-        // Calculer la date d'expiration (1 jour)
         let expiration = Utc::now()
             .checked_add_signed(Duration::days(1))
             .expect("Valid timestamp")
             .timestamp();
 
-        // Claims pour le token
         let token = JWTToken {
             sub_id: user_id.to_string(),
             exp: expiration as usize,
             iat: Utc::now().timestamp() as usize,
         };
 
-        // Créer le token
         encode(
             &Header::default(),
             &token,
@@ -38,7 +34,6 @@ impl JWTService {
         .map_err(|e| AppError::InternalServerError(format!("JWT creation failed: {}", e)))
     }
 
-    /// Vérifier et décoder un token JWT
     pub fn verify_token(&self, token: &str) -> AppResult<JWTToken> {
         decode::<JWTToken>(
             token,

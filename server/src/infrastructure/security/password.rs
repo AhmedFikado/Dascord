@@ -1,5 +1,5 @@
 use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString, rand_core::OsRng},
     Argon2,
 };
 use crate::utils::error::{AppError, AppResult};
@@ -12,7 +12,6 @@ impl PasswordService {
         Self
     }
 
-    /// Hasher un mot de passe avec Argon2
     pub fn hash(&self, password: &str) -> AppResult<String> {
         let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
@@ -23,7 +22,6 @@ impl PasswordService {
             .map_err(|e| AppError::InternalServerError(format!("Password hashing failed: {}", e)))
     }
 
-    /// Vérifier un mot de passe contre son hash
     pub fn verify(&self, password: &str, hash: &str) -> AppResult<bool> {
         let parsed_hash = PasswordHash::new(hash)
             .map_err(|e| AppError::InternalServerError(format!("Invalid hash: {}", e)))?;
