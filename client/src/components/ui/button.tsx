@@ -6,7 +6,7 @@ import { Loading } from '../shared/loading-spinner';
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     width?: string;
     height?: string;
-    variant?: 'primary' | 'secondary' | 'danger' | 'outline' | 'noBackground';
+    variant?: 'primary' | 'secondary' | 'danger' | 'outline' | 'noBackground' | 'nothing';
     isLoading?: boolean;
     children: React.ReactNode;
 }
@@ -29,6 +29,7 @@ export const Button: React.FC<ButtonProps> = ({
         danger: 'bg-red hover:bg-red/80 text-white',
         outline: 'bg-transparent border border-blurple text-blurple hover:bg-blurple/10',
         noBackground: 'bg-transparent hover:bg-gray-200',
+        nothing: 'bg-transparent'
     };
 
     return (

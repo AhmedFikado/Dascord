@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import TypingIndicator from './typing-indicator';
+import { Status, User } from '@/types/models/user';
 
 interface MessageInputProps {
     channelName?: string;
@@ -9,6 +11,20 @@ interface MessageInputProps {
 
 export default function MessageInput({ onSendMessage }: MessageInputProps) {
     const [message, setMessage] = useState('');
+
+    const user: User = {
+        id: 1,
+        username: 'Alice',
+        email: 'alice@gmail.com',
+        created_at: new Date(),
+        status: Status.ONLINE,
+    };
+
+    const websocket = {
+        typing: true,
+    };
+
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -27,6 +43,9 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
 
     return (
         <div className="px-4 py-2 flex-shrink-0 w-full">
+
+            {websocket.typing && <TypingIndicator user={user} />}
+
             <form onSubmit={handleSubmit}>
                 <div className="flex items-center bg-gray-400 rounded-xl px-4">
                     <input

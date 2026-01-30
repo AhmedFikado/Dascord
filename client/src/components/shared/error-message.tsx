@@ -1,3 +1,4 @@
+// components/shared/error-message.tsx
 'use client';
 
 import { createContext, useContext, useState, ReactNode } from 'react';
@@ -6,7 +7,7 @@ import Alert, { AlertColor } from '@mui/material/Alert';
 
 interface SnackbarConfig {
     message: string;
-    severity?: AlertColor; // "error","warning" , "info", "success"
+    severity?: AlertColor;
     duration?: number;
     position?: {
         vertical: 'top' | 'bottom';
@@ -70,8 +71,21 @@ export function SnackbarProvider({ children }: { children: ReactNode }) {
 
 export function useSnackbar() {
     const context = useContext(SnackbarContext);
+
+    // Si pas de context, retourne un fallback au lieu de throw
     if (!context) {
-        throw new Error('useSnackbar doit être utilisé dans un SnackbarProvider');
+        // En développement, log l'avertissement
+        if (process.env.NODE_ENV === 'development') {
+            console.warn('⚠️ useSnackbar appelé en dehors du SnackbarProvider');
+        }
+
+        // Retourne un mock qui ne fait rien
+        return {
+            showSnackbar: (config: SnackbarConfig) => {
+                console.log('Snackbar (non-connecté):', config.message);
+            }
+        };
     }
+
     return context;
 }
