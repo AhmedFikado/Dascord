@@ -1,4 +1,3 @@
-// src/application/use_cases/auth/signup.rs
 use crate::application::dto::auth::{SignupRequest, SignupResponse};
 use crate::mocks::MockUserService;
 use crate::infrastructure::security::jwt::JWTService;

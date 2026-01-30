@@ -28,10 +28,8 @@ impl MockUserService {
         email: String,
         password: String,
     ) -> AppResult<User> {
-        // Hash du mot de passe
         let password_hash = self.password_service.hash(&password)?;
 
-        // Créer l'entité User
         let user = User {
             id: Uuid::new_v4(),
             username,
@@ -42,26 +40,22 @@ impl MockUserService {
             status: UserStatus::Online,
         };
 
-        // Persister en mémoire
         self.user_repo.create(user).await
     }
 
     /// Authentifier un utilisateur
     pub async fn authenticate(&self, email: &str, password: &str) -> AppResult<User> {
-        // 1. Récupérer l'utilisateur par email
         let user = self.user_repo
             .find_by_email(email)
             .await?
             .ok_or_else(|| AppError::Unauthorized("Invalid credentials".to_string()))?;
 
-        // 2. Vérifier le mot de passe
         let is_valid = self.password_service.verify(password, &user.password_hash)?;
 
         if !is_valid {
             return Err(AppError::Unauthorized("Invalid credentials".to_string()));
         }
 
-        // 3. Retourner l'utilisateur authentifié
         Ok(user)
     }
 

@@ -1,2 +1,2 @@
-// mod domain
+pub mod entities;
 pub mod value_objects;

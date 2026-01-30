@@ -1,4 +1,3 @@
-// mod mocks
 pub mod mock_user_repository;
 pub mod mock_user_service;
 pub mod mock_main_axum;
