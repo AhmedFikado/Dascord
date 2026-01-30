@@ -23,11 +23,11 @@ pub async fn start_app() {
         .route("/auth/logout", post(AuthHandler::logout))
         .with_state(auth_handler);
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8080")
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:8080")
         .await
         .unwrap();
 
-    println!("🚀 Server starting on http://127.0.0.1:8080");
+    println!("🚀 Server starting on http://0.0.0.0:8080");
 
     axum::serve(listener, app).await.unwrap();
 }
