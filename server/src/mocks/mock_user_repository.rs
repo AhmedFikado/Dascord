@@ -9,7 +9,6 @@ use uuid::Uuid;
 /// Repository en mémoire pour simuler la base de données
 #[derive(Clone)]
 pub struct MockUserRepository {
-    // HashMap thread-safe pour stocker les users en mémoire
     users: Arc<Mutex<HashMap<Uuid, User>>>,
 }
 
@@ -38,7 +37,6 @@ impl UserRepository for MockUserRepository {
     async fn create(&self, user: User) -> AppResult<User> {
         let mut users = self.users.lock().unwrap();
         
-        // Vérifier si l'ID existe déjà (ne devrait pas arriver)
         if users.contains_key(&user.id) {
             return Err(AppError::Conflict("User ID already exists".to_string()));
         }

@@ -1,4 +1,3 @@
-// mod auth dtos
 pub mod login_request_dto;
 pub mod login_response_dto;
 pub mod logout_request_dto;

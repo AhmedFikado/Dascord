@@ -9,7 +9,6 @@ pub struct AppState {
 }
 
 pub async fn init_databases(config: &DatabaseConfig) -> Result<AppState, Box<dyn std::error::Error>> {
-    // PostgreSQL
     tracing::info!("Connexion à PostgreSQL...");
     let pg_pool = PgPoolOptions::new()
         .max_connections(5)
@@ -17,12 +16,10 @@ pub async fn init_databases(config: &DatabaseConfig) -> Result<AppState, Box<dyn
         .await?;
     tracing::info!("PostgreSQL connecté");
 
-    // MongoDB
     tracing::info!("Connexion à MongoDB...");
     let mongo_options = ClientOptions::parse(&config.mongodb_url).await?;
     let mongo_client = MongoClient::with_options(mongo_options)?;
     
-    // Test de connexion
     mongo_client
         .database("admin")
         .run_command(mongodb::bson::doc! { "ping": 1 })
