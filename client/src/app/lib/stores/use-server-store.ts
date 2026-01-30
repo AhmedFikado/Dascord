@@ -34,10 +34,6 @@ export const useServerStore = create<ServerState>((set) => ({
     setCurrentServer: (server) => set({ currentServer: server }),
 
     addServer: (newServer) => set((state) => {
-        const exists = state.servers.some((s) => s.id === newServer.id);
-        if (exists) {
-            return state;
-        }
         return { servers: [...state.servers, newServer] };
     }),
 

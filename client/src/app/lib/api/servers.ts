@@ -9,6 +9,8 @@ let mockServers: Server[] = [
 ];
 
 export const serversApi = {
+
+    // GET /servers
     getAll: async (): Promise<Server[]> => {
         return [...mockServers]; //obligé de rajouter ça pour pas créer de doublons donc à ne pas mettre quand l'API sera liée
     },
@@ -21,7 +23,7 @@ export const serversApi = {
     // POST /servers
     create: async (name: string): Promise<Server> => {
         const newServer: Server = {
-            id: 5,
+            id: new Date().getTime(),
             name,
             owner_id: 1,
             invitation_code: Math.random().toString(36).substring(2, 5).toUpperCase(),
