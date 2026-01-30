@@ -1,4 +1,21 @@
 services:
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: rtc-backend
+    ports:
+      - '8080:8080'
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_DB}?authSource=admin
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
   frontend:
     build:
       context: ./client
@@ -9,8 +26,7 @@ services:
     environment:
       - NODE_ENV=production
     depends_on:
-      - postgres
-      - mongodb
+      - backend
 
   postgres:
     image: postgres:16-alpine
