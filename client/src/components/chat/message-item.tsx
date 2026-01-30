@@ -24,7 +24,7 @@ export default function MessageItem({ message }: { message: Message }) {
 
             <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 mb-0.5">
-                    <span className="font-semibold text-white hover:underline cursor-pointer">
+                    <span className="font-semibold text-white cursor-pointer">
                         {message.user.username}
                     </span>
 
