@@ -2,21 +2,17 @@ import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { serversApi } from "@/app/lib/api/servers";
-import { useServerStore } from "@/app/lib/stores/use-server-store";
 
-interface CreateServerDialogProps {
+interface JoinServerDialogProps {
     isOpen?: boolean;
     onClose?: () => void;
     onBack?: () => void;
 }
 
-export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateServerDialogProps) {
+export default function JoinServerDialog({ isOpen, onClose, onBack }: JoinServerDialogProps) {
     const [internalIsOpen, setInternalIsOpen] = useState(false);
-    const [serverName, setServerName] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-
-    const addServer = useServerStore((state) => state.addServer);
+    const [invitationCode, setInvitationCode] = useState("");
 
     const dialogIsOpen = isOpen !== undefined ? isOpen : internalIsOpen;
     const handleClose = onClose || (() => setInternalIsOpen(false));
@@ -24,16 +20,14 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!serverName.trim()) return;
+        if (!invitationCode.trim()) return;
 
         setIsLoading(true);
         try {
-            const newServer = await serversApi.create(serverName);
-            addServer(newServer);
-            setServerName("");
             handleClose();
+            setInvitationCode("");
         } catch (error) {
-            console.error("Erreur création serveur", error);
+            console.error("Erreur pour rejoindre le serveur", error);
         } finally {
             setIsLoading(false);
         }
@@ -46,23 +40,22 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
                     style={{ borderRadius: '10px', backgroundColor: '#5865F2', color: 'white', padding: 0 }}
                     onClick={() => setInternalIsOpen(true)}
                 >
-                    Créer un serveur
+                    Rejoindre un serveur
                 </Button>
             )}
 
             <Dialog
                 isOpen={dialogIsOpen}
                 onClose={handleClose}
-                title="Créer un serveur"
+                title="Rejoindre un serveur"
             >
                 <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                     <Input
-                        label="Nom du serveur"
+                        label="Code d'invitation"
                         type="text"
-                        placeholder="Ex: Le repaire des codeurs"
-                        value={serverName}
-                        onChange={(e) => setServerName(e.target.value)}
-                        disabled={isLoading}
+                        placeholder="Entrez le code ici !"
+                        value={invitationCode}
+                        onChange={(e) => setInvitationCode(e.target.value)}
                     />
 
                     <div className="text-white flex justify-between">
@@ -71,17 +64,17 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
                             variant={"noBackground"}
                             width="100px"
                             onClick={handleBack}>
-                                Retour
+                            Retour
                         </Button>
 
                         <Button
                             variant={'primary'}
                             width="200px"
                             type="submit"
-                            disabled={isLoading || !serverName}
                         >
-                            {isLoading ? "Création..." : "Créer le serveur"}
+                            {isLoading ? "Vous passez la douane ..." : "Rejoindre le serveur"}
                         </Button>
+
                     </div>
 
                 </form>

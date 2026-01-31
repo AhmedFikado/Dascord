@@ -1,6 +1,7 @@
 import ServerList from "../server/server-list";
 import CreateServerDialog from "../server/create-server-dialog";
 import { useServers } from '@/app/lib/hooks/use-servers';
+import JoinCreateServer from '@/components/server/Join-create-server-dialog'
 
 export default function Sidebar() {
 
@@ -16,7 +17,7 @@ export default function Sidebar() {
                 />
             </div>
             <ServerList servers={servers} />
-            <CreateServerDialog />
+            <JoinCreateServer />
         </aside>
     );
 }
