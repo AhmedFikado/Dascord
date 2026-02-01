@@ -1,8 +1,12 @@
 import { User, Status } from "../../types/models/user";
 import MemberItem from "./member-item";
 
+interface MemberListProps {
+    searchQuery?: string;
+    isRole?: boolean;
+}
 
-export default function MemberList() {
+export default function MemberList({ searchQuery = '', isRole = false }: MemberListProps) {
 
     const Users: User[] = [
         {
@@ -28,15 +32,26 @@ export default function MemberList() {
         },
     ];
 
+    const filterUsers = Users.filter(user =>
+        user.username.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
 
     return (
         <div className="flex flex-col py-2">
             <h3 className="px-4 py-2 text-xs font-semibold text-gray-50 uppercase">
                 Membres — {Users.length}
             </h3>
-            {Users.map((user) => (
-                <MemberItem key={user.id} user={user} />
-            ))}
+
+            {isRole ? (
+                filterUsers.map((user) => (
+                    <MemberItem key={user.id} user={user} isRole={true} />
+                ))
+            ) : (
+                filterUsers.map((user) => (
+                    <MemberItem key={user.id} user={user} />
+                ))
+            )}
         </div>
     );
 
