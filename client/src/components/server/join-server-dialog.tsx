@@ -62,7 +62,7 @@ export default function JoinServerDialog({ isOpen, onClose, onBack }: JoinServer
 
                         <Button
                             variant={"noBackground"}
-                            width="100px"
+                            width="80px"
                             onClick={handleBack}>
                             Retour
                         </Button>

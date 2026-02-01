@@ -69,7 +69,7 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
 
                         <Button
                             variant={"noBackground"}
-                            width="100px"
+                            width="80px"
                             onClick={handleBack}>
                                 Retour
                         </Button>
