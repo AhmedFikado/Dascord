@@ -2,8 +2,11 @@
 
 import { Server } from "@/types/models/Server";
 import { Button } from "../ui/button";
-import { Share2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Settings, LogOut } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import ServerSettings from "./server-settings";
+import { Dialog } from '../ui/dialog';
+import {useState} from "react";
 
 const InvitationDialog = dynamic(
     () => import('./invitation-dialog'),
@@ -11,10 +14,93 @@ const InvitationDialog = dynamic(
 );
 
 export default function ServerHeaderSide({ server }: { server: Server }) {
+
+    const [isOpenMenu, setIsOpenMenu] = useState(false);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+    const handleServerSettings = () => {
+        setIsOpenMenu(false);
+        setIsSettingsOpen(true);
+    }
+
+    const handleLeaveServer = () => {
+        setIsOpenMenu(false);
+    }
+
+    const handleUpdateServer = (updatedServer: Server) => {
+        console.log('Serveur mis à jour:', updatedServer);
+    }
+
+    const handleDeleteServer = () => {
+        console.log('Serveur supprimé:', server.id);
+    }
+
     return (
-        <header className="flex items-center justify-between">
-            <h1 className="text-white text-lg font-bold">{server.name}</h1>
+        <>
+        <div className="flex items-center justify-between">
+            <Button
+                onClick={() => setIsOpenMenu(!isOpenMenu)}
+                variant="noBackground"
+                width={"170px"}
+                className="flex cursor-pointer justify-start px-[8px]">
+                <h1 className="text-white text-base font-bold truncate flex-1 text-left">{server.name}</h1>
+
+                {isOpenMenu ? (
+                <ChevronUp className="text-white flex-shrink-0" size={20} />
+                ) : (
+                <ChevronDown className="text-white flex-shrink-0" size={20} />
+                )}
+            </Button>
+
             <InvitationDialog />
-        </header>
+        </div>
+
+            {isOpenMenu && (
+                <>
+                    <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setIsOpenMenu(false)}
+                    />
+
+                    <div className="absolute top-12 left-20 mt-2 w-56 bg-gray-300 rounded-lg shadow-lg overflow-hidden z-20">
+                        <Button
+                            onClick={handleServerSettings}
+                            variant="noBackground"
+                            className="justify-start px-4 py-3 "
+                            width={"225px"}
+                        >
+                            <Settings size={18} className="text-gray-light mr-3" />
+                            <span className="text-white text-sm">Paramètres du serveur</span>
+                        </Button>
+
+                        <div className="border-t border-gray-200" />
+
+                        <Button
+                            onClick={handleLeaveServer}
+                            variant="noBackground"
+                            className="justify-start px-4 py-3 "
+                            width={"225px"}
+                        >
+                            <LogOut size={18} className="text-red mr-3" />
+                            <span className="text-red text-sm font-semibold">Quitter le serveur</span>
+                        </Button>
+                    </div>
+                </>
+            )}
+
+            <Dialog
+                isOpen={isSettingsOpen}
+                onClose={() => setIsSettingsOpen(false)}
+                title="Paramètres du serveur"
+                size="xl"
+            >
+                <ServerSettings
+                    server={server}
+                    onClose={() => setIsSettingsOpen(false)}
+                    onUpdate={handleUpdateServer}
+                    onDelete={handleDeleteServer}
+                />
+            </Dialog>
+        </>
     );
 }

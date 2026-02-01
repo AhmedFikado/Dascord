@@ -21,7 +21,6 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
     const isActive = currentChannelId === channel.id;
 
     const deleteChannel = async () => {
-        console.log("Deleting channel");
         setIsDialogOpen(false);
     };
 
@@ -40,7 +39,7 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
                 key={channel.id}
                 onClick={handleChannelClick}
                 className={`
-                    group pl-3 pr-3 py-[6px] rounded-lg cursor-pointer 
+                    group pl-3 pr-3 py-[6px] rounded-lg cursor-pointer mb-1 mx-1
                     flex justify-between items-center transition-colors
                     ${isActive
                         ? 'bg-hoverSide text-white'
