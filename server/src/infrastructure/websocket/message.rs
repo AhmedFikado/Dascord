@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 /// Types de messages que le client peut envoyer au serveur
 #[derive(Debug, Clone, Deserialize)]

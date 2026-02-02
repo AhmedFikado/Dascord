@@ -47,9 +47,9 @@ async fn handle_connection(
     username: String,
     manager: Arc<ConnectionManager>,
 ) {
-    tracing::info!("🔌 Nouvelle connexion WebSocket: user_id={}, username={}", user_id, username);
+    tracing::info!("Nouvelle connexion WebSocket: user_id={}, username={}", user_id, username);
     handle_socket(socket, user_id, username, manager).await;
-    tracing::info!("🔌 Connexion WebSocket fermée: user_id={}", user_id);
+    tracing::info!("Connexion WebSocket fermée: user_id={}", user_id);
 }
 
 /// Créer le router WebSocket

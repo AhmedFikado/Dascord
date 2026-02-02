@@ -82,7 +82,7 @@ impl ConnectionManager {
             self.broadcast_to_channel(&channel_id, message).await;
         }
         
-        tracing::info!("📥 Connexion {} a rejoint le channel {}", connection_id, channel_id);
+        tracing::info!("Connexion {} a rejoint le channel {}", connection_id, channel_id);
     }
     
     /// Retirer une connexion d'un channel
