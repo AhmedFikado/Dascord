@@ -59,7 +59,7 @@ services:
       - mongo_data:/data/db
       - ./init-scripts/mongo:/docker-entrypoint-initdb.d
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      test: mongosh --eval 'db.adminCommand("ping")' --username ${MONGO_USER} --password ${MONGO_PASSWORD} --authenticationDatabase admin --quiet
       interval: 10s
       timeout: 5s
       retries: 5

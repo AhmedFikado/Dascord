@@ -1,12 +1,11 @@
-use axum::{routing::post, Router};
 use server::{
     config::{AppConfig, DatabaseConfig},
     infrastructure::database::init_databases,
     infrastructure::security::JWTService,
     application::use_cases::auth::{SignupUseCase, LoginUseCase, LogoutUseCase},
-    mocks::{MockUserService, mock_auth_handler::AuthHandler},
+    mocks::MockUserService,
+    api::router,
 };
-use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -29,22 +28,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let jwt_secret = std::env::var("JWT_SECRET")
         .unwrap_or_else(|_| "dev_secret_key_change_in_production".to_string());
-    
     let jwt_service = JWTService::new(jwt_secret);
+
     // TODO: Remplacer MockUserService par PostgresUserRepository
     let user_service = MockUserService::new();
     
     let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
     let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
-    let logout_uc = LogoutUseCase::new(user_service, jwt_service);
-    
-    let auth_handler = Arc::new(AuthHandler::new(signup_uc, login_uc, logout_uc));
+    let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
 
-    let app = Router::new()
-        .route("/auth/signup", post(AuthHandler::signup))
-        .route("/auth/login", post(AuthHandler::login))
-        .route("/auth/logout", post(AuthHandler::logout))
-        .with_state(auth_handler);
+    let app = router::create_router(signup_uc, login_uc, logout_uc, jwt_service);
 
     let listener = tokio::net::TcpListener::bind(&app_config.address())
         .await?;
