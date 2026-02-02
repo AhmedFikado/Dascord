@@ -129,10 +129,6 @@ impl ConnectionManager {
                     self.broadcast_to_channel(&channel_id, message).await;
                 }
             }
-            
-            ClientMessage::Ping => {
-                let _ = self.send_to_connection(connection_id, ServerMessage::Pong).await;
-            }
         }
     }
     

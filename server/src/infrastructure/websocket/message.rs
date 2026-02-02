@@ -12,9 +12,6 @@ pub enum ClientMessage {
     
     /// Envoyer un message dans un channel
     SendMessage { channel_id: String, content: String },
-    
-    /// Ping pour garder la connexion active
-    Ping,
 }
 
 /// Types de messages que le serveur envoie au client
@@ -45,9 +42,6 @@ pub enum ServerMessage {
         channel_id: String,
         user_id: String,
     },
-    
-    /// Réponse au ping
-    Pong,
     
     /// Erreur
     Error { message: String },

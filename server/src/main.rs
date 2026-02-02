@@ -47,12 +47,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Créer les routes HTTP et WebSocket
-    let http_router = router::create_router(signup_uc, login_uc, logout_uc, jwt_service);
+    let http_router = router::create_router(signup_uc, login_uc, logout_uc, jwt_service, user_service);
     let ws_router = create_ws_router(ws_state);
     
     // Fusionner les deux routers
     let app = http_router.merge(ws_router);
-    let app = router::create_router(signup_uc, login_uc, logout_uc, jwt_service, user_service);
 
     let listener = tokio::net::TcpListener::bind(&app_config.address())
         .await?;
