@@ -39,7 +39,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
     let logout_uc = LogoutUseCase::new(user_service.clone(), jwt_service.clone());
 
-<<<<<<< HEAD
     // Créer le gestionnaire WebSocket
     let ws_manager = Arc::new(ConnectionManager::new());
     let ws_state = WebSocketState {
@@ -53,9 +52,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Fusionner les deux routers
     let app = http_router.merge(ws_router);
-=======
     let app = router::create_router(signup_uc, login_uc, logout_uc, jwt_service, user_service);
->>>>>>> 35b8b13f43590dd508a1b134e08c987fa760edb3
 
     let listener = tokio::net::TcpListener::bind(&app_config.address())
         .await?;
@@ -65,13 +62,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("   POST /auth/signup");
     tracing::info!("   POST /auth/login");
     tracing::info!("   POST /auth/logout");
-<<<<<<< HEAD
     tracing::info!("   GET  /auth/me");
     tracing::info!("Endpoints WebSocket:");
     tracing::info!("   WS   /ws?token=<jwt_token>");
-=======
     tracing::info!("   GET  /users/me");
->>>>>>> 35b8b13f43590dd508a1b134e08c987fa760edb3
 
     axum::serve(listener, app).await?;
 
