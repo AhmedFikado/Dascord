@@ -11,9 +11,9 @@ pub async fn start_app() {
 
     let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
     let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
-    let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
+    let logout_uc = LogoutUseCase::new(user_service.clone(), jwt_service.clone());
 
-    let app = router::create_router(signup_uc, login_uc, logout_uc, jwt_service);
+    let app = router::create_router(signup_uc, login_uc, logout_uc, jwt_service, user_service);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080")
         .await

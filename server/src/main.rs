@@ -35,9 +35,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
     let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
-    let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
+    let logout_uc = LogoutUseCase::new(user_service.clone(), jwt_service.clone());
 
-    let app = router::create_router(signup_uc, login_uc, logout_uc, jwt_service);
+    let app = router::create_router(signup_uc, login_uc, logout_uc, jwt_service, user_service);
 
     let listener = tokio::net::TcpListener::bind(&app_config.address())
         .await?;
@@ -47,6 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("   POST /auth/signup");
     tracing::info!("   POST /auth/login");
     tracing::info!("   POST /auth/logout");
+    tracing::info!("   GET  /users/me");
 
     axum::serve(listener, app).await?;
 
