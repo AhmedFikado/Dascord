@@ -39,5 +39,11 @@ jsonwebtoken = "9.0"
 validator = { version = "0.18", features = ["derive"] }
 async-trait = "0.1"
 
+# WebSocket
+axum-extra = { version = "0.9", features = ["typed-header"] }
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
+dashmap = "5.5"
+
 [dev-dependencies]
 tokio-test = "0.4"
