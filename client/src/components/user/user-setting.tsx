@@ -5,6 +5,8 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { User, Status } from '@/types/models/user';
 import { useSnackbar } from "@/components/shared/error-message";
+import { useAuthStore } from '@/app/lib/stores/use-auth-store';
+import { useRouter } from 'next/navigation';
 
 interface UserSettingProps {
     user: User;
@@ -18,6 +20,8 @@ export default function UserSetting({ user, onUpdate }: UserSettingProps) {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const { showSnackbar } = useSnackbar();
+    const authStore = useAuthStore();
+    const router = useRouter();
 
     const handleSave = async () => {
         if (!username.trim() || !email.trim()) {
@@ -44,7 +48,8 @@ export default function UserSetting({ user, onUpdate }: UserSettingProps) {
     };
 
     const handleLogout = () => {
-        //à faire 
+        authStore.logout();
+        router.push('/login');
     }
 
     return (

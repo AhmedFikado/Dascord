@@ -7,20 +7,18 @@ import { Status } from '@/types/models/status';
 import { Dialog } from '../ui/dialog';
 import UserSetting from './user-setting';
 import { User } from '@/types/models/user';
-
-const userAlice: User = {
-    id: 1,
-    username: 'Alice',
-    email: 'alice@gmail.com',
-    created_at: new Date(),
-    status: Status.ONLINE,
-};
+import { useAuthStore } from '@/app/lib/stores/use-auth-store';
+import { useRouter } from 'next/navigation';
+import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
 
 export default function UserPanel() {
     const [isOpen, setIsOpen] = useState(false);
     const [status, setStatus] = useState(Status.ONLINE);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const router = useRouter();
+    const authStore = useAuthStore();
+    const { user } = useCurrentUser();
 
     const handleStatusChange = (newStatus: Status) => {
         setStatus(newStatus);
@@ -30,7 +28,8 @@ export default function UserPanel() {
 
     const handleLogout = () => {
         setIsOpen(false);
-        //à faire
+        authStore.logout();
+        router.push('/login');
     };
 
     const handleSettings = () => {
@@ -49,20 +48,24 @@ export default function UserPanel() {
                 onLogout={handleLogout}
             />
 
-            <UserPanelBar
-                username="Alice"
-                status={status}
-                onClick={() => setIsOpen(!isOpen)}
-            />
+            {user && (
+                <>
+                    <UserPanelBar
+                        username={user.username}
+                        status={status}
+                        onClick={() => setIsOpen(!isOpen)}
+                    />
 
-            <Dialog
-                isOpen={isSettingsOpen}
-                onClose={() => setIsSettingsOpen(false)}
-                title="Paramètres utilisateur"
-                size="xl"
-            >
-                <UserSetting user={userAlice} />
-            </Dialog>
+                    <Dialog
+                        isOpen={isSettingsOpen}
+                        onClose={() => setIsSettingsOpen(false)}
+                        title="Paramètres utilisateur"
+                        size="xl"
+                    >
+                        <UserSetting user={user} />
+                    </Dialog>
+                </>
+            )}
         </>
     );
 }
