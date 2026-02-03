@@ -6,7 +6,7 @@ import { useState } from "react";
 import { channelsApi } from "@/app/lib/api/channels";
 import { useChannelStore } from "@/app/lib/stores/use-channel-store";
 
-export default function CreateChannelDialog({ serverId }: { serverId: number }) {
+export default function CreateChannelDialog({ serverId }: { serverId: string }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [channelName, setChannelName] = useState("");

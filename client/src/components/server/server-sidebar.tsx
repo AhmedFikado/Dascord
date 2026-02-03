@@ -9,7 +9,7 @@ import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { useChannels } from '@/app/lib/hooks/use-channels';
 
 interface ServerSidebarProps {
-    serverId: number;
+    serverId: string;
 }
 
 export default function ServerSidebar({ serverId }: ServerSidebarProps) {

@@ -13,7 +13,7 @@ export default function MessageInput({ onSendMessage }: MessageInputProps) {
     const [message, setMessage] = useState('');
 
     const user: User = {
-        id: 1,
+        id: 'qqskdjqsiojdh"234',
         username: 'Alice',
         email: 'alice@gmail.com',
         created_at: new Date(),

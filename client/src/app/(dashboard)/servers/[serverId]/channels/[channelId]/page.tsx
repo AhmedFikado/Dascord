@@ -15,14 +15,11 @@ export default function ChannelPage({
 }) {
     const { serverId, channelId } = use(params);
 
-    const numericServerId = Number(serverId);
-    const numericChannelId = Number(channelId);
+    const { channels, isLoading: channelsLoading } = useChannels(serverId);
 
-    const { channels, isLoading: channelsLoading } = useChannels(numericServerId);
+    const currentChannel = channels.find(c => c.id === channelId);
 
-    const currentChannel = channels.find(c => c.id === numericChannelId);
-
-    const { messages, sendMessage } = useMessages(currentChannel ? numericChannelId : 0);
+    const { messages, sendMessage } = useMessages(currentChannel ? channelId : '0');
 
     if (channelsLoading) {
         return (
@@ -56,7 +53,7 @@ export default function ChannelPage({
 
             <MessageInput
                 channelName={currentChannel.name}
-                onSendMessage={(content) => sendMessage(numericChannelId, content)}
+                onSendMessage={(content) => sendMessage(channelId, content)}
             />
         </main>
     );

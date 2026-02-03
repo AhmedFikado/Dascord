@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useChannelStore } from '../stores/use-channel-store';
 
-export function useChannels(serverId: number) {
+export function useChannels(serverId: string) {
 
     const channels = useChannelStore((state) => state.channels);
     const isLoading = useChannelStore((state) => state.isLoading);
