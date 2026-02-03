@@ -6,27 +6,54 @@ use axum::{
 };
 use std::sync::Arc;
 use uuid::Uuid;
+use crate::application::dto::server::CreateServerRequest;
+use crate::application::use_cases::server::*;
 use crate::infrastructure::security::JWTService;
+use crate::infrastructure::repositories::{ServerRepository, ChannelRepository};
 use crate::utils::error::AppError;
 
-/// Handler contenant la logique métier pour les serveurs
 #[derive(Clone)]
-pub struct ServerHandler {
+pub struct ServerHandler<SR: ServerRepository, CR: ChannelRepository> {
     jwt_service: Arc<JWTService>,
+    create_server_uc: Arc<CreateServerUseCase<SR>>,
+    get_user_servers_uc: Arc<GetUserServersUseCase<SR>>,
+    get_server_info_uc: Arc<GetServerInfoUseCase<SR>>,
+    update_server_uc: Arc<UpdateServerUseCase<SR>>,
+    delete_server_uc: Arc<DeleteServerUseCase<SR>>,
+    join_server_uc: Arc<JoinServerUseCase<SR>>,
+    leave_server_uc: Arc<LeaveServerUseCase<SR>>,
+    list_members_uc: Arc<ListMembersUseCase<SR>>,
+    update_member_role_uc: Arc<UpdateMemberRoleUseCase<SR>>,
+    get_channels_uc: Arc<GetChannelsUseCase<SR, CR>>,
+    create_channel_uc: Arc<CreateChannelUseCase<SR, CR>>,
 }
 
-impl ServerHandler {
-    pub fn new(jwt_service: JWTService) -> Self {
+impl<SR: ServerRepository, CR: ChannelRepository> ServerHandler<SR, CR> {
+    pub fn new(
+        jwt_service: JWTService,
+        server_repo: SR,
+        channel_repo: CR,
+    ) -> Self {
         Self {
             jwt_service: Arc::new(jwt_service),
+            create_server_uc: Arc::new(CreateServerUseCase::new(server_repo.clone())),
+            get_user_servers_uc: Arc::new(GetUserServersUseCase::new(server_repo.clone())),
+            get_server_info_uc: Arc::new(GetServerInfoUseCase::new(server_repo.clone())),
+            update_server_uc: Arc::new(UpdateServerUseCase::new(server_repo.clone())),
+            delete_server_uc: Arc::new(DeleteServerUseCase::new(server_repo.clone())),
+            join_server_uc: Arc::new(JoinServerUseCase::new(server_repo.clone())),
+            leave_server_uc: Arc::new(LeaveServerUseCase::new(server_repo.clone())),
+            list_members_uc: Arc::new(ListMembersUseCase::new(server_repo.clone())),
+            update_member_role_uc: Arc::new(UpdateMemberRoleUseCase::new(server_repo.clone())),
+            get_channels_uc: Arc::new(GetChannelsUseCase::new(server_repo.clone(), channel_repo.clone())),
+            create_channel_uc: Arc::new(CreateChannelUseCase::new(server_repo, channel_repo)),
         }
     }
 
-    /// POST /servers - Créer un nouveau serveur
     pub async fn create_server(
-        State(handler): State<Arc<ServerHandler>>,
+        State(handler): State<Arc<Self>>,
         headers: HeaderMap,
-        Json(payload): Json<serde_json::Value>,
+        Json(request): Json<CreateServerRequest>,
     ) -> Result<impl IntoResponse, AppError> {
         let token = headers
             .get("Authorization")
@@ -35,19 +62,15 @@ impl ServerHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let owner_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Implémenter la logique de création de serveur
-        // let server = handler.server_uc.create_server(claims.sub_id, payload).await?;
-        
-        Ok((StatusCode::CREATED, Json(serde_json::json!({
-            "message": "Server created",
-            "owner_id": claims.sub_id
-        }))))
+        let response = handler.create_server_uc.execute(request, owner_id).await?;
+        Ok((StatusCode::CREATED, Json(response)))
     }
 
-    /// GET /servers - Obtenir la liste des serveurs
     pub async fn get_user_servers(
-        State(handler): State<Arc<ServerHandler>>,
+        State(handler): State<Arc<Self>>,
         headers: HeaderMap,
     ) -> Result<impl IntoResponse, AppError> {
         let token = headers
@@ -57,19 +80,15 @@ impl ServerHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Récupérer les serveurs de l'utilisateur depuis la DB
-        // let servers = handler.server_uc.get_user_servers(claims.sub_id).await?;
-        
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "user_id": claims.sub_id,
-            "servers": []
-        }))))
+        let servers = handler.get_user_servers_uc.execute(user_id).await?;
+        Ok((StatusCode::OK, Json(servers)))
     }
 
-    /// GET /servers/:id - Obtenir les infos d'un serveur spécifique
     pub async fn get_server_info(
-        State(handler): State<Arc<ServerHandler>>,
+        State(handler): State<Arc<Self>>,
         Path(id): Path<Uuid>,
         headers: HeaderMap,
     ) -> Result<impl IntoResponse, AppError> {
@@ -80,23 +99,15 @@ impl ServerHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Récupérer les infos du serveur depuis la DB
-        // let server = handler.server_uc.get_server_by_id(id).await?;
-        // Vérifier que l'utilisateur a accès à ce serveur
-        
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "server_id": id.to_string(),
-            "user_id": claims.sub_id,
-            "name": "Server Name",
-            "owner_id": "owner-uuid",
-            "created_at": "2024-01-01T00:00:00Z"
-        }))))
+        let server = handler.get_server_info_uc.execute(id, user_id).await?;
+        Ok((StatusCode::OK, Json(server)))
     }
 
-    /// PUT /servers/:id - Mettre à jour un serveur
     pub async fn update_server(
-        State(handler): State<Arc<ServerHandler>>,
+        State(handler): State<Arc<Self>>,
         Path(id): Path<Uuid>,
         headers: HeaderMap,
         Json(payload): Json<serde_json::Value>,
@@ -108,20 +119,20 @@ impl ServerHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Mettre à jour le serveur
-        // Vérifier que l'utilisateur est owner/admin
+        let name = payload.get("name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| AppError::ValidationError("Missing name field".to_string()))?
+            .to_string();
         
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "message": "Server updated",
-            "server_id": id.to_string(),
-            "user_id": claims.sub_id
-        }))))
+        let server = handler.update_server_uc.execute(id, user_id, name).await?;
+        Ok((StatusCode::OK, Json(server)))
     }
 
-    /// DELETE /servers/:id - Supprimer un serveur
     pub async fn delete_server(
-        State(handler): State<Arc<ServerHandler>>,
+        State(handler): State<Arc<Self>>,
         Path(id): Path<Uuid>,
         headers: HeaderMap,
     ) -> Result<impl IntoResponse, AppError> {
@@ -132,19 +143,15 @@ impl ServerHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Supprimer le serveur
-        // Vérifier que l'utilisateur est owner
-        
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "message": "Server deleted",
-            "server_id": id.to_string()
-        }))))
+        handler.delete_server_uc.execute(id, user_id).await?;
+        Ok((StatusCode::OK, Json(serde_json::json!({"message": "Server deleted"}))))
     }
 
-    /// POST /servers/:id/join - Rejoindre un serveur
     pub async fn join_server(
-        State(handler): State<Arc<ServerHandler>>,
+        State(handler): State<Arc<Self>>,
         Path(id): Path<Uuid>,
         headers: HeaderMap,
     ) -> Result<impl IntoResponse, AppError> {
@@ -155,19 +162,15 @@ impl ServerHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Ajouter l'utilisateur au serveur
-        
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "message": "Joined server",
-            "server_id": id.to_string(),
-            "user_id": claims.sub_id
-        }))))
+        handler.join_server_uc.execute(id, user_id).await?;
+        Ok((StatusCode::OK, Json(serde_json::json!({"message": "Joined server"}))))
     }
 
-    /// DELETE /servers/:id/leave - Quitter un serveur
     pub async fn leave_server(
-        State(handler): State<Arc<ServerHandler>>,
+        State(handler): State<Arc<Self>>,
         Path(id): Path<Uuid>,
         headers: HeaderMap,
     ) -> Result<impl IntoResponse, AppError> {
@@ -178,19 +181,15 @@ impl ServerHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Retirer l'utilisateur du serveur
-        
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "message": "Left server",
-            "server_id": id.to_string(),
-            "user_id": claims.sub_id
-        }))))
+        handler.leave_server_uc.execute(id, user_id).await?;
+        Ok((StatusCode::OK, Json(serde_json::json!({"message": "Left server"}))))
     }
 
-    /// GET /servers/:id/members - Lister les membres d'un serveur
     pub async fn list_members(
-        State(handler): State<Arc<ServerHandler>>,
+        State(handler): State<Arc<Self>>,
         Path(id): Path<Uuid>,
         headers: HeaderMap,
     ) -> Result<impl IntoResponse, AppError> {
@@ -201,19 +200,16 @@ impl ServerHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Récupérer la liste des membres
-        
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "server_id": id.to_string(),
-            "members": []
-        }))))
+        let members = handler.list_members_uc.execute(id, user_id).await?;
+        Ok((StatusCode::OK, Json(members)))
     }
 
-    /// PUT /servers/:id/members/:userId - Mettre à jour le rôle d'un membre
     pub async fn update_member_role(
-        State(handler): State<Arc<ServerHandler>>,
-        Path((id, user_id)): Path<(Uuid, Uuid)>,
+        State(handler): State<Arc<Self>>,
+        Path((id, target_user_id)): Path<(Uuid, Uuid)>,
         headers: HeaderMap,
         Json(payload): Json<serde_json::Value>,
     ) -> Result<impl IntoResponse, AppError> {
@@ -224,20 +220,18 @@ impl ServerHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let requester_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Mettre à jour le rôle du membre
-        // Vérifier que l'utilisateur est owner/admin
+        let role = serde_json::from_value(payload.get("role").cloned().unwrap_or_default())
+            .map_err(|_| AppError::ValidationError("Invalid role".to_string()))?;
         
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "message": "Member role updated",
-            "server_id": id.to_string(),
-            "user_id": user_id.to_string()
-        }))))
+        handler.update_member_role_uc.execute(id, target_user_id, requester_id, role).await?;
+        Ok((StatusCode::OK, Json(serde_json::json!({"message": "Member role updated"}))))
     }
 
-    /// GET /servers/:id/channels - Obtenir la liste des canaux d'un serveur
     pub async fn get_channels(
-        State(handler): State<Arc<ServerHandler>>,
+        State(handler): State<Arc<Self>>,
         Path(id): Path<Uuid>,
         headers: HeaderMap,
     ) -> Result<impl IntoResponse, AppError> {
@@ -248,24 +242,18 @@ impl ServerHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Récupérer les canaux du serveur depuis la DB
-        // let channels = handler.channel_uc.get_server_channels(id).await?;
-        // Vérifier que l'utilisateur a accès à ce serveur
-        
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "server_id": id.to_string(),
-            "user_id": claims.sub_id,
-            "channels": []
-        }))))
+        let channels = handler.get_channels_uc.execute(id, user_id).await?;
+        Ok((StatusCode::OK, Json(channels)))
     }
 
-    /// POST /servers/:id/channels - Créer un nouveau canal dans un serveur
     pub async fn create_channel(
-        State(handler): State<Arc<ServerHandler>>,
+        State(handler): State<Arc<Self>>,
         Path(id): Path<Uuid>,
         headers: HeaderMap,
-        Json(payload): Json<serde_json::Value>,
+        Json(request): Json<crate::application::dto::channel::CreateChannelRequest>,
     ) -> Result<impl IntoResponse, AppError> {
         let token = headers
             .get("Authorization")
@@ -274,15 +262,10 @@ impl ServerHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Créer le canal
-        // let channel = handler.channel_uc.create_channel(id, payload).await?;
-        // Vérifier que l'utilisateur est owner/admin du serveur
-        
-        Ok((StatusCode::CREATED, Json(serde_json::json!({
-            "message": "Channel created",
-            "server_id": id.to_string(),
-            "user_id": claims.sub_id
-        }))))
+        let channel = handler.create_channel_uc.execute(id, user_id, request).await?;
+        Ok((StatusCode::CREATED, Json(channel)))
     }
 }

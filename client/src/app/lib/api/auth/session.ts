@@ -22,7 +22,7 @@ export const initializeSession = async (): Promise<boolean> => {
             status: response.status as any,
             created_at: new Date(response.created_at),
         });
-        useAuthStore.getState().setUserId(response.id);
+        useAuthStore.getState().setUserId(String(response.id));
 
         return true;
     } catch (error) {

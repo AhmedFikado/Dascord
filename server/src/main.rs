@@ -4,8 +4,9 @@ use server::{
     infrastructure::database::{init_databases, MongoDBMessageRepository},
     infrastructure::security::JWTService,
     infrastructure::websocket::{ConnectionManager, WebSocketState, create_ws_router},
+    infrastructure::repositories::PostgresUserRepository,
+    infrastructure::services::UserService,
     application::use_cases::auth::{SignupUseCase, LoginUseCase, LogoutUseCase},
-    mocks::MockUserService,
     api::router,
 };
 
@@ -40,8 +41,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|_| "dev_secret_key_change_in_production".to_string());
     let jwt_service = JWTService::new(jwt_secret);
 
-    // TODO: Remplacer MockUserService par PostgresUserRepository
-    let user_service = MockUserService::new();
+    let user_repo = PostgresUserRepository::new(_app_state.pg_pool.clone());
+    let user_service = UserService::new(user_repo);
     
     let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
     let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
@@ -55,11 +56,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         message_repository: message_repository.clone(),
     };
 
-    // Créer les routes HTTP et WebSocket
-    let http_router = router::create_router(signup_uc, login_uc, logout_uc, jwt_service, user_service);
+    let http_router = router::create_router(signup_uc, login_uc, logout_uc, jwt_service, user_service, _app_state.pg_pool.clone(), _app_state.mongo_client.clone());
     let ws_router = create_ws_router(ws_state);
     
-    // Fusionner les deux routers
     let app = http_router.merge(ws_router);
 
     let listener = tokio::net::TcpListener::bind(&app_config.address())

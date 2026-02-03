@@ -45,5 +45,8 @@ tokio-tungstenite = "0.21"
 futures-util = "0.3"
 dashmap = "5.5"
 
+# Random
+rand = "0.8"
+
 [dev-dependencies]
 tokio-test = "0.4"
