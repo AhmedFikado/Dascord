@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use super::manager::ConnectionManager;
 use super::message::{ClientMessage, ServerMessage};
+use crate::infrastructure::database::MongoDBMessageRepository;
 
 /// Représente une connexion WebSocket individuelle
 pub struct Connection {
@@ -49,6 +50,7 @@ pub async fn handle_socket(
     user_id: Uuid,
     username: String,
     manager: Arc<ConnectionManager>,
+    message_repository: MongoDBMessageRepository,
 ) {
     // Séparer le socket en deux parties : écriture (sink) et lecture (stream)
     let (mut sink, mut stream) = socket.split();
@@ -88,7 +90,7 @@ pub async fn handle_socket(
         while let Some(Ok(msg)) = stream.next().await {
             if let Message::Text(text) = msg {
                 if let Ok(client_msg) = serde_json::from_str::<ClientMessage>(&text) {
-                    manager_clone.handle_client_message(connection_id, client_msg).await;
+                    manager_clone.handle_client_message(connection_id, client_msg, &message_repository).await;
                 }
             } else if let Message::Close(_) = msg {
                 break;

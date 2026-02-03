@@ -11,6 +11,8 @@ pub enum AppError {
     Unauthorized(String),
     NotFound(String),
     InternalServerError(String),
+    DatabaseError(String),
+    BadRequest(String),
 }
 
 #[derive(Serialize)]
@@ -26,6 +28,8 @@ impl fmt::Display for AppError {
             AppError::Unauthorized(msg) => write!(f, "Unauthorized: {}", msg),
             AppError::NotFound(msg) => write!(f, "Not found: {}", msg),
             AppError::InternalServerError(msg) => write!(f, "Internal server error: {}", msg),
+            AppError::DatabaseError(msg) => write!(f, "Database error: {}", msg),
+            AppError::BadRequest(msg) => write!(f, "Bad request: {}", msg),
         }
     }
 }
@@ -38,6 +42,8 @@ impl IntoResponse for AppError {
             AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg),
             AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
             AppError::InternalServerError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+            AppError::DatabaseError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
         };
 
         (status, Json(ErrorResponse { error: error_message })).into_response()

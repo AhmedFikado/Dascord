@@ -12,6 +12,9 @@ pub enum ClientMessage {
     
     /// Envoyer un message dans un channel
     SendMessage { channel_id: String, content: String },
+    
+    /// Indiquer que l'utilisateur est en train de taper
+    Typing { channel_id: String, is_typing: bool },
 }
 
 /// Types de messages que le serveur envoie au client
@@ -24,6 +27,7 @@ pub enum ServerMessage {
     /// Nouveau message dans un channel
     NewMessage {
         channel_id: String,
+        message_id: String,
         user_id: String,
         username: String,
         content: String,
@@ -43,8 +47,36 @@ pub enum ServerMessage {
         user_id: String,
     },
     
-    /// Erreur
-    Error { message: String },
+    /// Un utilisateur est en train de taper
+    UserTyping {
+        channel_id: String,
+        user_id: String,
+        username: String,
+        is_typing: bool,
+    },
+    
+    /// Historique des messages d'un channel (envoyé après JoinChannel)
+    MessageHistory {
+        channel_id: String,
+        messages: Vec<MessageData>,
+    },
+    
+    /// Erreur avec code et détails
+    Error { 
+        code: String,
+        message: String,
+        channel_id: Option<String>,
+    },
+}
+
+/// Structure pour les données d'un message dans l'historique
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MessageData {
+    pub message_id: String,
+    pub user_id: String,
+    pub username: String,
+    pub content: String,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl ServerMessage {

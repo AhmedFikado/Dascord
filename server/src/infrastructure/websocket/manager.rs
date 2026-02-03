@@ -4,7 +4,9 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use super::connection::Connection;
-use super::message::{ClientMessage, ServerMessage};
+use super::message::{ClientMessage, ServerMessage, MessageData};
+use crate::infrastructure::database::MongoDBMessageRepository;
+use crate::domain::entities::message::Message;
 
 /// Gestionnaire central de toutes les connexions WebSocket
 pub struct ConnectionManager {
@@ -66,11 +68,52 @@ impl ConnectionManager {
     }
     
     /// Mettre une connexion à un channel
-    pub async fn join_channel(&self, connection_id: Uuid, channel_id: String) {
+    pub async fn join_channel(
+        &self,
+        connection_id: Uuid,
+        channel_id: String,
+        message_repository: &MongoDBMessageRepository,
+    ) {
         self.rooms
             .entry(channel_id.clone())
             .or_insert_with(HashSet::new)
             .insert(connection_id);
+        
+        // Récupérer et envoyer l'historique des messages
+        match message_repository.get_messages_by_channel(&channel_id).await {
+            Ok(messages) => {
+                let message_data: Vec<MessageData> = messages
+                    .iter()
+                    .map(|msg| MessageData {
+                        message_id: msg.id
+                            .as_ref()
+                            .map(|id| id.to_hex())
+                            .unwrap_or_else(|| "unknown".to_string()),
+                        user_id: msg.user_id.clone(),
+                        username: msg.username.clone(),
+                        content: msg.content.clone(),
+                        created_at: msg.created_at,
+                    })
+                    .collect();
+                
+                let history_msg = ServerMessage::MessageHistory {
+                    channel_id: channel_id.clone(),
+                    messages: message_data,
+                };
+                
+                let _ = self.send_to_connection(connection_id, history_msg).await;
+                tracing::info!("Envoyé {} messages d'historique pour le channel {}", messages.len(), channel_id);
+            }
+            Err(e) => {
+                tracing::error!("Erreur lors de la récupération de l'historique: {:?}", e);
+                let error_msg = ServerMessage::Error {
+                    code: "HISTORY_FETCH_ERROR".to_string(),
+                    message: "Impossible de récupérer l'historique des messages".to_string(),
+                    channel_id: Some(channel_id.clone()),
+                };
+                let _ = self.send_to_connection(connection_id, error_msg).await;
+            }
+        }
         
         // Notifier les autres membres
         if let Some(conn) = self.connections.get(&connection_id) {
@@ -104,10 +147,15 @@ impl ConnectionManager {
     }
     
     /// Gérer les messages reçus du client
-    pub async fn handle_client_message(&self, connection_id: Uuid, message: ClientMessage) {
+    pub async fn handle_client_message(
+        &self,
+        connection_id: Uuid,
+        message: ClientMessage,
+        message_repository: &MongoDBMessageRepository,
+    ) {
         match message {
             ClientMessage::JoinChannel { channel_id } => {
-                self.join_channel(connection_id, channel_id).await;
+                self.join_channel(connection_id, channel_id, message_repository).await;
             }
             
             ClientMessage::LeaveChannel { channel_id } => {
@@ -115,18 +163,91 @@ impl ConnectionManager {
             }
             
             ClientMessage::SendMessage { channel_id, content } => {
+                // Vérifier que le contenu n'est pas vide
+                if content.trim().is_empty() {
+                    let error_msg = ServerMessage::Error {
+                        code: "EMPTY_MESSAGE".to_string(),
+                        message: "Le message ne peut pas être vide".to_string(),
+                        channel_id: Some(channel_id),
+                    };
+                    let _ = self.send_to_connection(connection_id, error_msg).await;
+                    return;
+                }
+                
                 // Récupérer les infos de l'utilisateur
                 if let Some(conn) = self.connections.get(&connection_id) {
-                    let message = ServerMessage::NewMessage {
+                    // Créer le message à sauvegarder
+                    let new_message = Message::new(
+                        channel_id.clone(),
+                        conn.user_id.to_string(),
+                        conn.username.clone(),
+                        content.clone(),
+                    );
+                    
+                    // Sauvegarder en base de données
+                    match message_repository.save_message(&new_message).await {
+                        Ok(message_id) => {
+                            // Broadcast à tous les membres du channel
+                            let message = ServerMessage::NewMessage {
+                                channel_id: channel_id.clone(),
+                                message_id,
+                                user_id: conn.user_id.to_string(),
+                                username: conn.username.clone(),
+                                content,
+                                created_at: new_message.created_at,
+                            };
+                            
+                            self.broadcast_to_channel(&channel_id, message).await;
+                            tracing::info!("Message sauvegardé et diffusé sur le channel {}", channel_id);
+                        }
+                        Err(e) => {
+                            tracing::error!("Erreur lors de la sauvegarde du message: {:?}", e);
+                            let error_msg = ServerMessage::Error {
+                                code: "MESSAGE_SAVE_ERROR".to_string(),
+                                message: "Impossible de sauvegarder le message".to_string(),
+                                channel_id: Some(channel_id),
+                            };
+                            let _ = self.send_to_connection(connection_id, error_msg).await;
+                        }
+                    }
+                } else {
+                    let error_msg = ServerMessage::Error {
+                        code: "CONNECTION_NOT_FOUND".to_string(),
+                        message: "Connexion introuvable".to_string(),
+                        channel_id: Some(channel_id),
+                    };
+                    let _ = self.send_to_connection(connection_id, error_msg).await;
+                }
+            }
+            
+            ClientMessage::Typing { channel_id, is_typing } => {
+                // Récupérer les infos de l'utilisateur
+                if let Some(conn) = self.connections.get(&connection_id) {
+                    let message = ServerMessage::UserTyping {
                         channel_id: channel_id.clone(),
                         user_id: conn.user_id.to_string(),
                         username: conn.username.clone(),
-                        content,
-                        created_at: chrono::Utc::now(),
+                        is_typing,
                     };
                     
-                    // Broadcast à tous les membres du channel
-                    self.broadcast_to_channel(&channel_id, message).await;
+                    // Broadcast à tous les autres membres du channel (sauf l'émetteur)
+                    if let Some(room) = self.rooms.get(&channel_id) {
+                        for conn_id in room.value().iter() {
+                            if *conn_id != connection_id {
+                                let _ = self.send_to_connection(*conn_id, message.clone()).await;
+                            }
+                        }
+                    }
+                    
+                    tracing::debug!("User {} typing status: {} dans channel {}", 
+                        conn.username, is_typing, channel_id);
+                } else {
+                    let error_msg = ServerMessage::Error {
+                        code: "CONNECTION_NOT_FOUND".to_string(),
+                        message: "Connexion introuvable".to_string(),
+                        channel_id: Some(channel_id),
+                    };
+                    let _ = self.send_to_connection(connection_id, error_msg).await;
                 }
             }
         }

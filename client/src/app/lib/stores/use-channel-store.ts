@@ -8,10 +8,10 @@ interface ChannelState {
     isLoading: boolean;
     error: string | null;
 
-    fetchChannels: (serverId: number) => Promise<void>;
+    fetchChannels: (serverId: string) => Promise<void>;
     setCurrentChannel: (channel: Channel) => void;
     addChannel: (channel: Channel) => void;
-    removeChannel: (channelId: number) => void;
+    removeChannel: (channelId: string) => void;
 }
 
 export const useChannelStore = create<ChannelState>((set) => ({
@@ -20,7 +20,7 @@ export const useChannelStore = create<ChannelState>((set) => ({
     isLoading: false,
     error: null,
 
-    fetchChannels: async (serverId: number) => {
+    fetchChannels: async (serverId: string) => {
         set({ isLoading: true, error: null });
         try {
             const channels = await channelsApi.getByServer(serverId);
