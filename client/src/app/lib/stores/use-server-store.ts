@@ -11,7 +11,7 @@ interface ServerState {
     fetchServers: () => Promise<void>;
     setCurrentServer: (server: Server) => void;
     addServer: (server: Server) => void;
-    removeServer: (serverId: number) => void;
+    removeServer: (serverId: string) => void;
 }
 
 export const useServerStore = create<ServerState>((set) => ({

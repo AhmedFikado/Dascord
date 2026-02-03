@@ -10,21 +10,21 @@ export default function MemberList({ searchQuery = '', isRole = false }: MemberL
 
     const Users: User[] = [
         {
-            id: 1,
+            id: '1',
             username: 'Ethan',
             email: 'ethan@gmail.com',
             created_at: new Date(),
             status: Status.ONLINE
         },
         {
-            id: 2,
+            id: '2',
             username: 'Ahmed',
             email: 'ahmed@gmail.com',
             created_at: new Date(),
             status: Status.OFFLINE
         },
         {
-            id: 3,
+            id: '3',
             username: 'Alexis',
             email: 'alexis@gmail.com',
             created_at: new Date(),

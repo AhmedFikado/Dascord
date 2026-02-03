@@ -1,6 +1,6 @@
 export interface Channel {
-    id: number,
-    server_id: number,
-    name: string,
-    created_at: Date,
+    id: string;
+    server_id: string;
+    name: string;
+    created_at: Date;
 }
