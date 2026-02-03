@@ -1,5 +1,5 @@
-use serde::{Serialize};
-use crate::mocks::mock_user_entitie::User;
+use serde::Serialize;
+use crate::domain::entities::User;
 
 #[derive(Debug, Serialize)]
 pub struct UserResponse {
@@ -15,7 +15,7 @@ impl From<User> for UserResponse {
             id: user.id.to_string(),
             username: user.username,
             email: user.email,
-            status: format!("{:?}", user.status),
+            status: user.status,
         }
     }
 }

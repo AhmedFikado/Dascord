@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use uuid::Uuid;
 
 #[async_trait]
-pub trait UserRepository: Send + Sync {
+pub trait TestUserRepository: Send + Sync {
     async fn create(&self, user: User) -> AppResult<User>;
     async fn find_by_id(&self, id: Uuid) -> AppResult<Option<User>>;
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>>;

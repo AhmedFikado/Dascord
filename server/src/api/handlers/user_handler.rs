@@ -5,28 +5,26 @@ use axum::{
     Json,
 };
 use std::sync::Arc;
+use crate::application::use_cases::user::*;
 use crate::infrastructure::security::JWTService;
-use crate::mocks::MockUserService;
-use crate::mocks::mock_user_repo::UserRepository;
+use crate::infrastructure::services::UserService;
 use crate::utils::error::AppError;
 use uuid::Uuid;
 
-/// Handler pour les opérations utilisateur
 #[derive(Clone)]
 pub struct UserHandler {
-    user_service: Arc<MockUserService>,
     jwt_service: Arc<JWTService>,
+    get_user_info_uc: Arc<GetUserInfoUseCase>,
 }
 
 impl UserHandler {
-    pub fn new(user_service: MockUserService, jwt_service: JWTService) -> Self {
+    pub fn new(user_service: UserService, jwt_service: JWTService) -> Self {
         Self {
-            user_service: Arc::new(user_service),
-            jwt_service: Arc::new(jwt_service),
+            jwt_service: Arc::new(jwt_service.clone()),
+            get_user_info_uc: Arc::new(GetUserInfoUseCase::new(user_service)),
         }
     }
 
-    /// GET /users/me - Obtenir les informations de l'utilisateur connecté
     pub async fn get_me(
         State(handler): State<Arc<UserHandler>>,
         headers: HeaderMap,
@@ -38,22 +36,10 @@ impl UserHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
-        
-        // Récupérer l'utilisateur complet
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID in token".to_string()))?;
         
-        let user = handler.user_service.repo()
-            .find_by_id(user_id)
-            .await?
-            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
-        
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "id": user.id.to_string(),
-            "username": user.username,
-            "email": user.email,
-            "status": user.status,
-            "created_at": user.created_at,
-        }))))
+        let user = handler.get_user_info_uc.execute(user_id).await?;
+        Ok((StatusCode::OK, Json(user)))
     }
 }

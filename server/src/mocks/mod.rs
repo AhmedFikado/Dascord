@@ -8,5 +8,5 @@ pub mod mock_auth_handler;
 pub use mock_user_repository::MockUserRepository;
 pub use mock_user_service::MockUserService;
 pub use mock_user_entitie::User;
-pub use mock_user_repo::UserRepository;
+pub use mock_user_repo::TestUserRepository;
 pub use mock_auth_handler::AuthHandler;
