@@ -10,7 +10,7 @@ interface ServerItemProps {
 export default function ServerItem({ server }: ServerItemProps) {
     const router = useRouter();
     const params = useParams();
-    const currentServerId = params?.serverId ? parseInt(params.serverId as string) : null;
+    const currentServerId = params?.serverId as string | undefined;
 
     const getInitials = (name: string): string => {
         const words = name.trim().split(' ');

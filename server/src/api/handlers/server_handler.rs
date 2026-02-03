@@ -7,6 +7,7 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 use crate::application::dto::server::CreateServerRequest;
+use crate::application::dto::server::JoinServerRequest;
 use crate::application::use_cases::server::*;
 use crate::infrastructure::security::JWTService;
 use crate::infrastructure::repositories::{ServerRepository, ChannelRepository};
@@ -152,8 +153,8 @@ impl<SR: ServerRepository, CR: ChannelRepository> ServerHandler<SR, CR> {
 
     pub async fn join_server(
         State(handler): State<Arc<Self>>,
-        Path(id): Path<Uuid>,
         headers: HeaderMap,
+        Json(request): Json<JoinServerRequest>,
     ) -> Result<impl IntoResponse, AppError> {
         let token = headers
             .get("Authorization")
@@ -165,7 +166,7 @@ impl<SR: ServerRepository, CR: ChannelRepository> ServerHandler<SR, CR> {
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        handler.join_server_uc.execute(id, user_id).await?;
+        handler.join_server_uc.execute(&request.invitation_code, user_id).await?;
         Ok((StatusCode::OK, Json(serde_json::json!({"message": "Joined server"}))))
     }
 

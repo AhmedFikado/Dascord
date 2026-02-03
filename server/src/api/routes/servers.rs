@@ -14,7 +14,7 @@ pub fn server_routes<SR: ServerRepository + 'static, CR: ChannelRepository + 'st
         .route("/:id", get(ServerHandler::<SR, CR>::get_server_info))
         .route("/:id", put(ServerHandler::<SR, CR>::update_server))
         .route("/:id", delete(ServerHandler::<SR, CR>::delete_server))
-        .route("/:id/join", post(ServerHandler::<SR, CR>::join_server))
+        .route("/join", post(ServerHandler::<SR, CR>::join_server))
         .route("/:id/leave", delete(ServerHandler::<SR, CR>::leave_server))
         .route("/:id/members", get(ServerHandler::<SR, CR>::list_members))
         .route("/:id/members/:userId", put(ServerHandler::<SR, CR>::update_member_role))

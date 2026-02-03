@@ -41,7 +41,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|_| "dev_secret_key_change_in_production".to_string());
     let jwt_service = JWTService::new(jwt_secret);
 
-    let user_repo = PostgresUserRepository::new(_app_state.pg_pool.clone());
+    let user_repo = PostgresUserRepository::new(app_state.pg_pool.clone());
     let user_service = UserService::new(user_repo);
     
     let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
@@ -56,7 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         message_repository: message_repository.clone(),
     };
 
-    let http_router = router::create_router(signup_uc, login_uc, logout_uc, jwt_service, user_service, _app_state.pg_pool.clone(), _app_state.mongo_client.clone());
+    let http_router = router::create_router(signup_uc, login_uc, logout_uc, jwt_service, user_service, app_state.pg_pool.clone(), app_state.mongo_client.clone());
     let ws_router = create_ws_router(ws_state);
     
     let app = http_router.merge(ws_router);

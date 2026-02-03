@@ -93,16 +93,16 @@ impl<R: ServerRepository> JoinServerUseCase<R> {
         Self { server_repo }
     }
 
-    pub async fn execute(&self, server_id: Uuid, user_id: Uuid) -> AppResult<()> {
-        let _server = self.server_repo.find_by_id(server_id).await?
-            .ok_or_else(|| AppError::NotFound("Server not found".to_string()))?;
+    pub async fn execute(&self, invitation_code: &str, user_id: Uuid) -> AppResult<()> {
+        let server = self.server_repo.find_by_invitation_code(invitation_code).await?
+            .ok_or_else(|| AppError::NotFound("Server not found with this invitation code".to_string()))?;
 
-        let is_member = self.server_repo.is_member(server_id, user_id).await?;
+        let is_member = self.server_repo.is_member(server.id, user_id).await?;
         if is_member {
             return Err(AppError::Conflict("Already a member".to_string()));
         }
 
-        self.server_repo.add_member(server_id, user_id).await
+        self.server_repo.add_member(server.id, user_id).await
     }
 }
 

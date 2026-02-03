@@ -9,7 +9,7 @@ pub struct User {
     #[serde(skip_serializing)]
     pub password_hash: String,
     pub status: String,
-    pub created_at: chrono::NaiveDateTime,
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 impl User {
@@ -20,7 +20,7 @@ impl User {
             email,
             password_hash,
             status: "OFFLINE".to_string(),
-            created_at: chrono::Utc::now().naive_utc(),
+            created_at: chrono::Utc::now(),
         }
     }
 }
