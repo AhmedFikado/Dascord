@@ -10,6 +10,7 @@ use axum::{
 use std::sync::Arc;
 
 use crate::infrastructure::security::jwt::JWTService;
+use crate::infrastructure::database::MongoDBMessageRepository;
 use crate::infrastructure::websocket::{extract_and_verify_token, handle_socket, ConnectionManager};
 use crate::utils::error::AppError;
 
@@ -18,6 +19,7 @@ use crate::utils::error::AppError;
 pub struct WebSocketState {
     pub manager: Arc<ConnectionManager>,
     pub jwt_service: JWTService,
+    pub message_repository: MongoDBMessageRepository,
 }
 
 /// Handler pour la route WebSocket
@@ -36,7 +38,7 @@ pub async fn ws_handler(
     
     // Accepter la connexion WebSocket
     Ok(ws.on_upgrade(move |socket| {
-        handle_connection(socket, user_id, username, state.manager)
+        handle_connection(socket, user_id, username, state.manager, state.message_repository)
     }))
 }
 
@@ -46,9 +48,10 @@ async fn handle_connection(
     user_id: uuid::Uuid,
     username: String,
     manager: Arc<ConnectionManager>,
+    message_repository: MongoDBMessageRepository,
 ) {
     tracing::info!("Nouvelle connexion WebSocket: user_id={}, username={}", user_id, username);
-    handle_socket(socket, user_id, username, manager).await;
+    handle_socket(socket, user_id, username, manager, message_repository).await;
     tracing::info!("Connexion WebSocket fermée: user_id={}", user_id);
 }
 

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 use server::{
     config::{AppConfig, DatabaseConfig},
-    infrastructure::database::init_databases,
+    infrastructure::database::{init_databases, MongoDBMessageRepository},
     infrastructure::security::JWTService,
     infrastructure::websocket::{ConnectionManager, WebSocketState, create_ws_router},
     application::use_cases::auth::{SignupUseCase, LoginUseCase, LogoutUseCase},
@@ -25,8 +25,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::info!("   - PostgreSQL: {}", db_config.postgres_url);
     tracing::info!("   - MongoDB: {}", db_config.mongodb_url);
 
-    let _app_state = init_databases(&db_config).await?;
+    let app_state = init_databases(&db_config).await?;
     tracing::info!("Connexions aux bases de données établies");
+    
+    // Créer le repository de messages MongoDB
+    let messages_collection = app_state
+        .mongo_client
+        .database("chat_db")
+        .collection("messages");
+    let message_repository = MongoDBMessageRepository::new(messages_collection);
+    tracing::info!("MessageRepository initialisé");
 
     let jwt_secret = std::env::var("JWT_SECRET")
         .unwrap_or_else(|_| "dev_secret_key_change_in_production".to_string());
@@ -39,11 +47,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
     let logout_uc = LogoutUseCase::new(user_service.clone(), jwt_service.clone());
 
-    // Créer le gestionnaire WebSocket
+    // Créer le gestionnaire WebSocket avec le repository
     let ws_manager = Arc::new(ConnectionManager::new());
     let ws_state = WebSocketState {
         manager: ws_manager,
         jwt_service: jwt_service.clone(),
+        message_repository: message_repository.clone(),
     };
 
     // Créer les routes HTTP et WebSocket
