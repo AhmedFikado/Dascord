@@ -43,10 +43,10 @@ CREATE INDEX idx_channels_server_id ON channels(server_id);
 
 -- Utilisateurs de test
 INSERT INTO users (id, username, email, password_hash, status) VALUES
-    ('00000000-0000-0000-0000-000000000001', 'alice', 'alice@example.com', '$2a$10$abcdefghijklmnopqrstuvwxyz123456789', 'ONLINE'),
-    ('00000000-0000-0000-0000-000000000002', 'bob', 'bob@example.com', '$2a$10$abcdefghijklmnopqrstuvwxyz123456789', 'ONLINE'),
-    ('00000000-0000-0000-0000-000000000003', 'charlie', 'charlie@example.com', '$2a$10$abcdefghijklmnopqrstuvwxyz123456789', 'OFFLINE'),
-    ('00000000-0000-0000-0000-000000000004', 'diana', 'diana@example.com', '$2a$10$abcdefghijklmnopqrstuvwxyz123456789', 'ONLINE');
+    ('00000000-0000-0000-0000-000000000001', 'alice', 'alice@example.com', '$argon2i$v=19$m=16,t=2,p=1$UWJrblNFQ2hweGVaeEZkeA$JVqT/cAE59JGhfLl/rTMPQ', 'ONLINE'),
+    ('00000000-0000-0000-0000-000000000002', 'bob', 'bob@example.com', '$argon2i$v=19$m=16,t=2,p=1$UWJrblNFQ2hweGVaeEZkeA$JVqT/cAE59JGhfLl/rTMPQ', 'ONLINE'),
+    ('00000000-0000-0000-0000-000000000003', 'charlie', 'charlie@example.com', '$argon2i$v=19$m=16,t=2,p=1$UWJrblNFQ2hweGVaeEZkeA$JVqT/cAE59JGhfLl/rTMPQ', 'OFFLINE'),
+    ('00000000-0000-0000-0000-000000000004', 'diana', 'diana@example.com', '$argon2i$v=19$m=16,t=2,p=1$UWJrblNFQ2hweGVaeEZkeA$JVqT/cAE59JGhfLl/rTMPQ', 'ONLINE');
 
 -- Serveurs de test
 INSERT INTO servers (id, name, owner_id, invitation_code) VALUES
