@@ -42,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let jwt_service = JWTService::new(jwt_secret);
 
     let user_repo = PostgresUserRepository::new(app_state.pg_pool.clone());
-    let user_service = UserService::new(user_repo);
+    let user_service = UserService::new(user_repo.clone());
     
     let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
     let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
@@ -54,6 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         manager: ws_manager,
         jwt_service: jwt_service.clone(),
         message_repository: message_repository.clone(),
+        user_repository: user_repo.clone(),
     };
 
     let http_router = router::create_router(signup_uc, login_uc, logout_uc, jwt_service, user_service, app_state.pg_pool.clone(), app_state.mongo_client.clone());
