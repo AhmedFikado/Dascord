@@ -19,7 +19,7 @@ export default function ChannelPage({
 
     const currentChannel = channels.find(c => c.id === channelId);
 
-    const { messages, sendMessage } = useMessages(currentChannel ? channelId : '0');
+    const { messages, sendMessage, deleteMessage } = useMessages(channelId);
 
     if (channelsLoading) {
         return (
@@ -48,7 +48,10 @@ export default function ChannelPage({
             <ServerHeader channelName={currentChannel.name} />
 
             <div className="flex-1 overflow-hidden flex flex-col">
-                <MessageList messages={messages} />
+                <MessageList
+                    messages={messages}
+                    onDeleteMessage={(messageId) => deleteMessage(channelId, messageId)}
+                />
             </div>
 
             <MessageInput

@@ -55,7 +55,7 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> GetMess
         Self { message_repo, channel_repo, server_repo }
     }
 
-    pub async fn execute(&self, channel_id: Uuid, user_id: Uuid, limit: i64) -> AppResult<Vec<MessageDto>> {
+    pub async fn execute(&self, channel_id: Uuid, user_id: Uuid) -> AppResult<Vec<MessageDto>> {
         let channel = self.channel_repo.find_by_id(channel_id).await?
             .ok_or_else(|| AppError::NotFound("Channel not found".to_string()))?;
         
@@ -64,7 +64,7 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> GetMess
             return Err(AppError::Unauthorized("Not a member of this server".to_string()));
         }
 
-        let messages = self.message_repo.find_by_channel(&channel_id.to_string(), limit).await?;
+        let messages = self.message_repo.find_by_channel(&channel_id.to_string()).await?;
         
         Ok(messages.into_iter().map(|m| MessageDto {
             id: m.id.map(|id| id.to_string()),

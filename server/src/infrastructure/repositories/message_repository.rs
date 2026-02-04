@@ -6,7 +6,7 @@ use mongodb::{Client as MongoClient, bson::doc};
 #[async_trait]
 pub trait MessageRepository: Send + Sync + Clone {
     async fn create(&self, message: Message) -> AppResult<Message>;
-    async fn find_by_channel(&self, channel_id: &str, limit: i64) -> AppResult<Vec<Message>>;
+    async fn find_by_channel(&self, channel_id: &str) -> AppResult<Vec<Message>>;
     async fn delete(&self, message_id: &str) -> AppResult<()>;
 }
 
@@ -27,20 +27,22 @@ impl MessageRepository for MongoMessageRepository {
         let db = self.client.database("discord_db");
         let collection = db.collection::<Message>("messages");
         
-        collection.insert_one(&message).await
+        let result = collection.insert_one(&message).await
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
         
-        Ok(message)
+        let mut created_message = message;
+        created_message.id = result.inserted_id.as_object_id();
+        
+        Ok(created_message)
     }
 
-    async fn find_by_channel(&self, channel_id: &str, limit: i64) -> AppResult<Vec<Message>> {
+    async fn find_by_channel(&self, channel_id: &str) -> AppResult<Vec<Message>> {
         let db = self.client.database("discord_db");
         let collection = db.collection::<Message>("messages");
         
         let filter = doc! { "channel_id": channel_id };
         let options = mongodb::options::FindOptions::builder()
-            .sort(doc! { "created_at": -1 })
-            .limit(limit)
+            .sort(doc! { "created_at": 1 })  // Trier par date croissante (plus ancien en premier)
             .build();
         
         let mut cursor = collection.find(filter).with_options(options).await
