@@ -52,10 +52,18 @@ export const useChannelStore = create<ChannelState>((set) => ({
         set({ isLoading: true, error: null });
         try {
             const addChannel = await channelsApi.create(serverId, channelName);
-            set((state) => ({
-                channels: [...state.channels, addChannel],
-                isLoading: false
-            }));
+            set((state) => {
+                const updatedChannelsByServer = { ...state.channelsByServer };
+                if (updatedChannelsByServer[serverId]) {
+                    updatedChannelsByServer[serverId] = [...updatedChannelsByServer[serverId], addChannel];
+                }
+
+                return {
+                    channels: [...state.channels, addChannel],
+                    channelsByServer: updatedChannelsByServer,
+                    isLoading: false
+                };
+            });
             return addChannel;
         } catch (error) {
             set({ error: 'Erreur lors de l\'ajout du channel', isLoading: false });
@@ -67,10 +75,18 @@ export const useChannelStore = create<ChannelState>((set) => ({
         set({ isLoading: true, error: null });
         try {
             await channelsApi.delete(channelId);
-            set((state) => ({
-                channels: state.channels.filter((c) => c.id !== channelId),
-                isLoading: false
-            }));
+            set((state) => {
+                const updatedChannelsByServer = { ...state.channelsByServer };
+                Object.keys(updatedChannelsByServer).forEach((serverId) => {
+                    updatedChannelsByServer[serverId] = updatedChannelsByServer[serverId].filter((c) => c.id !== channelId);
+                });
+
+                return {
+                    channels: state.channels.filter((c) => c.id !== channelId),
+                    channelsByServer: updatedChannelsByServer,
+                    isLoading: false
+                };
+            });
         } catch (error) {
             set({ error: 'Erreur lors de la suppression du channel', isLoading: false });
         }
@@ -80,10 +96,21 @@ export const useChannelStore = create<ChannelState>((set) => ({
         set({ isLoading: true, error: null });
         try {
             const updatedChannel = await channelsApi.update(channelId, name);
-            set((state) => ({
-                channels: state.channels.map((c) => c.id === channelId ? updatedChannel : c),
-                isLoading: false
-            }));
+            set((state) => {
+
+                const updatedChannelsByServer = { ...state.channelsByServer };
+                Object.keys(updatedChannelsByServer).forEach((serverId) => {
+                    updatedChannelsByServer[serverId] = updatedChannelsByServer[serverId].map((c) =>
+                        c.id === channelId ? updatedChannel : c
+                    );
+                });
+
+                return {
+                    channels: state.channels.map((c) => c.id === channelId ? updatedChannel : c),
+                    channelsByServer: updatedChannelsByServer,
+                    isLoading: false
+                };
+            });
             return updatedChannel;
         } catch (error) {
             set({ error: 'Erreur lors de la mise à jour du channel', isLoading: false });
