@@ -9,13 +9,15 @@ pub use message::{ClientMessage, ServerMessage};
 pub use router::{create_ws_router, WebSocketState};
 
 use crate::infrastructure::security::jwt::JWTService;
+use crate::infrastructure::repositories::{UserRepository, PostgresUserRepository};
 use crate::utils::error::{AppError, AppResult};
 use uuid::Uuid;
 
 /// Recup et valide le token JWT depuis la query string
-pub fn extract_and_verify_token(
+pub async fn extract_and_verify_token(
     query: &str,
     jwt_service: &JWTService,
+    user_repository: &PostgresUserRepository,
 ) -> AppResult<(Uuid, String)> {
     // Parser la query string pour récupérer le token
     // Format: ?token=xxx
@@ -30,8 +32,9 @@ pub fn extract_and_verify_token(
     let user_id = Uuid::parse_str(&claims.sub_id)
         .map_err(|_| AppError::Unauthorized("Invalid user_id in token".to_string()))?;
     
-    // Utilise juste l'ID
-    let username = format!("User_{}", &claims.sub_id[..8]);
+    // Récup le username depuis la db
+    let user = user_repository.find_by_id(user_id).await?
+        .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
     
-    Ok((user_id, username))
+    Ok((user_id, user.username))
 }

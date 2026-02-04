@@ -11,6 +11,7 @@ use std::sync::Arc;
 
 use crate::infrastructure::security::jwt::JWTService;
 use crate::infrastructure::database::MongoDBMessageRepository;
+use crate::infrastructure::repositories::PostgresUserRepository;
 use crate::infrastructure::websocket::{extract_and_verify_token, handle_socket, ConnectionManager};
 use crate::utils::error::AppError;
 
@@ -20,6 +21,7 @@ pub struct WebSocketState {
     pub manager: Arc<ConnectionManager>,
     pub jwt_service: JWTService,
     pub message_repository: MongoDBMessageRepository,
+    pub user_repository: PostgresUserRepository,
 }
 
 /// Handler pour la route WebSocket
@@ -34,7 +36,7 @@ pub async fn ws_handler(
         .ok_or_else(|| AppError::Unauthorized("Missing token parameter".to_string()))?;
     
     let query_string = format!("token={}", token);
-    let (user_id, username) = extract_and_verify_token(&query_string, &state.jwt_service)?;
+    let (user_id, username) = extract_and_verify_token(&query_string, &state.jwt_service, &state.user_repository).await?;
     
     // Accepter la connexion WebSocket
     Ok(ws.on_upgrade(move |socket| {
