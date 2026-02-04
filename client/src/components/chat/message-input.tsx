@@ -10,29 +10,37 @@ interface MessageInputProps {
   channelName?: string;
 }
 
+interface TypingUser {
+  user_id: string;
+  username: string;
+  timestamp: number;
+}
+
 const TYPING_DEBOUNCE = 1000; // 1 seconde
+const EMPTY_TYPING_ARRAY: TypingUser[] = [];
 
 export default function MessageInput({ channelId, channelName }: MessageInputProps) {
   const [message, setMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const isTypingRef = useRef(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const { sendChannelMessage, sendTyping } = useWebSocketContext();
-  const typingUsers = useWebSocketStore(state => state.typingByChannel[channelId] || []);
+  const typingUsers =
+    useWebSocketStore(state => state.typingByChannel[channelId]) || EMPTY_TYPING_ARRAY;
 
   // Arrêter l'indicateur de saisie après un certain temps
   const stopTyping = useCallback(() => {
-    if (isTyping) {
+    if (isTypingRef.current) {
       sendTyping(channelId, false);
-      setIsTyping(false);
+      isTypingRef.current = false;
     }
-  }, [channelId, isTyping, sendTyping]);
+  }, [channelId, sendTyping]);
 
   // Démarrer l'indicateur de saisie
   const startTyping = useCallback(() => {
-    if (!isTyping) {
+    if (!isTypingRef.current) {
       sendTyping(channelId, true);
-      setIsTyping(true);
+      isTypingRef.current = true;
     }
 
     // Réinitialiser le timeout
@@ -43,7 +51,7 @@ export default function MessageInput({ channelId, channelName }: MessageInputPro
     typingTimeoutRef.current = setTimeout(() => {
       stopTyping();
     }, TYPING_DEBOUNCE);
-  }, [channelId, isTyping, sendTyping, stopTyping]);
+  }, [channelId, sendTyping, stopTyping]);
 
   // Nettoyer le timeout au démontage
   useEffect(() => {
@@ -51,11 +59,9 @@ export default function MessageInput({ channelId, channelName }: MessageInputPro
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-      if (isTyping) {
-        sendTyping(channelId, false);
-      }
+      sendTyping(channelId, false);
     };
-  }, [channelId, isTyping, sendTyping]);
+  }, [channelId, sendTyping]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
