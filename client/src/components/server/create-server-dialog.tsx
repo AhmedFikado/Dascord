@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { serversApi } from "@/app/lib/api/servers";
 import { useServerStore } from "@/app/lib/stores/use-server-store";
+import { useChannelStore } from "@/app/lib/stores/use-channel-store";
 
 interface CreateServerDialogProps {
     isOpen?: boolean;
@@ -17,6 +18,7 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
     const [isLoading, setIsLoading] = useState(false);
 
     const addServer = useServerStore((state) => state.addServer);
+    const addChannel = useChannelStore((state) => state.addChannel);
 
     const dialogIsOpen = isOpen !== undefined ? isOpen : internalIsOpen;
     const handleClose = onClose || (() => setInternalIsOpen(false));
@@ -30,6 +32,7 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
         try {
             const newServer = await serversApi.create(serverName);
             addServer(newServer);
+            const welcomeChannel = await addChannel(newServer.id, "Invites");
             setServerName("");
             handleClose();
         } catch (error) {
@@ -71,7 +74,7 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
                             variant={"noBackground"}
                             width="80px"
                             onClick={handleBack}>
-                                Retour
+                            Retour
                         </Button>
 
                         <Button
