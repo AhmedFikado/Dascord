@@ -9,7 +9,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     status user_status DEFAULT 'OFFLINE',
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE servers (
@@ -17,14 +17,14 @@ CREATE TABLE servers (
     name VARCHAR(100) NOT NULL,
     owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     invitation_code VARCHAR(30) UNIQUE NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE server_members (
     server_id UUID REFERENCES servers(id) ON DELETE CASCADE,
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     role role_type NOT NULL DEFAULT 'MEMBER',
-    joined_at TIMESTAMP DEFAULT NOW(),
+    joined_at TIMESTAMPTZ DEFAULT NOW(),
     PRIMARY KEY (server_id, user_id)
 );
 
@@ -32,7 +32,7 @@ CREATE TABLE channels (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- Recherche rapide des serveurs d'un utilisateur

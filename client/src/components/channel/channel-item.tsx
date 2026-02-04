@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Dialog } from "../ui/dialog";
 import { useRouter, useParams } from 'next/navigation';
+import { useChannelStore } from "@/app/lib/stores/use-channel-store";
+import { useServerStore } from "@/app/lib/stores/use-server-store";
+import { useCurrentUser } from "@/app/lib/hooks/use-current-user";
 
 interface ChannelItemProps {
     channel: Channel;
@@ -16,11 +19,18 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
     const router = useRouter();
     const params = useParams();
 
-    const currentChannelId = params?.channelId ? parseInt(params.channelId as string) : null;
-    const serverId = params?.serverId || '1';
+    const { userId } = useCurrentUser();
+    const servers = useServerStore((state) => state.servers);
+    const serverId = params?.serverId as string;
+    const currentServer = servers.find(s => s.id === serverId);
+    const isOwner = currentServer ? userId === currentServer.owner_id : false;
+    const currentChannelId = params?.channelId ? params.channelId as string : null;
     const isActive = currentChannelId === channel.id;
+    const removeChannel = useChannelStore((state) => state.removeChannel);
+
 
     const deleteChannel = async () => {
+        await removeChannel(channel.id);
         setIsDialogOpen(false);
     };
 
@@ -53,17 +63,19 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
                         {channel.name}
                     </span>
                 </div>
-                <div>
-                    <Button
-                        onClick={handleSettingsClick}
-                        variant="noBackground"
-                        width="26px"
-                        height="26px"
-                        style={{ borderRadius: '10px', padding: 0 }}
-                    >
-                        <ChannelSetting />
-                    </Button>
-                </div>
+                {isOwner && (
+                    <div>
+                        <Button
+                            onClick={handleSettingsClick}
+                            variant="noBackground"
+                            width="26px"
+                            height="26px"
+                            style={{ borderRadius: '10px', padding: 0 }}
+                        >
+                            <ChannelSetting />
+                        </Button>
+                    </div>
+                )}
             </li>
 
             <Dialog
@@ -96,6 +108,7 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
                     </Button>
                 </div>
             </Dialog>
+
         </>
     );
 }

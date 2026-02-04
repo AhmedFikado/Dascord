@@ -32,7 +32,7 @@ impl UserService {
             email,
             password_hash,
             status: "OFFLINE".to_string(),
-            created_at: chrono::Utc::now().naive_utc(),
+            created_at: chrono::Utc::now(),
         };
 
         self.user_repo.create(user).await

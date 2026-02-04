@@ -7,11 +7,13 @@ interface ChannelState {
     currentChannel: Channel | null;
     isLoading: boolean;
     error: string | null;
+    channelsByServer: Record<string, Channel[]>;
 
     fetchChannels: (serverId: string) => Promise<void>;
     setCurrentChannel: (channel: Channel) => void;
-    addChannel: (channel: Channel) => void;
-    removeChannel: (channelId: string) => void;
+    addChannel: (serverId: string, channelName: string) => Promise<Channel>;
+    removeChannel: (channelId: string) => Promise<void>;
+    updateChannel: (channelId: string, name: string) => Promise<Channel>;
 }
 
 export const useChannelStore = create<ChannelState>((set) => ({
@@ -19,12 +21,26 @@ export const useChannelStore = create<ChannelState>((set) => ({
     currentChannel: null,
     isLoading: false,
     error: null,
+    channelsByServer: {},
 
     fetchChannels: async (serverId: string) => {
         set({ isLoading: true, error: null });
         try {
+            const state = useChannelStore.getState();
+            const cached = state.channelsByServer[serverId];
+            if (cached) {
+                set({ channels: cached, isLoading: false });
+                return;
+            }
             const channels = await channelsApi.getByServer(serverId);
-            set({ channels, isLoading: false });
+            set((state) => ({
+                channels,
+                channelsByServer: {
+                    ...state.channelsByServer,
+                    [serverId]: channels
+                },
+                isLoading: false
+            }));
         } catch (error) {
             set({ error: 'Erreur lors du chargement des channels', isLoading: false });
         }
@@ -32,10 +48,47 @@ export const useChannelStore = create<ChannelState>((set) => ({
 
     setCurrentChannel: (channel) => set({ currentChannel: channel }),
 
-    addChannel: (channel) => set((state) => ({ channels: [...state.channels, channel] })),
+    addChannel: async (serverId, channelName) => {
+        set({ isLoading: true, error: null });
+        try {
+            const addChannel = await channelsApi.create(serverId, channelName);
+            set((state) => ({
+                channels: [...state.channels, addChannel],
+                isLoading: false
+            }));
+            return addChannel;
+        } catch (error) {
+            set({ error: 'Erreur lors de l\'ajout du channel', isLoading: false });
+            throw error;
+        }
+    },
 
-    removeChannel: (channelId) =>
-        set((state) => ({
-            channels: state.channels.filter((c) => c.id !== channelId),
-        })),
+    removeChannel: async (channelId) => {
+        set({ isLoading: true, error: null });
+        try {
+            await channelsApi.delete(channelId);
+            set((state) => ({
+                channels: state.channels.filter((c) => c.id !== channelId),
+                isLoading: false
+            }));
+        } catch (error) {
+            set({ error: 'Erreur lors de la suppression du channel', isLoading: false });
+        }
+    },
+
+    updateChannel: async (channelId, name) => {
+        set({ isLoading: true, error: null });
+        try {
+            const updatedChannel = await channelsApi.update(channelId, name);
+            set((state) => ({
+                channels: state.channels.map((c) => c.id === channelId ? updatedChannel : c),
+                isLoading: false
+            }));
+            return updatedChannel;
+        } catch (error) {
+            set({ error: 'Erreur lors de la mise à jour du channel', isLoading: false });
+            throw error;
+        }
+    },
+
 }));

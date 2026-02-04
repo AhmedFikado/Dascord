@@ -9,6 +9,7 @@ use uuid::Uuid;
 pub trait ServerRepository: Send + Sync + Clone {
     async fn create(&self, server: Server) -> AppResult<Server>;
     async fn find_by_id(&self, id: Uuid) -> AppResult<Option<Server>>;
+    async fn find_by_invitation_code(&self, invitation_code: &str) -> AppResult<Option<Server>>;
     async fn find_by_user(&self, user_id: Uuid) -> AppResult<Vec<Server>>;
     async fn update(&self, server: Server) -> AppResult<Server>;
     async fn delete(&self, id: Uuid) -> AppResult<()>;
@@ -65,6 +66,18 @@ impl ServerRepository for PostgresServerRepository {
             "SELECT id, name, owner_id, invitation_code, created_at FROM servers WHERE id = $1"
         )
         .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        Ok(result)
+    }
+
+    async fn find_by_invitation_code(&self, invitation_code: &str) -> AppResult<Option<Server>> {
+        let result = sqlx::query_as::<_, Server>(
+            "SELECT id, name, owner_id, invitation_code, created_at FROM servers WHERE invitation_code = $1"
+        )
+        .bind(invitation_code)
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
@@ -152,7 +165,7 @@ impl ServerRepository for PostgresServerRepository {
 
     async fn get_members(&self, server_id: Uuid) -> AppResult<Vec<(Uuid, ServerRole)>> {
         let rows = sqlx::query(
-            "SELECT user_id, role FROM server_members WHERE server_id = $1"
+            "SELECT user_id, role::text FROM server_members WHERE server_id = $1"
         )
         .bind(server_id)
         .fetch_all(&self.pool)
@@ -178,7 +191,7 @@ impl ServerRepository for PostgresServerRepository {
 
     async fn get_member_role(&self, server_id: Uuid, user_id: Uuid) -> AppResult<Option<ServerRole>> {
         let result = sqlx::query(
-            "SELECT role FROM server_members WHERE server_id = $1 AND user_id = $2"
+            "SELECT role::text FROM server_members WHERE server_id = $1 AND user_id = $2"
         )
         .bind(server_id)
         .bind(user_id)

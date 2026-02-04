@@ -5,7 +5,7 @@ use crate::api::handlers::{AuthHandler, ChannelHandler, ServerHandler, MessageHa
 use crate::api::routes::{auth_routes, channel_routes, server_routes, message_routes, user_routes};
 use crate::application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase};
 use crate::infrastructure::security::JWTService;
-use crate::infrastructure::repositories::{PostgresServerRepository, PostgresChannelRepository, MongoMessageRepository};
+use crate::infrastructure::repositories::{PostgresServerRepository, PostgresChannelRepository, MongoMessageRepository, PostgresUserRepository};
 use crate::infrastructure::services::UserService;
 use sqlx::PgPool;
 use mongodb::Client as MongoClient;
@@ -28,8 +28,9 @@ pub fn create_router(
     let user_handler = Arc::new(UserHandler::new(user_service, jwt_service.clone()));
     
     let server_repo = PostgresServerRepository::new(pg_pool.clone());
-    let channel_repo = PostgresChannelRepository::new(pg_pool);
+    let channel_repo = PostgresChannelRepository::new(pg_pool.clone());
     let message_repo = MongoMessageRepository::new(mongo_client);
+    let user_repo = PostgresUserRepository::new(pg_pool);
     
     let server_handler = Arc::new(ServerHandler::new(
         jwt_service.clone(),
@@ -46,6 +47,7 @@ pub fn create_router(
         message_repo,
         channel_repo,
         server_repo,
+        user_repo,
     ));
 
     let cors = CorsLayer::new()
@@ -58,6 +60,6 @@ pub fn create_router(
         .nest("/users", user_routes(user_handler))
         .nest("/servers", server_routes(server_handler))
         .nest("/channels", channel_routes(channel_handler))
-        .nest("/messages", message_routes(message_handler))
+        .merge(message_routes(message_handler))
         .layer(cors)
 }

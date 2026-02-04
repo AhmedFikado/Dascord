@@ -3,7 +3,6 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Plus } from 'lucide-react';
 import { useState } from "react";
-import { channelsApi } from "@/app/lib/api/channels";
 import { useChannelStore } from "@/app/lib/stores/use-channel-store";
 
 export default function CreateChannelDialog({ serverId }: { serverId: string }) {
@@ -19,8 +18,7 @@ export default function CreateChannelDialog({ serverId }: { serverId: string }) 
 
         setIsLoading(true);
         try {
-            const newChannel = await channelsApi.create(serverId, channelName);
-            addChannel(newChannel);
+            await addChannel(serverId, channelName);
             setChannelName("");
             setIsDialogOpen(false);
         } catch (error) {

@@ -1,12 +1,10 @@
-import { User } from "./user";
-
 export interface Message {
-    id: string;
+    id: string | null;
     channel_id: string;
     user_id: string;
+    username: string;
     content: string;
-    created_at: Date;
-    updated_at?: Date;
-    deleted_at?: Date;
-    user: User;
+    created_at: string;
+    updated_at?: string;
+    deleted_at?: string;
 }

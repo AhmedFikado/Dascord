@@ -2,6 +2,8 @@ import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useServerStore } from "@/app/lib/stores/use-server-store";
+import { useSnackbar } from "@/components/shared/error-message";
 
 interface JoinServerDialogProps {
     isOpen?: boolean;
@@ -13,6 +15,8 @@ export default function JoinServerDialog({ isOpen, onClose, onBack }: JoinServer
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [invitationCode, setInvitationCode] = useState("");
+    const joinServer = useServerStore((state) => state.joinServer);
+    const { showSnackbar } = useSnackbar();
 
     const dialogIsOpen = isOpen !== undefined ? isOpen : internalIsOpen;
     const handleClose = onClose || (() => setInternalIsOpen(false));
@@ -21,13 +25,13 @@ export default function JoinServerDialog({ isOpen, onClose, onBack }: JoinServer
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!invitationCode.trim()) return;
-
         setIsLoading(true);
         try {
+            await joinServer(invitationCode);
             handleClose();
-            setInvitationCode("");
+            showSnackbar({ message: "Vous avez rejoint le serveur avec succès !", severity: "success" });
         } catch (error) {
-            console.error("Erreur pour rejoindre le serveur", error);
+            showSnackbar({ message: "Échec de la connexion au serveur.", severity: "error" });
         } finally {
             setIsLoading(false);
         }

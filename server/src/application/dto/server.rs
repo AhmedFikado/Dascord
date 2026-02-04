@@ -10,6 +10,12 @@ pub struct CreateServerRequest {
     pub name: String,
 }
 
+#[derive(Debug, Deserialize, Validate)]
+pub struct JoinServerRequest {
+    #[validate(length(min = 1, message = "Invitation code is required"))]
+    pub invitation_code: String,
+}
+
 #[derive(Debug, Serialize)]
 pub struct ServerResponse {
     pub id: String,
