@@ -1,20 +1,24 @@
 use axum::{routing::{get, post, put, delete}, Router};
 use std::sync::Arc;
 use crate::api::handlers::server_handler::ServerHandler;
+use crate::infrastructure::repositories::{ServerRepository, ChannelRepository};
 
 /// Configure les routes des serveurs
-pub fn server_routes(handler: Arc<ServerHandler>) -> Router {
+/// 
+pub fn server_routes<SR: ServerRepository + 'static, CR: ChannelRepository + 'static>(
+    handler: Arc<ServerHandler<SR, CR>>
+) -> Router {
     Router::new()
-        .route("/", post(ServerHandler::create_server))
-        .route("/", get(ServerHandler::get_user_servers))
-        .route("/:id", get(ServerHandler::get_server_info))
-        .route("/:id", put(ServerHandler::update_server))
-        .route("/:id", delete(ServerHandler::delete_server))
-        .route("/:id/join", post(ServerHandler::join_server))
-        .route("/:id/leave", delete(ServerHandler::leave_server))
-        .route("/:id/members", get(ServerHandler::list_members))
-        .route("/:id/members/:userId", put(ServerHandler::update_member_role))
-        .route("/:id/channels", get(ServerHandler::get_channels))
-        .route("/:id/channels", post(ServerHandler::create_channel))
+        .route("/", post(ServerHandler::<SR, CR>::create_server))
+        .route("/", get(ServerHandler::<SR, CR>::get_user_servers))
+        .route("/:id", get(ServerHandler::<SR, CR>::get_server_info))
+        .route("/:id", put(ServerHandler::<SR, CR>::update_server))
+        .route("/:id", delete(ServerHandler::<SR, CR>::delete_server))
+        .route("/join", post(ServerHandler::<SR, CR>::join_server))
+        .route("/:id/leave", delete(ServerHandler::<SR, CR>::leave_server))
+        .route("/:id/members", get(ServerHandler::<SR, CR>::list_members))
+        .route("/:id/members/:userId", put(ServerHandler::<SR, CR>::update_member_role))
+        .route("/:id/channels", get(ServerHandler::<SR, CR>::get_channels))
+        .route("/:id/channels", post(ServerHandler::<SR, CR>::create_channel))
         .with_state(handler)
 }

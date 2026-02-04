@@ -1,6 +1,6 @@
 use crate::mocks::mock_user_entitie::User;
 use crate::domain::value_objects::user_status::UserStatus;
-use crate::mocks::mock_user_repo::UserRepository;
+use crate::mocks::mock_user_repo::TestUserRepository;
 use crate::infrastructure::security::password::PasswordService;
 use crate::mocks::mock_user_repository::MockUserRepository;
 use crate::utils::error::{AppError, AppResult};

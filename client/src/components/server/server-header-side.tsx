@@ -6,7 +6,10 @@ import { ChevronDown, ChevronUp, Settings, LogOut } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import ServerSettings from "./server-settings";
 import { Dialog } from '../ui/dialog';
-import {useState} from "react";
+import { use, useState } from "react";
+import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
+import { useServerStore } from "@/app/lib/stores/use-server-store";
+import { useSnackbar } from "@/components/shared/error-message";
 
 const InvitationDialog = dynamic(
     () => import('./invitation-dialog'),
@@ -17,43 +20,60 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
 
     const [isOpenMenu, setIsOpenMenu] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const { userId } = useCurrentUser();
+    const deleteServer = useServerStore((state) => state.deleteServer);
+    const leaveServer = useServerStore((state) => state.leaveServer);
+    const { showSnackbar } = useSnackbar();
+
+    const isOwner = userId === server.owner_id;
 
     const handleServerSettings = () => {
         setIsOpenMenu(false);
         setIsSettingsOpen(true);
     }
 
-    const handleLeaveServer = () => {
+    const handleLeaveServer = async () => {
         setIsOpenMenu(false);
+        try {
+            await leaveServer(server.id);
+            showSnackbar({ message: "Vous avez quitté le serveur avec succès.", severity: "success" });
+        } catch (error) {
+            showSnackbar({ message: "Erreur lors de la quitter le serveur.", severity: "error" });
+        }
     }
 
     const handleUpdateServer = (updatedServer: Server) => {
         console.log('Serveur mis à jour:', updatedServer);
     }
 
-    const handleDeleteServer = () => {
-        console.log('Serveur supprimé:', server.id);
+    const handleDeleteServer = async () => {
+        try {
+            await deleteServer(server.id);
+            showSnackbar({ message: "Vous avez supprimé votre serveur avec succès.", severity: "success" });
+        } catch (error) {
+            showSnackbar({ message: "Erreur lors de la suppression du serveur.", severity: "error" });
+        }
     }
 
     return (
         <>
-        <div className="flex items-center justify-between">
-            <Button
-                onClick={() => setIsOpenMenu(!isOpenMenu)}
-                variant="noBackground"
-                width={"170px"}
-                className="flex cursor-pointer justify-start px-[8px]">
-                <h1 className="text-white text-base font-bold truncate flex-1 text-left">{server.name}</h1>
+            <div className="flex items-center justify-between">
+                <Button
+                    onClick={() => setIsOpenMenu(!isOpenMenu)}
+                    variant="noBackground"
+                    width={"170px"}
+                    className="flex cursor-pointer justify-start px-[8px]">
+                    <h1 className="text-white text-base font-bold truncate flex-1 text-left">{server.name}</h1>
 
-                {isOpenMenu ? (
-                <ChevronUp className="text-white flex-shrink-0" size={20} />
-                ) : (
-                <ChevronDown className="text-white flex-shrink-0" size={20} />
-                )}
-            </Button>
+                    {isOpenMenu ? (
+                        <ChevronUp className="text-white flex-shrink-0" size={20} />
+                    ) : (
+                        <ChevronDown className="text-white flex-shrink-0" size={20} />
+                    )}
+                </Button>
 
-            <InvitationDialog />
-        </div>
+                <InvitationDialog server={server} />
+            </div>
 
             {isOpenMenu && (
                 <>
@@ -63,27 +83,32 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
                     />
 
                     <div className="absolute top-12 left-20 mt-2 w-56 bg-gray-300 rounded-lg shadow-lg overflow-hidden z-20">
-                        <Button
-                            onClick={handleServerSettings}
-                            variant="noBackground"
-                            className="justify-start px-4 py-3 "
-                            width={"225px"}
-                        >
-                            <Settings size={18} className="text-gray-light mr-3" />
-                            <span className="text-white text-sm">Paramètres du serveur</span>
-                        </Button>
+                        {isOwner && (
+                            <Button
+                                onClick={handleServerSettings}
+                                variant="noBackground"
+                                className="justify-start px-4 py-3 "
+                                width={"225px"}
+                            >
+                                <Settings size={18} className="text-gray-light mr-3" />
+                                <span className="text-white text-sm">Paramètres du serveur</span>
+                            </Button>
+                        )}
 
-                        <div className="border-t border-gray-200" />
+                        {isOwner && <div className="border-t border-gray-200" />}
 
-                        <Button
-                            onClick={handleLeaveServer}
-                            variant="noBackground"
-                            className="justify-start px-4 py-3 "
-                            width={"225px"}
-                        >
-                            <LogOut size={18} className="text-red mr-3" />
-                            <span className="text-red text-sm font-semibold">Quitter le serveur</span>
-                        </Button>
+                        {!isOwner && (
+                            <Button
+                                onClick={handleLeaveServer}
+                                variant="noBackground"
+                                className="justify-start px-4 py-3 "
+                                width={"225px"}
+                            >
+                                <LogOut size={18} className="text-red mr-3" />
+                                <span className="text-red text-sm font-semibold">Quitter le serveur</span>
+                            </Button>
+                        )}
+
                     </div>
                 </>
             )}

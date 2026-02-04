@@ -1,5 +1,5 @@
 use crate::mocks::mock_user_entitie::User;
-use crate::mocks::mock_user_repo::UserRepository;
+use crate::mocks::mock_user_repo::TestUserRepository;
 use crate::utils::error::{AppError, AppResult};
 use async_trait::async_trait;
 use std::collections::HashMap;
@@ -34,7 +34,7 @@ impl MockUserRepository {
 }
 
 #[async_trait]
-impl UserRepository for MockUserRepository {
+impl TestUserRepository for MockUserRepository {
     async fn create(&self, user: User) -> AppResult<User> {
         let mut users = self.users.lock().unwrap();
         

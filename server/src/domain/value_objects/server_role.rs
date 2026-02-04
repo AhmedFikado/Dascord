@@ -7,3 +7,13 @@ pub enum ServerRole {
     Admin,
     Member,
 }
+
+impl ServerRole {
+    pub fn can_have_permissions(&self) -> bool {
+        matches!(self, ServerRole::Owner | ServerRole::Admin)
+    }
+
+    pub fn can_delete_server(&self) -> bool {
+        matches!(self, ServerRole::Owner)
+    }
+}

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Trash2, Save, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { Server } from '@/types/models/Server';
 import MemberList from './member-list';
+import { useServerStore } from "@/app/lib/stores/use-server-store";
 
 interface ServerSettingsProps {
     server: Server;
@@ -28,7 +29,7 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
         setIsLoading(true);
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        const updatedServer = { ...server, name: serverName };
+        const updatedServer = await useServerStore.getState().updateServer(server.id, serverName);
         onUpdate?.(updatedServer);
         setIsLoading(false);
         onClose();
@@ -94,8 +95,10 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
                                 />
                             </div>
 
-                            <div className="bg-gray-400 rounded-lg p-4 max-h-96 overflow-y-auto">
-                                <MemberList searchQuery={searchMember} isRole={true}/>
+                            <div className="bg-gray-400 rounded-lg p-4 max-h-96 overflow-y-auto overflow-x-visible">
+                                <div className="overflow-visible">
+                                    <MemberList searchQuery={searchMember} isRole={true} />
+                                </div>
                             </div>
                         </div>
                     )}

@@ -5,9 +5,13 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Input } from '../ui/input';
 import { useSnackbar } from "@/components/shared/error-message";
+import { Server } from "@/types/models/Server";
 
+interface InvitationDialogProps {
+    server: Server;
+}
 
-export default function InvitationDialog() {
+export default function InvitationDialog({ server }: InvitationDialogProps) {
 
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const { showSnackbar } = useSnackbar();
@@ -21,7 +25,7 @@ export default function InvitationDialog() {
         }
     };
 
-    const invitationCode = "Q2232EQSDD";
+    const invitationCode = server.invitation_code;
 
     return (
 

@@ -6,25 +6,31 @@ use axum::{
 };
 use std::sync::Arc;
 use uuid::Uuid;
+use crate::application::use_cases::channel::*;
+use crate::infrastructure::repositories::{ChannelRepository, ServerRepository};
 use crate::infrastructure::security::JWTService;
 use crate::utils::error::AppError;
 
-/// Handler contenant la logique métier pour les canaux
 #[derive(Clone)]
-pub struct ChannelHandler {
+pub struct ChannelHandler<CR: ChannelRepository, SR: ServerRepository> {
     jwt_service: Arc<JWTService>,
+    get_channel_info_uc: Arc<GetChannelInfoUseCase<CR, SR>>,
+    update_channel_uc: Arc<UpdateChannelUseCase<CR, SR>>,
+    delete_channel_uc: Arc<DeleteChannelUseCase<CR, SR>>,
 }
 
-impl ChannelHandler {
-    pub fn new(jwt_service: JWTService) -> Self {
+impl<CR: ChannelRepository, SR: ServerRepository> ChannelHandler<CR, SR> {
+    pub fn new(jwt_service: JWTService, channel_repo: CR, server_repo: SR) -> Self {
         Self {
             jwt_service: Arc::new(jwt_service),
+            get_channel_info_uc: Arc::new(GetChannelInfoUseCase::new(channel_repo.clone(), server_repo.clone())),
+            update_channel_uc: Arc::new(UpdateChannelUseCase::new(channel_repo.clone(), server_repo.clone())),
+            delete_channel_uc: Arc::new(DeleteChannelUseCase::new(channel_repo, server_repo)),
         }
     }
 
-    /// GET /channels/:id - Obtenir les infos d'un canal
     pub async fn get_channel_info(
-        State(handler): State<Arc<ChannelHandler>>,
+        State(handler): State<Arc<Self>>,
         Path(id): Path<Uuid>,
         headers: HeaderMap,
     ) -> Result<impl IntoResponse, AppError> {
@@ -35,23 +41,15 @@ impl ChannelHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Récupérer les infos du canal depuis la DB
-        // let channel = handler.channel_uc.get_channel_by_id(id).await?;
-        // Vérifier que l'utilisateur a accès à ce canal
-        
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "channel_id": id.to_string(),
-            "user_id": claims.sub_id,
-            "name": "general",
-            "server_id": "server-uuid",
-            "created_at": "2024-01-01T00:00:00Z"
-        }))))
+        let channel = handler.get_channel_info_uc.execute(id, user_id).await?;
+        Ok((StatusCode::OK, Json(channel)))
     }
 
-    /// PUT /channels/:id - Mettre à jour un canal
     pub async fn update_channel(
-        State(handler): State<Arc<ChannelHandler>>,
+        State(handler): State<Arc<Self>>,
         Path(id): Path<Uuid>,
         headers: HeaderMap,
         Json(payload): Json<serde_json::Value>,
@@ -63,20 +61,20 @@ impl ChannelHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Mettre à jour le canal
-        // Vérifier que l'utilisateur est owner/admin du serveur
+        let name = payload.get("name")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| AppError::ValidationError("Missing name field".to_string()))?
+            .to_string();
         
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "message": "Channel updated",
-            "channel_id": id.to_string(),
-            "user_id": claims.sub_id
-        }))))
+        let channel = handler.update_channel_uc.execute(id, user_id, name).await?;
+        Ok((StatusCode::OK, Json(channel)))
     }
 
-    /// DELETE /channels/:id - Supprimer un canal
     pub async fn delete_channel(
-        State(handler): State<Arc<ChannelHandler>>,
+        State(handler): State<Arc<Self>>,
         Path(id): Path<Uuid>,
         headers: HeaderMap,
     ) -> Result<impl IntoResponse, AppError> {
@@ -87,64 +85,10 @@ impl ChannelHandler {
             .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
 
         let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        // TODO: Supprimer le canal
-        // Vérifier que l'utilisateur est owner/admin du serveur
-        
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "message": "Channel deleted",
-            "channel_id": id.to_string()
-        }))))
-    }
-
-    /// POST /channels/:id/messages - Envoyer un message dans un canal
-    pub async fn send_message(
-        State(handler): State<Arc<ChannelHandler>>,
-        Path(id): Path<Uuid>,
-        headers: HeaderMap,
-        Json(payload): Json<serde_json::Value>,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
-
-        let claims = handler.jwt_service.verify_token(token)?;
-        
-        // TODO: Créer le message
-        // let message = handler.message_uc.send_message(id, claims.sub_id, payload).await?;
-        // Vérifier que l'utilisateur a accès au canal
-        
-        Ok((StatusCode::CREATED, Json(serde_json::json!({
-            "message": "Message sent",
-            "channel_id": id.to_string(),
-            "user_id": claims.sub_id
-        }))))
-    }
-
-    /// GET /channels/:id/messages - Récupérer l'historique des messages d'un canal
-    pub async fn get_message_history(
-        State(handler): State<Arc<ChannelHandler>>,
-        Path(id): Path<Uuid>,
-        headers: HeaderMap,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
-
-        let claims = handler.jwt_service.verify_token(token)?;
-        
-        // TODO: Récupérer les messages du canal depuis la DB
-        // let messages = handler.message_uc.get_channel_messages(id).await?;
-        // Vérifier que l'utilisateur a accès au canal
-        
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "channel_id": id.to_string(),
-            "user_id": claims.sub_id,
-            "messages": []
-        }))))
+        handler.delete_channel_uc.execute(id, user_id).await?;
+        Ok((StatusCode::OK, Json(serde_json::json!({"message": "Channel deleted"}))))
     }
 }
