@@ -178,5 +178,5 @@ function getWebSocketUrl(): string {
   // Pour le moment, on utilise uniquement ws:// en développement
   const host = process.env.NEXT_PUBLIC_WS_URL || 'localhost:8080';
 
-  return `ws://${host}`;
+  return `ws://${host}/ws`;
 }

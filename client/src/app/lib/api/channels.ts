@@ -5,7 +5,7 @@ export const channelsApi = {
 
     //  GET /servers/{serverId}/channels 
     getByServer: async (serverId: string): Promise<Channel[]> => {
-        return await apiClient.get<Channel[]>(`servers/${serverId}/channels`)
+        return await apiClient.get<Channel[]>(`/servers/${serverId}/channels`)
     },
 
     // POST /servers/{serverId}/channels
