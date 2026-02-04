@@ -9,6 +9,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { useChannelStore } from "@/app/lib/stores/use-channel-store";
 import { useServerStore } from "@/app/lib/stores/use-server-store";
 import { useCurrentUser } from "@/app/lib/hooks/use-current-user";
+import { Input } from "@/components/ui/input";
+import { Save } from "lucide-react";
 
 interface ChannelItemProps {
     channel: Channel;
@@ -16,6 +18,8 @@ interface ChannelItemProps {
 
 export default function ChannelItem({ channel }: ChannelItemProps) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [newChannelName, setNewChannelName] = useState(channel.name);
+    const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
     const params = useParams();
 
@@ -27,11 +31,23 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
     const currentChannelId = params?.channelId ? params.channelId as string : null;
     const isActive = currentChannelId === channel.id;
     const removeChannel = useChannelStore((state) => state.removeChannel);
+    const updateChannel = useChannelStore((state) => state.updateChannel);
 
 
     const deleteChannel = async () => {
         await removeChannel(channel.id);
         setIsDialogOpen(false);
+    };
+
+    const handleSave = async () => {
+        setIsLoading(true);
+        await updateChannel(channel.id, newChannelName);
+        setIsLoading(false);
+        setIsDialogOpen(false)
+    };
+
+    const handleReset = () => {
+        setNewChannelName(channel.name);
     };
 
     const handleChannelClick = () => {
@@ -42,6 +58,8 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
         e.stopPropagation();
         setIsDialogOpen(true);
     };
+
+    const hasChanges = newChannelName !== channel.name;
 
     return (
         <>
@@ -83,11 +101,43 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
                 onClose={() => setIsDialogOpen(false)}
                 title="Supprimer un channel"
             >
-                <h2 className="text-white mb-8 text-center">
-                    Êtes-vous sûr de vouloir supprimer le channel #{channel.name} ?
-                </h2>
+                <Input
+                    label="Nom du channel"
+                    type="text"
+                    required
+                    id="channel-name"
+                    name="channel-name"
+                    value={newChannelName}
+                    onChange={(e) => setNewChannelName(e.target.value)}
+                    placeholder="Nom du channel"
+                />
 
-                <div className="flex gap-4 justify-center">
+
+                {hasChanges && (
+                    <div className="flex justify-center">
+                        <div className="flex gap-10 justify-center mt-4 bg-gray-400 py-3 rounded-xl w-4/5">
+                            <Button
+                                variant="secondary"
+                                onClick={handleReset}
+                            >
+                                Réinitialiser
+                            </Button>
+                            <Button
+                                variant="primary"
+                                onClick={handleSave}
+                                isLoading={isLoading}
+                                className="flex items-center gap-2"
+                            >
+                                <Save size={16} />
+                                Enregistrer
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+
+
+                <div className="flex gap-4 justify-center mt-8">
                     <Button
                         onClick={() => deleteChannel()}
                         variant={'danger'}
@@ -97,18 +147,8 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
                     >
                         Supprimer le channel
                     </Button>
-                    <Button
-                        onClick={() => setIsDialogOpen(false)}
-                        variant={'secondary'}
-                        width="100px"
-                        style={{ alignSelf: 'center' }}
-                        type="submit"
-                    >
-                        Annuler
-                    </Button>
                 </div>
             </Dialog>
-
         </>
     );
 }

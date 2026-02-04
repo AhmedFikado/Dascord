@@ -9,6 +9,7 @@ interface ServerState {
     error: string | null;
 
     fetchServers: () => Promise<void>;
+    addServer: (server: Server) => void;
     setCurrentServer: (server: Server) => void;
     createServer: (name: string) => Promise<Server>;
     deleteServer: (serverId: string) => Promise<void>;
@@ -33,6 +34,8 @@ export const useServerStore = create<ServerState>((set) => ({
             set({ error: 'Erreur lors du chargement des serveurs', isLoading: false });
         }
     },
+
+    addServer: (server) => set((state) => ({ servers: [...state.servers, server] })),
 
     setCurrentServer: (server) => set({ currentServer: server }),
 
