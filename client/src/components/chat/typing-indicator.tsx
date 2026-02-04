@@ -1,10 +1,7 @@
-import { User } from "@/types/models/user";
-
-
-export default function TypingIndicator({ user }: { user: User }) {
+export default function TypingIndicator({ username }: { username: string }) {
     return (
         <div>
-            <p className="text-gray-light ml-6 text-xs mb-1">{user.username} est entrain d'écrire...</p>
+            <p className="text-gray-light ml-6 text-xs mb-1">{username} est en train d'écrire...</p>
         </div>
     );
 }
