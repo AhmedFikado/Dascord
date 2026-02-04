@@ -1,5 +1,4 @@
 import { useAuthStore } from '../stores/use-auth-store';
-import type { User } from '@/types/models/user';
 
 export const useCurrentUser = () => {
     const user = useAuthStore((state) => state.user);

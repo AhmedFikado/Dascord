@@ -74,7 +74,7 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
         
-        let messages = handler.get_history_uc.execute(channel_id, user_id, 50).await?;
+        let messages = handler.get_history_uc.execute(channel_id, user_id).await?;
         Ok((StatusCode::OK, Json(messages)))
     }
 
