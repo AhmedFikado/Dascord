@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface Option {
     label: string;
@@ -33,13 +34,20 @@ export const Dropdown: React.FC<DropdownProps> = ({
     width = '100%',
 }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 });
     const containerRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     const selectedOption = options.find((opt) => opt.value === value);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            const clickedOutsideContainer = containerRef.current && !containerRef.current.contains(target);
+            const clickedOutsideMenu = menuRef.current && !menuRef.current.contains(target);
+
+            if (clickedOutsideContainer && clickedOutsideMenu) {
                 setIsOpen(false);
             }
         };
@@ -47,6 +55,17 @@ export const Dropdown: React.FC<DropdownProps> = ({
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        if (isOpen && buttonRef.current) {
+            const rect = buttonRef.current.getBoundingClientRect();
+            setMenuPosition({
+                top: rect.bottom + window.scrollY,
+                left: rect.left + window.scrollX,
+                width: rect.width,
+            });
+        }
+    }, [isOpen]);
 
     const handleSelect = (option: Option) => {
         if (disabled) return;
@@ -68,17 +87,20 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
             <div className="relative">
                 <button
+                    ref={buttonRef}
                     type="button"
-                    onClick={() => !disabled && setIsOpen(!isOpen)}
+                    onClick={() => {
+                        !disabled && setIsOpen(!isOpen);
+                    }}
                     disabled={disabled}
                     className={`
                         relative w-full text-left rounded-lg border px-3 py-2 text-sm transition-all flex items-center justify-between
                         focus:outline-none focus:ring-2 disabled:opacity-50 bg-gray-400
                         
                         ${error
-                        ? 'border-red focus:border-red focus:ring-red/50 text-red'
-                        : 'border-gray-300 focus:border-blurple focus:ring-blurple/50 text-white'
-                    }
+                            ? 'border-red focus:border-red focus:ring-red/50 text-red'
+                            : 'border-gray-300 focus:border-blurple focus:ring-blurple/50 text-white'
+                        }
                     `}
                 >
                     <span className={`block truncate ${!selectedOption ? 'text-gray-200' : ''}`}>
@@ -98,20 +120,33 @@ export const Dropdown: React.FC<DropdownProps> = ({
                     </span>
                 </button>
 
-                {isOpen && (
-                    <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-gray-300 py-1 shadow-lg border border-gray-200 ring-1 ring-black ring-opacity-5 focus:outline-none">
+                {isOpen && typeof window !== 'undefined' && createPortal(
+                    <div
+                        ref={menuRef}
+                        style={{
+                            position: 'absolute',
+                            top: `${menuPosition.top}px`,
+                            left: `${menuPosition.left}px`,
+                            width: `${menuPosition.width}px`,
+                            zIndex: 9999,
+                        }}
+                        className="mt-1 max-h-60 overflow-auto rounded-md bg-gray-300 py-1 shadow-lg border border-gray-200 ring-1 ring-black ring-opacity-5 focus:outline-none"
+                    >
                         {options.length > 0 ? (
                             options.map((option) => (
                                 <div
                                     key={option.value}
-                                    onClick={() => handleSelect(option)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSelect(option);
+                                    }}
                                     className={`
                                         relative cursor-pointer select-none py-2 pl-3 pr-9 text-sm transition-colors
                                         hover:bg-blurple/80
                                         ${option.value === value
-                                        ? 'bg-blurple text-white font-medium'
-                                        : 'text-white'
-                                    }
+                                            ? 'bg-blurple text-white font-medium'
+                                            : 'text-white'
+                                        }
                                     `}
                                 >
                                     <span className="block truncate">{option.label}</span>
@@ -128,7 +163,8 @@ export const Dropdown: React.FC<DropdownProps> = ({
                         ) : (
                             <div className="px-3 py-2 text-sm text-gray-200">Aucune option</div>
                         )}
-                    </div>
+                    </div>,
+                    document.body
                 )}
             </div>
 

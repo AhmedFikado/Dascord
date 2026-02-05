@@ -10,6 +10,8 @@ import { use, useState } from "react";
 import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
 import { useServerStore } from "@/app/lib/stores/use-server-store";
 import { useSnackbar } from "@/components/shared/error-message";
+import { useRouter } from 'next/navigation';
+import { Role } from '@/types/models/role';
 
 const InvitationDialog = dynamic(
     () => import('./invitation-dialog'),
@@ -23,9 +25,14 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
     const { userId } = useCurrentUser();
     const deleteServer = useServerStore((state) => state.deleteServer);
     const leaveServer = useServerStore((state) => state.leaveServer);
+    const members = useServerStore((state) => state.members);
     const { showSnackbar } = useSnackbar();
+    const router = useRouter();
 
-    const isOwner = userId === server.owner_id;
+    const currentMember = members.find(m => m.user_id === userId);
+    const isOwner = currentMember?.role === Role.OWNER;
+    const canManageServer = currentMember ? 
+        (currentMember.role === Role.OWNER || currentMember.role === Role.ADMIN) : false;
 
     const handleServerSettings = () => {
         setIsOpenMenu(false);
@@ -37,6 +44,7 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
         try {
             await leaveServer(server.id);
             showSnackbar({ message: "Vous avez quitté le serveur avec succès.", severity: "success" });
+            router.push('/servers');
         } catch (error) {
             showSnackbar({ message: "Erreur lors de la quitter le serveur.", severity: "error" });
         }
@@ -50,6 +58,7 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
         try {
             await deleteServer(server.id);
             showSnackbar({ message: "Vous avez supprimé votre serveur avec succès.", severity: "success" });
+            router.push('/servers');
         } catch (error) {
             showSnackbar({ message: "Erreur lors de la suppression du serveur.", severity: "error" });
         }
@@ -72,7 +81,7 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
                     )}
                 </Button>
 
-                <InvitationDialog server={server} />
+                {canManageServer && <InvitationDialog server={server} />}
             </div>
 
             {isOpenMenu && (
@@ -83,7 +92,7 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
                     />
 
                     <div className="absolute top-12 left-20 mt-2 w-56 bg-gray-300 rounded-lg shadow-lg overflow-hidden z-20">
-                        {isOwner && (
+                        {canManageServer && (
                             <Button
                                 onClick={handleServerSettings}
                                 variant="noBackground"

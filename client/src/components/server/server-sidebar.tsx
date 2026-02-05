@@ -7,6 +7,8 @@ import ServerHeaderSide from "./server-header-side";
 import CreateChannelDialog from "../channel/create-channel-dialog";
 import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { useChannels } from '@/app/lib/hooks/use-channels';
+import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
+import { Role } from '@/types/models/role';
 
 interface ServerSidebarProps {
     serverId: string;
@@ -14,10 +16,14 @@ interface ServerSidebarProps {
 
 export default function ServerSidebar({ serverId }: ServerSidebarProps) {
 
-    const { servers } = useServerStore();
+    const { userId } = useCurrentUser();
+    const { servers, members } = useServerStore();
     const { channels, isLoading } = useChannels(serverId);
 
     const server = servers.find(s => s.id === serverId);
+    const currentMember = members.find(m => m.user_id === userId);
+    const canManageChannels = currentMember ? 
+        (currentMember.role === Role.OWNER || currentMember.role === Role.ADMIN) : false;
 
     return (
         <aside className="w-60 h-full flex flex-col bg-backgroundSide overflow-y-auto scrollbar-hide flex-shrink-0">
@@ -25,10 +31,12 @@ export default function ServerSidebar({ serverId }: ServerSidebarProps) {
                 {server && <ServerHeaderSide server={server} />}
             </div>
             <div className="flex-1 overflow-y-auto">
-                <div className="px-3 mb-3 py-3 flex items-center justify-between border-b border-gray-200 text-gray-light">
-                    Créer un channel
-                    <CreateChannelDialog serverId={serverId} />
-                </div>
+                {canManageChannels && (
+                    <div className="px-3 mb-3 py-3 flex items-center justify-between border-b border-gray-200 text-gray-light">
+                        Créer un channel
+                        <CreateChannelDialog serverId={serverId} />
+                    </div>
+                )}
                 <ChannelList channels={channels} />
             </div>
         </aside>

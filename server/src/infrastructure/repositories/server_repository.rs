@@ -17,7 +17,7 @@ pub trait ServerRepository: Send + Sync + Clone {
     async fn add_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<()>;
     async fn remove_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<()>;
     async fn is_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<bool>;
-    async fn get_members(&self, server_id: Uuid) -> AppResult<Vec<(Uuid, ServerRole)>>;
+    async fn get_members(&self, server_id: Uuid) -> AppResult<Vec<(Uuid, Uuid, ServerRole, chrono::DateTime<chrono::Utc>)>>;
     async fn get_member_role(&self, server_id: Uuid, user_id: Uuid) -> AppResult<Option<ServerRole>>;
     async fn update_member_role(&self, server_id: Uuid, user_id: Uuid, role: ServerRole) -> AppResult<()>;
 }
@@ -163,9 +163,9 @@ impl ServerRepository for PostgresServerRepository {
         Ok(result.get::<bool, _>(0))
     }
 
-    async fn get_members(&self, server_id: Uuid) -> AppResult<Vec<(Uuid, ServerRole)>> {
+    async fn get_members(&self, server_id: Uuid) -> AppResult<Vec<(Uuid, Uuid, ServerRole, chrono::DateTime<chrono::Utc>)>> {
         let rows = sqlx::query(
-            "SELECT user_id, role::text FROM server_members WHERE server_id = $1"
+            "SELECT server_id, user_id, role::text, joined_at FROM server_members WHERE server_id = $1"
         )
         .bind(server_id)
         .fetch_all(&self.pool)
@@ -175,14 +175,16 @@ impl ServerRepository for PostgresServerRepository {
         let members = rows
             .into_iter()
             .map(|row| {
+                let server_id: Uuid = row.get("server_id");
                 let user_id: Uuid = row.get("user_id");
                 let role_str: String = row.get("role");
+                let joined_at: chrono::DateTime<chrono::Utc> = row.get("joined_at");
                 let role = match role_str.as_str() {
                     "OWNER" => ServerRole::Owner,
                     "ADMIN" => ServerRole::Admin,
                     _ => ServerRole::Member,
                 };
-                (user_id, role)
+                (server_id, user_id, role, joined_at)
             })
             .collect();
 

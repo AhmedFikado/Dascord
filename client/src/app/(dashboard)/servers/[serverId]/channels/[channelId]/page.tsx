@@ -47,6 +47,7 @@ export default function ChannelPage({
 
       <div className="flex-1 overflow-hidden flex flex-col">
         <MessageList
+          serverId={serverId}
           channelId={channelId}
           messages={messages}
           onDeleteMessage={messageId => deleteMessage(channelId, messageId)}

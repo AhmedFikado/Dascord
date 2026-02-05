@@ -49,7 +49,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
                     status: userInfo.status as any,
                     created_at: new Date(userInfo.created_at),
                 },
-                userId: response.user_id,
+                userId: userInfo.id,
                 isAuthenticated: true,
                 isLoading: false,
             });
@@ -81,7 +81,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
                     status: userInfo.status as any,
                     created_at: new Date(userInfo.created_at),
                 },
-                userId: response.user_id,
+                userId: userInfo.id,
                 isAuthenticated: true,
                 isLoading: false,
             });
@@ -109,6 +109,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
                 isAuthenticated: false,
                 isLoading: false,
             });
+            if (typeof window !== 'undefined') {
+                window.location.href = '/login';
+            }
         } catch (error: any) {
             set({
                 error: error.message || 'Erreur lors de la déconnexion',

@@ -23,8 +23,11 @@ axiosInstance.interceptors.response.use(
     (response) => response,
     (error: AxiosError) => {
         if (error.response?.status === 401 && typeof window !== 'undefined') {
-            removeToken();
-            window.location.href = '/login';
+            const errorMessage = (error.response.data as any)?.error || '';
+            if (errorMessage.includes('token') || errorMessage.includes('Authorization header')) {
+                removeToken();
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }

@@ -7,6 +7,9 @@ import { Trash2, Save, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { Server } from '@/types/models/Server';
 import MemberList from './member-list';
 import { useServerStore } from "@/app/lib/stores/use-server-store";
+import { useMembers } from "@/app/lib/hooks/use-members";
+import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
+import { Role } from '@/types/models/role';
 
 interface ServerSettingsProps {
     server: Server;
@@ -22,6 +25,14 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [isMembersOpen, setIsMembersOpen] = useState(false);
     const [searchMember, setSearchMember] = useState('');
+    const serverId = server.id;
+    const { userId } = useCurrentUser();
+    const { members } = useMembers(serverId);
+
+    const currentMember = members.find(m => m.user_id === userId);
+    const canUpdateServer = currentMember ?
+        (currentMember.role === Role.OWNER || currentMember.role === Role.ADMIN) : false;
+    const isOwner = currentMember?.role === Role.OWNER;
 
     const handleSave = async () => {
         if (!serverName.trim()) return;
@@ -50,22 +61,24 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
     return (
         <div className="flex flex-col h-full">
             <div className="flex-1 overflow-y-auto space-y-8">
-                <section>
-                    <h3 className="text-white text-sm font-semibold uppercase mb-4">
-                        Aperçu du serveur
-                    </h3>
-                    <div className="space-y-4">
-                        <Input
-                            label="Nom du serveur"
-                            value={serverName}
-                            onChange={(e) => setServerName(e.target.value)}
-                            placeholder="Entrez le nom du serveur"
-                            maxLength={100}
-                        />
-                    </div>
-                </section>
+                {canUpdateServer && (
+                    <section>
+                        <h3 className="text-white text-sm font-semibold uppercase mb-4">
+                            Aperçu du serveur
+                        </h3>
+                        <div className="space-y-4">
+                            <Input
+                                label="Nom du serveur"
+                                value={serverName}
+                                onChange={(e) => setServerName(e.target.value)}
+                                placeholder="Entrez le nom du serveur"
+                                maxLength={100}
+                            />
+                        </div>
+                    </section>
+                )}
 
-                <div className="border-t border-gray-200"></div>
+                {canUpdateServer && <div className="border-t border-gray-200"></div>}
 
                 <section>
                     <button
@@ -97,7 +110,7 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
 
                             <div className="bg-gray-400 rounded-lg p-4 max-h-96 overflow-y-auto overflow-x-visible">
                                 <div className="overflow-visible">
-                                    <MemberList searchQuery={searchMember} isRole={true} />
+                                    <MemberList searchQuery={searchMember} isRole={true} listMembers={members} serverId={serverId} />
                                 </div>
                             </div>
                         </div>
@@ -106,56 +119,58 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
 
                 <div className="border-t border-gray-200"></div>
 
-                <section>
-                    <div className="flex justify-center mb-4">
-                        <Button
-                            variant="danger"
-                            onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
-                            className="flex items-center gap-2"
-                        >
-                            <Trash2 size={16} />
-                            Supprimer le serveur
-                        </Button>
-                    </div>
-
-                    {showDeleteConfirm && (
-                        <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
-                            <p className="text-white text-sm font-semibold">
-                                Êtes-vous sûr de vouloir supprimer ce serveur ?
-                            </p>
-                            <p className="text-gray-50 text-sm">
-                                Tapez <span className="text-white font-semibold">{server.name}</span> pour confirmer
-                            </p>
-                            <Input
-                                value={deleteConfirmText}
-                                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                                placeholder={server.name}
-                            />
-                            <div className="flex gap-2 justify-end">
-                                <Button
-                                    variant="secondary"
-                                    onClick={() => {
-                                        setShowDeleteConfirm(false);
-                                        setDeleteConfirmText('');
-                                    }}
-                                >
-                                    Annuler
-                                </Button>
-                                <Button
-                                    variant="danger"
-                                    onClick={handleDelete}
-                                    disabled={deleteConfirmText !== server.name}
-                                    isLoading={isLoading}
-                                >
-                                    Supprimer définitivement
-                                </Button>
-                            </div>
+                {isOwner && (
+                    <section>
+                        <div className="flex justify-center mb-4">
+                            <Button
+                                variant="danger"
+                                onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
+                                className="flex items-center gap-2"
+                            >
+                                <Trash2 size={16} />
+                                Supprimer le serveur
+                            </Button>
                         </div>
-                    )}
-                </section>
+
+                        {showDeleteConfirm && (
+                            <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
+                                <p className="text-white text-sm font-semibold">
+                                    Êtes-vous sûr de vouloir supprimer ce serveur ?
+                                </p>
+                                <p className="text-gray-50 text-sm">
+                                    Tapez <span className="text-white font-semibold">{server.name}</span> pour confirmer
+                                </p>
+                                <Input
+                                    value={deleteConfirmText}
+                                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                    placeholder={server.name}
+                                />
+                                <div className="flex gap-2 justify-end">
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => {
+                                            setShowDeleteConfirm(false);
+                                            setDeleteConfirmText('');
+                                        }}
+                                    >
+                                        Annuler
+                                    </Button>
+                                    <Button
+                                        variant="danger"
+                                        onClick={handleDelete}
+                                        disabled={deleteConfirmText !== server.name}
+                                        isLoading={isLoading}
+                                    >
+                                        Supprimer définitivement
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </section>
+                )}
             </div>
 
-            {hasChanges && (
+            {hasChanges && canUpdateServer && (
                 <div className="bg-gray-400 p-4 flex items-center justify-between border-t border-gray-200 mt-4">
                     <p className="text-white text-sm">
                         Attention — vous avez des modifications non enregistrées !

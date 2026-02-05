@@ -23,7 +23,6 @@ export default function UserPanel() {
     const handleStatusChange = (newStatus: Status) => {
         setStatus(newStatus);
         setIsOpen(false);
-        console.log('Nouveau statut:', newStatus);
     };
 
     const handleLogout = () => {

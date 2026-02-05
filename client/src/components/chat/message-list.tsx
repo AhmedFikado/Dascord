@@ -7,6 +7,7 @@ import { useEffect, useRef } from 'react';
 import MessageItem from './message-item';
 
 interface MessageListProps {
+  serverId: string;
   channelId: string;
   messages: Message[];
   onDeleteMessage: (id: string) => void;
@@ -23,7 +24,7 @@ interface WsMessage {
 
 const EMPTY_ARRAY: WsMessage[] = [];
 
-export default function MessageList({ channelId, messages, onDeleteMessage }: MessageListProps) {
+export default function MessageList({ serverId, channelId, messages, onDeleteMessage }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { joinChannel, leaveChannel } = useWebSocketContext();
 
@@ -74,6 +75,7 @@ export default function MessageList({ channelId, messages, onDeleteMessage }: Me
         {sortedMessages.map(message => (
           <MessageItem
             key={message.id}
+            serverId={serverId}
             message={message}
             onDelete={() => onDeleteMessage(message.id || '')}
           />

@@ -12,7 +12,7 @@ export default function ServerSettingsPage({
     return (
         <div className="flex-1 p-8">
             <h1 className="text-white text-2xl font-bold mb-4">
-                Paramètres du serveur #{serverId}
+                Paramètres du serveur
             </h1>
         </div>
     );

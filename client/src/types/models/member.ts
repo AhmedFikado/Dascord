@@ -10,15 +10,6 @@ export interface Member {
 }
 
 /**
- * Type pour ajouter un membre à un serveur
- */
-export interface CreateMember {
-    server_id: string;
-    user_id: string;
-    role?: Role;
-}
-
-/**
  * Type pour mettre à jour le rôle d'un membre
  */
 export interface UpdateMemberRole {

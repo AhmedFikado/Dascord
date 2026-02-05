@@ -1,10 +1,13 @@
 import { create } from 'zustand';
 import { Server } from '@/types/models/Server';
 import { serversApi } from '../api/servers';
+import { Member } from '@/types/models/member';
+import { Role } from '@/types/models/role';
 
 interface ServerState {
     servers: Server[];
     currentServer: Server | null;
+    members: Member[];
     isLoading: boolean;
     error: string | null;
 
@@ -16,11 +19,15 @@ interface ServerState {
     joinServer: (invitationCode: string) => Promise<void>;
     leaveServer: (serverId: string) => Promise<void>;
     updateServer: (serverId: string, name: string) => Promise<Server>;
+    getMembers: (serverId: string) => Promise<void>;
+    updateRoleMember: (serverId: string, userId: string, role: Role) => Promise<void>;
+
 }
 
 export const useServerStore = create<ServerState>((set) => ({
     servers: [],
     currentServer: null,
+    members: [],
     isLoading: false,
     error: null,
 
@@ -28,7 +35,6 @@ export const useServerStore = create<ServerState>((set) => ({
         set({ isLoading: true, error: null });
         try {
             const servers = await serversApi.getAll();
-            console.log(servers)
             set({ servers, isLoading: false });
         } catch (error) {
             set({ error: 'Erreur lors du chargement des serveurs', isLoading: false });
@@ -105,6 +111,28 @@ export const useServerStore = create<ServerState>((set) => ({
             set({ error: 'Erreur lors de la mise à jour du serveur', isLoading: false });
             throw error;
         }
-    }
+    },
+
+    getMembers: async (serverId) => {
+        set({ isLoading: true, error: null });
+        try {
+            const members = await serversApi.getMembers(serverId);
+            set({ members, isLoading: false });
+        } catch (error) {
+            set({ error: 'Erreur lors de la récupération des membres', isLoading: false });
+        }
+    },
+
+    updateRoleMember: async (serverId, userId, role) => {
+        set({ isLoading: true, error: null });
+        try {
+            await serversApi.updateRoleMember(serverId, userId, role);
+            const members = await serversApi.getMembers(serverId);
+            set({ members, isLoading: false });
+        } catch (error) {
+            set({ error: 'Erreur lors de la mise à jour du rôle du membre', isLoading: false });
+            throw error;
+        }
+    },
 
 }));

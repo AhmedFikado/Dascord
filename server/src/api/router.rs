@@ -30,12 +30,14 @@ pub fn create_router(
     let server_repo = PostgresServerRepository::new(pg_pool.clone());
     let channel_repo = PostgresChannelRepository::new(pg_pool.clone());
     let message_repo = MongoMessageRepository::new(mongo_client);
-    let user_repo = PostgresUserRepository::new(pg_pool);
+    let user_repo = PostgresUserRepository::new(pg_pool.clone());
+    let user_repo2 = PostgresUserRepository::new(pg_pool);
     
     let server_handler = Arc::new(ServerHandler::new(
         jwt_service.clone(),
         server_repo.clone(),
         channel_repo.clone(),
+        user_repo,
     ));
     let channel_handler = Arc::new(ChannelHandler::new(
         jwt_service.clone(),
@@ -47,7 +49,7 @@ pub fn create_router(
         message_repo,
         channel_repo,
         server_repo,
-        user_repo,
+        user_repo2,
     ));
 
     let cors = CorsLayer::new()
