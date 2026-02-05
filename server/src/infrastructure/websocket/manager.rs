@@ -4,15 +4,15 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use super::connection::Connection;
-use super::message::{ClientMessage, ServerMessage, MessageData};
-use crate::infrastructure::database::MongoDBMessageRepository;
+use super::message::{ClientMessage, MessageData, ServerMessage};
 use crate::domain::entities::message::Message;
+use crate::infrastructure::database::MongoDBMessageRepository;
 
 /// Gestionnaire central de toutes les connexions WebSocket
 pub struct ConnectionManager {
     /// Toutes les connexions actives (connection_id -> Connection)
     connections: DashMap<Uuid, Arc<Connection>>,
-    
+
     /// Rooms (channel_id -> set of connection_ids)
     rooms: DashMap<String, HashSet<Uuid>>,
 }
@@ -25,26 +25,26 @@ impl ConnectionManager {
             rooms: DashMap::new(),
         }
     }
-    
+
     /// Ajouter une connexion
     pub async fn add_connection(&self, connection: Connection) {
         let id = connection.id;
         self.connections.insert(id, Arc::new(connection));
         tracing::info!("Connexion ajoutée: {}", id);
     }
-    
+
     /// Supprimer une connexion
     pub async fn remove_connection(&self, connection_id: Uuid) {
         // Retirer de toutes les rooms
         for mut room in self.rooms.iter_mut() {
             room.value_mut().remove(&connection_id);
         }
-        
+
         // Supprimer la connexion
         self.connections.remove(&connection_id);
         tracing::info!("Connexion supprimée: {}", connection_id);
     }
-    
+
     /// Envoyer un message à une connexion spécifique
     pub async fn send_to_connection(
         &self,
@@ -57,7 +57,7 @@ impl ConnectionManager {
             Err("Connection not found".to_string())
         }
     }
-    
+
     /// Broadcast un message à tous les membres d'un channel
     pub async fn broadcast_to_channel(&self, channel_id: &str, message: ServerMessage) {
         if let Some(room) = self.rooms.get(channel_id) {
@@ -66,7 +66,7 @@ impl ConnectionManager {
             }
         }
     }
-    
+
     /// Mettre une connexion à un channel
     pub async fn join_channel(
         &self,
@@ -78,14 +78,18 @@ impl ConnectionManager {
             .entry(channel_id.clone())
             .or_insert_with(HashSet::new)
             .insert(connection_id);
-        
+
         // Récupérer et envoyer l'historique des messages
-        match message_repository.get_messages_by_channel(&channel_id).await {
+        match message_repository
+            .get_messages_by_channel(&channel_id)
+            .await
+        {
             Ok(messages) => {
                 let message_data: Vec<MessageData> = messages
                     .iter()
                     .map(|msg| MessageData {
-                        message_id: msg.id
+                        message_id: msg
+                            .id
                             .as_ref()
                             .map(|id| id.to_hex())
                             .unwrap_or_else(|| "unknown".to_string()),
@@ -95,14 +99,18 @@ impl ConnectionManager {
                         created_at: msg.created_at,
                     })
                     .collect();
-                
+
                 let history_msg = ServerMessage::MessageHistory {
                     channel_id: channel_id.clone(),
                     messages: message_data,
                 };
-                
+
                 let _ = self.send_to_connection(connection_id, history_msg).await;
-                tracing::info!("Envoyé {} messages d'historique pour le channel {}", messages.len(), channel_id);
+                tracing::info!(
+                    "Envoyé {} messages d'historique pour le channel {}",
+                    messages.len(),
+                    channel_id
+                );
             }
             Err(e) => {
                 tracing::error!("Erreur lors de la récupération de l'historique: {:?}", e);
@@ -114,7 +122,7 @@ impl ConnectionManager {
                 let _ = self.send_to_connection(connection_id, error_msg).await;
             }
         }
-        
+
         // Notifier les autres membres
         if let Some(conn) = self.connections.get(&connection_id) {
             let message = ServerMessage::UserJoined {
@@ -124,16 +132,20 @@ impl ConnectionManager {
             };
             self.broadcast_to_channel(&channel_id, message).await;
         }
-        
-        tracing::info!("Connexion {} a rejoint le channel {}", connection_id, channel_id);
+
+        tracing::info!(
+            "Connexion {} a rejoint le channel {}",
+            connection_id,
+            channel_id
+        );
     }
-    
+
     /// Retirer une connexion d'un channel
     pub async fn leave_channel(&self, connection_id: Uuid, channel_id: String) {
         if let Some(mut room) = self.rooms.get_mut(&channel_id) {
             room.remove(&connection_id);
         }
-        
+
         // Notifier les autres membres
         if let Some(conn) = self.connections.get(&connection_id) {
             let message = ServerMessage::UserLeft {
@@ -142,10 +154,14 @@ impl ConnectionManager {
             };
             self.broadcast_to_channel(&channel_id, message).await;
         }
-        
-        tracing::info!("Connexion {} a quitté le channel {}", connection_id, channel_id);
+
+        tracing::info!(
+            "Connexion {} a quitté le channel {}",
+            connection_id,
+            channel_id
+        );
     }
-    
+
     /// Gérer les messages reçus du client
     pub async fn handle_client_message(
         &self,
@@ -155,14 +171,18 @@ impl ConnectionManager {
     ) {
         match message {
             ClientMessage::JoinChannel { channel_id } => {
-                self.join_channel(connection_id, channel_id, message_repository).await;
+                self.join_channel(connection_id, channel_id, message_repository)
+                    .await;
             }
-            
+
             ClientMessage::LeaveChannel { channel_id } => {
                 self.leave_channel(connection_id, channel_id).await;
             }
-            
-            ClientMessage::SendMessage { channel_id, content } => {
+
+            ClientMessage::SendMessage {
+                channel_id,
+                content,
+            } => {
                 // Vérifier que le contenu n'est pas vide
                 if content.trim().is_empty() {
                     let error_msg = ServerMessage::Error {
@@ -173,7 +193,7 @@ impl ConnectionManager {
                     let _ = self.send_to_connection(connection_id, error_msg).await;
                     return;
                 }
-                
+
                 // Récupérer les infos de l'utilisateur
                 if let Some(conn) = self.connections.get(&connection_id) {
                     // Créer le message à sauvegarder
@@ -183,7 +203,7 @@ impl ConnectionManager {
                         conn.username.clone(),
                         content.clone(),
                     );
-                    
+
                     // Sauvegarder en base de données
                     match message_repository.save_message(&new_message).await {
                         Ok(message_id) => {
@@ -196,9 +216,12 @@ impl ConnectionManager {
                                 content,
                                 created_at: new_message.created_at,
                             };
-                            
+
                             self.broadcast_to_channel(&channel_id, message).await;
-                            tracing::info!("Message sauvegardé et diffusé sur le channel {}", channel_id);
+                            tracing::info!(
+                                "Message sauvegardé et diffusé sur le channel {}",
+                                channel_id
+                            );
                         }
                         Err(e) => {
                             tracing::error!("Erreur lors de la sauvegarde du message: {:?}", e);
@@ -219,8 +242,11 @@ impl ConnectionManager {
                     let _ = self.send_to_connection(connection_id, error_msg).await;
                 }
             }
-            
-            ClientMessage::Typing { channel_id, is_typing } => {
+
+            ClientMessage::Typing {
+                channel_id,
+                is_typing,
+            } => {
                 // Récupérer les infos de l'utilisateur
                 if let Some(conn) = self.connections.get(&connection_id) {
                     let message = ServerMessage::UserTyping {
@@ -229,7 +255,7 @@ impl ConnectionManager {
                         username: conn.username.clone(),
                         is_typing,
                     };
-                    
+
                     // Broadcast à tous les autres membres du channel (sauf l'émetteur)
                     if let Some(room) = self.rooms.get(&channel_id) {
                         for conn_id in room.value().iter() {
@@ -238,9 +264,13 @@ impl ConnectionManager {
                             }
                         }
                     }
-                    
-                    tracing::debug!("User {} typing status: {} dans channel {}", 
-                        conn.username, is_typing, channel_id);
+
+                    tracing::debug!(
+                        "User {} typing status: {} dans channel {}",
+                        conn.username,
+                        is_typing,
+                        channel_id
+                    );
                 } else {
                     let error_msg = ServerMessage::Error {
                         code: "CONNECTION_NOT_FOUND".to_string(),
@@ -252,7 +282,7 @@ impl ConnectionManager {
             }
         }
     }
-    
+
     /// Nombre de connexions actives
     pub fn connection_count(&self) -> usize {
         self.connections.len()

@@ -28,7 +28,7 @@ impl PostgresChannelRepository {
 impl ChannelRepository for PostgresChannelRepository {
     async fn create(&self, channel: Channel) -> AppResult<Channel> {
         sqlx::query(
-            "INSERT INTO channels (id, server_id, name, created_at) VALUES ($1, $2, $3, $4)"
+            "INSERT INTO channels (id, server_id, name, created_at) VALUES ($1, $2, $3, $4)",
         )
         .bind(channel.id)
         .bind(channel.server_id)
@@ -43,7 +43,7 @@ impl ChannelRepository for PostgresChannelRepository {
 
     async fn find_by_id(&self, id: Uuid) -> AppResult<Option<Channel>> {
         let result = sqlx::query_as::<_, Channel>(
-            "SELECT id, server_id, name, created_at FROM channels WHERE id = $1"
+            "SELECT id, server_id, name, created_at FROM channels WHERE id = $1",
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -55,7 +55,7 @@ impl ChannelRepository for PostgresChannelRepository {
 
     async fn find_by_server(&self, server_id: Uuid) -> AppResult<Vec<Channel>> {
         let channels = sqlx::query_as::<_, Channel>(
-            "SELECT id, server_id, name, created_at FROM channels WHERE server_id = $1"
+            "SELECT id, server_id, name, created_at FROM channels WHERE server_id = $1",
         )
         .bind(server_id)
         .fetch_all(&self.pool)
@@ -66,14 +66,12 @@ impl ChannelRepository for PostgresChannelRepository {
     }
 
     async fn update(&self, channel: Channel) -> AppResult<Channel> {
-        sqlx::query(
-            "UPDATE channels SET name = $1 WHERE id = $2"
-        )
-        .bind(&channel.name)
-        .bind(channel.id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        sqlx::query("UPDATE channels SET name = $1 WHERE id = $2")
+            .bind(&channel.name)
+            .bind(channel.id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
         Ok(channel)
     }

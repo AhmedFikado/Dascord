@@ -19,3 +19,9 @@ Cargo.lock
 
 # OS
 Thumbs.db
+
+# Coverage
+*.profraw
+*.profdata
+lcov.info
+target/llvm-cov-target/

@@ -1,7 +1,7 @@
 use crate::application::dto::server::{MemberResponse, UserInfo};
+use crate::domain::value_objects::ServerRole;
 use crate::infrastructure::repositories::server_repository::ServerRepository;
 use crate::infrastructure::repositories::user_repository::UserRepository;
-use crate::domain::value_objects::ServerRole;
 use crate::utils::error::{AppError, AppResult};
 use uuid::Uuid;
 
@@ -18,7 +18,9 @@ impl<SR: ServerRepository, UR: UserRepository> ListMembersUseCase<SR, UR> {
     pub async fn execute(&self, server_id: Uuid, user_id: Uuid) -> AppResult<Vec<MemberResponse>> {
         let is_member = self.server_repo.is_member(server_id, user_id).await?;
         if !is_member {
-            return Err(AppError::Unauthorized("Not a member of this server".to_string()));
+            return Err(AppError::Unauthorized(
+                "Not a member of this server".to_string(),
+            ));
         }
 
         let members = self.server_repo.get_members(server_id).await?;
@@ -64,11 +66,24 @@ impl<R: ServerRepository> UpdateMemberRoleUseCase<R> {
             .ok_or_else(|| AppError::NotFound("Target user is not a member".to_string()))?;
 
         if server.owner_id != requester_id {
-            let requester_role = self.server_repo.get_member_role(server_id, requester_id).await?
+            let requester_role = self
+                .server_repo
+                .get_member_role(server_id, requester_id)
+                .await?
                 .ok_or_else(|| AppError::Unauthorized("Not a member".to_string()))?;
-            
+
             if requester_role != ServerRole::Admin {
-                return Err(AppError::Unauthorized("Only owner or admin can update roles".to_string()));
+                return Err(AppError::Unauthorized(
+                    "Only owner or admin can update roles".to_string(),
+                ));
+            }
+            
+            if new_role == ServerRole::Owner {
+                return Err(AppError::Unauthorized("Only owner can transfer ownership".to_string()));
+            }
+            
+            if target_role == ServerRole::Owner || target_role == ServerRole::Admin {
+                return Err(AppError::Unauthorized("Admins cannot modify owner or other admin roles".to_string()));
             }
             
             if new_role == ServerRole::Owner {

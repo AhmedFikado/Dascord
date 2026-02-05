@@ -9,10 +9,12 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::infrastructure::security::jwt::JWTService;
 use crate::infrastructure::database::MongoDBMessageRepository;
 use crate::infrastructure::repositories::PostgresUserRepository;
-use crate::infrastructure::websocket::{extract_and_verify_token, handle_socket, ConnectionManager};
+use crate::infrastructure::security::jwt::JWTService;
+use crate::infrastructure::websocket::{
+    extract_and_verify_token, handle_socket, ConnectionManager,
+};
 use crate::utils::error::AppError;
 
 /// État partagé pour les routes WebSocket
@@ -34,13 +36,19 @@ pub async fn ws_handler(
     let token = params
         .get("token")
         .ok_or_else(|| AppError::Unauthorized("Missing token parameter".to_string()))?;
-    
+
     let query_string = format!("token={}", token);
     let (user_id, username) = extract_and_verify_token(&query_string, &state.jwt_service, &state.user_repository).await?;
     
     // Accepter la connexion WebSocket
     Ok(ws.on_upgrade(move |socket| {
-        handle_connection(socket, user_id, username, state.manager, state.message_repository)
+        handle_connection(
+            socket,
+            user_id,
+            username,
+            state.manager,
+            state.message_repository,
+        )
     }))
 }
 
@@ -52,7 +60,11 @@ async fn handle_connection(
     manager: Arc<ConnectionManager>,
     message_repository: MongoDBMessageRepository,
 ) {
-    tracing::info!("Nouvelle connexion WebSocket: user_id={}, username={}", user_id, username);
+    tracing::info!(
+        "Nouvelle connexion WebSocket: user_id={}, username={}",
+        user_id,
+        username
+    );
     handle_socket(socket, user_id, username, manager, message_repository).await;
     tracing::info!("Connexion WebSocket fermée: user_id={}", user_id);
 }

@@ -1,3 +1,9 @@
+use crate::application::dto::server::CreateServerRequest;
+use crate::application::dto::server::JoinServerRequest;
+use crate::application::use_cases::server::*;
+use crate::infrastructure::repositories::{ChannelRepository, ServerRepository, UserRepository};
+use crate::infrastructure::security::JWTService;
+use crate::utils::error::AppError;
 use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
@@ -6,12 +12,6 @@ use axum::{
 };
 use std::sync::Arc;
 use uuid::Uuid;
-use crate::application::dto::server::CreateServerRequest;
-use crate::application::dto::server::JoinServerRequest;
-use crate::application::use_cases::server::*;
-use crate::infrastructure::security::JWTService;
-use crate::infrastructure::repositories::{ServerRepository, ChannelRepository, UserRepository};
-use crate::utils::error::AppError;
 
 #[derive(Clone)]
 pub struct ServerHandler<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> {
@@ -47,7 +47,10 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             leave_server_uc: Arc::new(LeaveServerUseCase::new(server_repo.clone())),
             list_members_uc: Arc::new(ListMembersUseCase::new(server_repo.clone(), user_repo)),
             update_member_role_uc: Arc::new(UpdateMemberRoleUseCase::new(server_repo.clone())),
-            get_channels_uc: Arc::new(GetChannelsUseCase::new(server_repo.clone(), channel_repo.clone())),
+            get_channels_uc: Arc::new(GetChannelsUseCase::new(
+                server_repo.clone(),
+                channel_repo.clone(),
+            )),
             create_channel_uc: Arc::new(CreateChannelUseCase::new(server_repo, channel_repo)),
         }
     }
@@ -61,12 +64,14 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let owner_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
+
         let response = handler.create_server_uc.execute(request, owner_id).await?;
         Ok((StatusCode::CREATED, Json(response)))
     }
@@ -79,12 +84,14 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
+
         let servers = handler.get_user_servers_uc.execute(user_id).await?;
         Ok((StatusCode::OK, Json(servers)))
     }
@@ -98,12 +105,14 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
+
         let server = handler.get_server_info_uc.execute(id, user_id).await?;
         Ok((StatusCode::OK, Json(server)))
     }
@@ -118,17 +127,20 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
-        let name = payload.get("name")
+
+        let name = payload
+            .get("name")
             .and_then(|v| v.as_str())
             .ok_or_else(|| AppError::ValidationError("Missing name field".to_string()))?
             .to_string();
-        
+
         let server = handler.update_server_uc.execute(id, user_id, name).await?;
         Ok((StatusCode::OK, Json(server)))
     }
@@ -142,14 +154,19 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
+
         handler.delete_server_uc.execute(id, user_id).await?;
-        Ok((StatusCode::OK, Json(serde_json::json!({"message": "Server deleted"}))))
+        Ok((
+            StatusCode::OK,
+            Json(serde_json::json!({"message": "Server deleted"})),
+        ))
     }
 
     pub async fn join_server(
@@ -161,14 +178,22 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
-        handler.join_server_uc.execute(&request.invitation_code, user_id).await?;
-        Ok((StatusCode::OK, Json(serde_json::json!({"message": "Joined server"}))))
+
+        handler
+            .join_server_uc
+            .execute(&request.invitation_code, user_id)
+            .await?;
+        Ok((
+            StatusCode::OK,
+            Json(serde_json::json!({"message": "Joined server"})),
+        ))
     }
 
     pub async fn leave_server(
@@ -180,14 +205,19 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
+
         handler.leave_server_uc.execute(id, user_id).await?;
-        Ok((StatusCode::OK, Json(serde_json::json!({"message": "Left server"}))))
+        Ok((
+            StatusCode::OK,
+            Json(serde_json::json!({"message": "Left server"})),
+        ))
     }
 
     pub async fn list_members(
@@ -199,12 +229,14 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
+
         let members = handler.list_members_uc.execute(id, user_id).await?;
         Ok((StatusCode::OK, Json(members)))
     }
@@ -219,17 +251,25 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let requester_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
+
         let role = serde_json::from_value(payload.get("role").cloned().unwrap_or_default())
             .map_err(|_| AppError::ValidationError("Invalid role".to_string()))?;
-        
-        handler.update_member_role_uc.execute(id, target_user_id, requester_id, role).await?;
-        Ok((StatusCode::OK, Json(serde_json::json!({"message": "Member role updated"}))))
+
+        handler
+            .update_member_role_uc
+            .execute(id, target_user_id, requester_id, role)
+            .await?;
+        Ok((
+            StatusCode::OK,
+            Json(serde_json::json!({"message": "Member role updated"})),
+        ))
     }
 
     pub async fn get_channels(
@@ -241,12 +281,14 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
+
         let channels = handler.get_channels_uc.execute(id, user_id).await?;
         Ok((StatusCode::OK, Json(channels)))
     }
@@ -261,13 +303,385 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
-        let channel = handler.create_channel_uc.execute(id, user_id, request).await?;
+
+        let channel = handler
+            .create_channel_uc
+            .execute(id, user_id, request)
+            .await?;
         Ok((StatusCode::CREATED, Json(channel)))
+    }
+}
+
+
+// --- UNIT TESTS ---
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::application::dto::channel::CreateChannelRequest;
+    use crate::application::dto::server::{CreateServerRequest, JoinServerRequest};
+    use crate::domain::entities::Server;
+    use crate::domain::value_objects::ServerRole;
+    use crate::infrastructure::repositories::mocks::{
+        mock_channel_repository::MockChannelRepository,
+        mock_server_repository::MockServerRepository,
+    };
+
+    #[tokio::test]
+    async fn test_create_server_success() {
+        let owner_id = Uuid::new_v4();
+
+        let mock_server_repo = MockServerRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+
+        let token = jwt_service.create_token(owner_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let request = CreateServerRequest {
+            name: "Test Server".to_string(),
+        };
+
+        let result = ServerHandler::create_server(State(handler), headers, Json(request)).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_get_user_servers_success() {
+        let user_id = Uuid::new_v4();
+        let server = Server::new("Test Server".to_string(), user_id, "CODE123".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, user_id, ServerRole::Owner);
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let result = ServerHandler::get_user_servers(State(handler), headers).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_join_server_success() {
+        let owner_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let server = Server::new("Test Server".to_string(), owner_id, "CODE123".to_string());
+
+        let mock_server_repo = MockServerRepository::new().with_server(server.clone());
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let request = JoinServerRequest {
+            invitation_code: "CODE123".to_string(),
+        };
+
+        let result = ServerHandler::join_server(State(handler), headers, Json(request)).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_create_channel_success() {
+        let owner_id = Uuid::new_v4();
+        let server = Server::new("Test Server".to_string(), owner_id, "CODE123".to_string());
+
+        let mock_server_repo = MockServerRepository::new().with_server(server.clone());
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+
+        let token = jwt_service.create_token(owner_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let request = CreateChannelRequest {
+            name: "General".to_string(),
+        };
+
+        let result =
+            ServerHandler::create_channel(State(handler), Path(server.id), headers, Json(request))
+                .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_missing_authorization_header() {
+        let mock_server_repo = MockServerRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service,
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+        let headers = HeaderMap::new();
+
+        let result = ServerHandler::get_user_servers(State(handler), headers).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_server_info_success() {
+        let owner_id = Uuid::new_v4();
+        let server = Server::new("Test Server".to_string(), owner_id, "CODE123".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, owner_id, ServerRole::Owner);
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+        let token = jwt_service.create_token(owner_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let result = ServerHandler::get_server_info(State(handler), Path(server.id), headers).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_server_success() {
+        let owner_id = Uuid::new_v4();
+        let server = Server::new("Old Name".to_string(), owner_id, "CODE123".to_string());
+
+        let mock_server_repo = MockServerRepository::new().with_server(server.clone());
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+        let token = jwt_service.create_token(owner_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let payload = serde_json::json!({"name": "New Name"});
+        let result =
+            ServerHandler::update_server(State(handler), Path(server.id), headers, Json(payload)).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_delete_server_success() {
+        let owner_id = Uuid::new_v4();
+        let server = Server::new("Test Server".to_string(), owner_id, "CODE123".to_string());
+
+        let mock_server_repo = MockServerRepository::new().with_server(server.clone());
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+        let token = jwt_service.create_token(owner_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let result = ServerHandler::delete_server(State(handler), Path(server.id), headers).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_leave_server_success() {
+        let owner_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let server = Server::new("Test Server".to_string(), owner_id, "CODE123".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, user_id, ServerRole::Member);
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let result = ServerHandler::leave_server(State(handler), Path(server.id), headers).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_list_members_success() {
+        let owner_id = Uuid::new_v4();
+        let server = Server::new("Test Server".to_string(), owner_id, "CODE123".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, owner_id, ServerRole::Owner);
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+        let token = jwt_service.create_token(owner_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let result = ServerHandler::list_members(State(handler), Path(server.id), headers).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_member_role_success() {
+        let owner_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4();
+        let server = Server::new("Test Server".to_string(), owner_id, "CODE123".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, user_id, ServerRole::Member);
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+        let token = jwt_service.create_token(owner_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let payload = serde_json::json!({"role": "ADMIN"});
+        let result = ServerHandler::update_member_role(
+            State(handler),
+            Path((server.id, user_id)),
+            headers,
+            Json(payload),
+        )
+        .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_get_channels_success() {
+        let owner_id = Uuid::new_v4();
+        let server = Server::new("Test Server".to_string(), owner_id, "CODE123".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, owner_id, ServerRole::Owner);
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+        let token = jwt_service.create_token(owner_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let result = ServerHandler::get_channels(State(handler), Path(server.id), headers).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_invalid_token() {
+        let mock_server_repo = MockServerRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service,
+            mock_server_repo,
+            mock_channel_repo,
+        ));
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
+
+        let result = ServerHandler::get_user_servers(State(handler), headers).await;
+        assert!(result.is_err());
     }
 }

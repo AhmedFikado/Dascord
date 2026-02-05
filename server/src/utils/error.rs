@@ -1,4 +1,8 @@
-use axum::{http::StatusCode, response::{IntoResponse, Response}, Json};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use serde::Serialize;
 use std::fmt;
 
@@ -46,6 +50,12 @@ impl IntoResponse for AppError {
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
         };
 
-        (status, Json(ErrorResponse { error: error_message })).into_response()
+        (
+            status,
+            Json(ErrorResponse {
+                error: error_message,
+            }),
+        )
+            .into_response()
     }
 }

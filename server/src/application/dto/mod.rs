@@ -1,13 +1,13 @@
 pub mod auth;
-pub mod security;
-pub mod message_dto;
-pub mod user_dto;
-pub mod server;
 pub mod channel;
+pub mod message_dto;
+pub mod security;
+pub mod server;
+pub mod user_dto;
 
 pub use auth::*;
-pub use security::*;
-pub use message_dto::*;
-pub use user_dto::*;
-pub use server::*;
 pub use channel::*;
+pub use message_dto::*;
+pub use security::*;
+pub use server::*;
+pub use user_dto::*;
