@@ -32,7 +32,7 @@ export default function MemberItem({member, isRole = false}: MemberitemProps) {
     const RolesOptions = [
         { label: 'OWNER', value: 'OWNER' },
         { label: 'ADMIN', value: 'ADMIN' },
-        { label: 'MEMBERS', value: 'MEMBERS' },
+        { label: 'MEMBER', value: 'MEMBER' },
     ];
 
     return (
