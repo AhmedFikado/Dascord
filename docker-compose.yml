@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: rtc-backend
     ports:
-      - '8080:8080'
+      - '${API_PORT:-8080}:8080'
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - MONGODB_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongodb:27017/${MONGO_DB}?authSource=admin
@@ -22,9 +22,11 @@ services:
       dockerfile: Dockerfile
     container_name: rtc-frontend
     ports:
-      - '3000:3000'
+      - '${FRONTEND_PORT:-3000}:3000'
     environment:
       - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://${HOST_IP:-localhost}:${API_PORT:-8080}
+      - NEXT_PUBLIC_WS_URL=${HOST_IP:-localhost}:${API_PORT:-8080}
     depends_on:
       - backend
 
