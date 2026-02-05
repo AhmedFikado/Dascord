@@ -6,9 +6,10 @@ interface MemberListProps {
     searchQuery?: string;
     isRole?: boolean;
     listMembers: Member[];
+    serverId?: string;
 }
 
-export default function MemberList({ searchQuery = '', isRole = false, listMembers }: MemberListProps) {
+export default function MemberList({ searchQuery = '', isRole = false, listMembers, serverId }: MemberListProps) {
 
     const filterUsers = listMembers.filter(member =>
         member?.user?.username?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -23,11 +24,11 @@ export default function MemberList({ searchQuery = '', isRole = false, listMembe
 
             {isRole ? (
                 filterUsers.map((member) => (
-                    <MemberItem key={member.user.id} member={member} isRole={true} />
+                    <MemberItem key={member.user.id} member={member} isRole={true} serverId={serverId} />
                 ))
             ) : (
                 filterUsers.map((member) => (
-                    <MemberItem key={member.user.id} member={member} />
+                    <MemberItem key={member.user.id} member={member} serverId={serverId} />
                 ))
             )}
         </div>

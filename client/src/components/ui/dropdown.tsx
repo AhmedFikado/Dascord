@@ -37,12 +37,17 @@ export const Dropdown: React.FC<DropdownProps> = ({
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 });
     const containerRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     const selectedOption = options.find((opt) => opt.value === value);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+            const target = event.target as Node;
+            const clickedOutsideContainer = containerRef.current && !containerRef.current.contains(target);
+            const clickedOutsideMenu = menuRef.current && !menuRef.current.contains(target);
+
+            if (clickedOutsideContainer && clickedOutsideMenu) {
                 setIsOpen(false);
             }
         };
@@ -84,7 +89,9 @@ export const Dropdown: React.FC<DropdownProps> = ({
                 <button
                     ref={buttonRef}
                     type="button"
-                    onClick={() => !disabled && setIsOpen(!isOpen)}
+                    onClick={() => {
+                        !disabled && setIsOpen(!isOpen);
+                    }}
                     disabled={disabled}
                     className={`
                         relative w-full text-left rounded-lg border px-3 py-2 text-sm transition-all flex items-center justify-between
@@ -115,6 +122,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
 
                 {isOpen && typeof window !== 'undefined' && createPortal(
                     <div
+                        ref={menuRef}
                         style={{
                             position: 'absolute',
                             top: `${menuPosition.top}px`,
@@ -128,7 +136,10 @@ export const Dropdown: React.FC<DropdownProps> = ({
                             options.map((option) => (
                                 <div
                                     key={option.value}
-                                    onClick={() => handleSelect(option)}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSelect(option);
+                                    }}
                                     className={`
                                         relative cursor-pointer select-none py-2 pl-3 pr-9 text-sm transition-colors
                                         hover:bg-blurple/80

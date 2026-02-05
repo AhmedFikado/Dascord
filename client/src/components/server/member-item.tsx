@@ -1,14 +1,20 @@
 import { Member } from "@/types/models/member";
 import { User, Status } from "../../types/models/user";
-import {Dropdown} from "@/components/ui/dropdown";
+import { Dropdown } from "@/components/ui/dropdown";
+import { useServerStore } from "@/app/lib/stores/use-server-store";
+import { Role } from "@/types/models/role";
 
 
-interface MemberitemProps{
+interface MemberitemProps {
     member: Member;
     isRole?: boolean;
+    serverId?: string;
 }
 
-export default function MemberItem({member, isRole = false}: MemberitemProps) {
+export default function MemberItem({ member, isRole = false, serverId }: MemberitemProps) {
+
+    const updateRoleMember = useServerStore((state) => state.updateRoleMember);
+
     const getStatusIndicator = (status: Status) => {
         const baseClass = "absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-backgroundSide";
 
@@ -24,16 +30,10 @@ export default function MemberItem({member, isRole = false}: MemberitemProps) {
         }
     };
 
-    const changeRole = (role: string) => {
-        // Gérer la logique pour changer le rôle de l'user
-        // Regarder comment récupérer le role de chaque user
+    const changeRole = (role: Role) => {
+        if (!serverId) return;
+        updateRoleMember(serverId, member.user.id, role);
     }
-
-    const RolesOptions = [
-        { label: 'OWNER', value: 'OWNER' },
-        { label: 'ADMIN', value: 'ADMIN' },
-        { label: 'MEMBER', value: 'MEMBER' },
-    ];
 
     return (
         <div className="flex mx-2 rounded hover:bg-hoverSide cursor-pointer group transition-colors justify-between items-center">
@@ -49,13 +49,15 @@ export default function MemberItem({member, isRole = false}: MemberitemProps) {
                 </span>
             </div>
             <div>
-                {isRole ? (<Dropdown
-                    options={RolesOptions}
+                {isRole === true ? (<Dropdown
+                    options={Object.values(Role).map((role) => ({ label: role, value: role }))}
                     value={member.role}
-                    onChange={(value) => changeRole(value)}
+                    onChange={(value) => {
+                        changeRole(value as Role);
+                    }}
                     className=" mr-2"
                     width="150px"
-                />): null}
+                />) : null}
 
             </div>
         </div>

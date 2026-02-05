@@ -100,7 +100,7 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
 
                             <div className="bg-gray-400 rounded-lg p-4 max-h-96 overflow-y-auto overflow-x-visible">
                                 <div className="overflow-visible">
-                                    <MemberList searchQuery={searchMember} isRole={true} listMembers={members} />
+                                    <MemberList searchQuery={searchMember} isRole={true} listMembers={members} serverId={serverId} />
                                 </div>
                             </div>
                         </div>
