@@ -4,4 +4,4 @@ pub mod signup;
 
 pub use login::LoginUseCase;
 pub use logout::LogoutUseCase;
-pub use signup::{SignupUseCase};
+pub use signup::SignupUseCase;

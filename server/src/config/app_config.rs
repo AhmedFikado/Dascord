@@ -21,3 +21,31 @@ impl AppConfig {
         format!("{}:{}", self.server_host, self.server_port)
     }
 }
+
+
+// --- UNIT TESTS ---
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_address_format() {
+        let config = AppConfig {
+            server_host: "127.0.0.1".to_string(),
+            server_port: 8080,
+        };
+
+        assert_eq!(config.address(), "127.0.0.1:8080");
+    }
+
+    #[test]
+    fn test_address_with_different_port() {
+        let config = AppConfig {
+            server_host: "0.0.0.0".to_string(),
+            server_port: 3000,
+        };
+
+        assert_eq!(config.address(), "0.0.0.0:3000");
+    }
+}

@@ -22,16 +22,16 @@ pub fn extract_and_verify_token(
     let token = query
         .strip_prefix("token=")
         .ok_or_else(|| AppError::Unauthorized("Missing token parameter".to_string()))?;
-    
+
     // Vérif le token JWT
     let claims = jwt_service.verify_token(token)?;
-    
+
     // Recup le user_id
     let user_id = Uuid::parse_str(&claims.sub_id)
         .map_err(|_| AppError::Unauthorized("Invalid user_id in token".to_string()))?;
-    
+
     // Utilise juste l'ID
     let username = format!("User_{}", &claims.sub_id[..8]);
-    
+
     Ok((user_id, username))
 }

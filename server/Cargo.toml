@@ -7,7 +7,7 @@ edition = "2021"
 # Framework web
 axum = { version = "0.7", features = ["ws"] }
 tokio = { version = "1.0", features = ["full"] }
-tower = "0.4"
+tower = { version = "0.4", features = ["util"] }
 tower-http = { version = "0.5", features = ["cors", "trace"] }
 
 # PostgreSQL
@@ -50,3 +50,11 @@ rand = "0.8"
 
 [dev-dependencies]
 tokio-test = "0.4"
+mockall = "0.13"
+axum-test = "15.0"
+
+[profile.coverage]
+inherits = "dev"
+codegen-units = 1
+opt-level = 0
+overflow-checks = false

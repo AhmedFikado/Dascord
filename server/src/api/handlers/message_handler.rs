@@ -1,3 +1,9 @@
+use crate::application::use_cases::message::*;
+use crate::infrastructure::repositories::{
+    ChannelRepository, MessageRepository, ServerRepository, UserRepository,
+};
+use crate::infrastructure::security::JWTService;
+use crate::utils::error::AppError;
 use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
@@ -6,13 +12,14 @@ use axum::{
 };
 use std::sync::Arc;
 use uuid::Uuid;
-use crate::application::use_cases::message::*;
-use crate::infrastructure::repositories::{MessageRepository, ChannelRepository, ServerRepository, UserRepository};
-use crate::infrastructure::security::JWTService;
-use crate::utils::error::AppError;
 
 #[derive(Clone)]
-pub struct MessageHandler<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: UserRepository> {
+pub struct MessageHandler<
+    MR: MessageRepository,
+    CR: ChannelRepository,
+    SR: ServerRepository,
+    UR: UserRepository,
+> {
     jwt_service: Arc<JWTService>,
     send_message_uc: Arc<SendMessageUseCase<MR, CR, SR>>,
     get_history_uc: Arc<GetMessageHistoryUseCase<MR, CR, SR>>,
@@ -20,12 +27,28 @@ pub struct MessageHandler<MR: MessageRepository, CR: ChannelRepository, SR: Serv
     user_repo: Arc<UR>,
 }
 
-impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: UserRepository> MessageHandler<MR, CR, SR, UR> {
-    pub fn new(jwt_service: JWTService, message_repo: MR, channel_repo: CR, server_repo: SR, user_repo: UR) -> Self {
+impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: UserRepository>
+    MessageHandler<MR, CR, SR, UR>
+{
+    pub fn new(
+        jwt_service: JWTService,
+        message_repo: MR,
+        channel_repo: CR,
+        server_repo: SR,
+        user_repo: UR,
+    ) -> Self {
         Self {
             jwt_service: Arc::new(jwt_service),
-            send_message_uc: Arc::new(SendMessageUseCase::new(message_repo.clone(), channel_repo.clone(), server_repo.clone())),
-            get_history_uc: Arc::new(GetMessageHistoryUseCase::new(message_repo.clone(), channel_repo, server_repo)),
+            send_message_uc: Arc::new(SendMessageUseCase::new(
+                message_repo.clone(),
+                channel_repo.clone(),
+                server_repo.clone(),
+            )),
+            get_history_uc: Arc::new(GetMessageHistoryUseCase::new(
+                message_repo.clone(),
+                channel_repo,
+                server_repo,
+            )),
             delete_message_uc: Arc::new(DeleteMessageUseCase::new(message_repo)),
             user_repo: Arc::new(user_repo),
         }
@@ -41,21 +64,30 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
-        let content = payload.get("content")
+
+        let content = payload
+            .get("content")
             .and_then(|v| v.as_str())
             .ok_or_else(|| AppError::ValidationError("Missing content field".to_string()))?
             .to_string();
-        
-        let user = handler.user_repo.find_by_id(user_id).await?
+
+        let user = handler
+            .user_repo
+            .find_by_id(user_id)
+            .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
-        
-        let message = handler.send_message_uc.execute(channel_id, user_id, user.username, content).await?;
+
+        let message = handler
+            .send_message_uc
+            .execute(channel_id, user_id, user.username, content)
+            .await?;
         Ok((StatusCode::CREATED, Json(message)))
     }
 
@@ -68,13 +100,18 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
-        let messages = handler.get_history_uc.execute(channel_id, user_id, 50).await?;
+
+        let messages = handler
+            .get_history_uc
+            .execute(channel_id, user_id, 50)
+            .await?;
         Ok((StatusCode::OK, Json(messages)))
     }
 
@@ -87,13 +124,144 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
+
         handler.delete_message_uc.execute(id, user_id).await?;
-        Ok((StatusCode::OK, Json(serde_json::json!({"message": "Message deleted"}))))
+        Ok((
+            StatusCode::OK,
+            Json(serde_json::json!({"message": "Message deleted"})),
+        ))
+    }
+}
+
+
+// --- UNIT TESTS ---
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entities::{Channel, User};
+    use crate::domain::value_objects::ServerRole;
+    use crate::infrastructure::repositories::mocks::{
+        mock_channel_repository::MockChannelRepository,
+        mock_message_repository::MockMessageRepository,
+        mock_server_repository::MockServerRepository, mock_user_repository::MockUserRepository,
+    };
+    use crate::infrastructure::security::PasswordService;
+
+    #[tokio::test]
+    async fn test_send_message_success() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+
+        let password_service = PasswordService::new();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo =
+            MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
+        let mock_user_repo = MockUserRepository::new().with_user(user);
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service.clone(),
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let payload = serde_json::json!({"content": "Hello World"});
+
+        let result =
+            MessageHandler::send_message(State(handler), Path(channel.id), headers, Json(payload))
+                .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_get_message_history_success() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo =
+            MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service.clone(),
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let result =
+            MessageHandler::get_message_history(State(handler), Path(channel.id), headers).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_delete_message_success() {
+        let user_id = Uuid::new_v4();
+
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service.clone(),
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let result =
+            MessageHandler::delete_message(State(handler), Path("msg_123".to_string()), headers)
+                .await;
+        assert!(result.is_ok());
     }
 }

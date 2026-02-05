@@ -1,12 +1,16 @@
-use serde::{Deserialize, Serialize};
-use validator::Validate;
 use crate::domain::entities::Server;
 use crate::domain::value_objects::ServerRole;
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use validator::Validate;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateServerRequest {
-    #[validate(length(min = 1, max = 100, message = "Server name must be between 1 and 100 characters"))]
+    #[validate(length(
+        min = 1,
+        max = 100,
+        message = "Server name must be between 1 and 100 characters"
+    ))]
     pub name: String,
 }
 
@@ -49,5 +53,60 @@ impl From<(Uuid, ServerRole)> for MemberResponse {
             user_id: user_id.to_string(),
             role,
         }
+    }
+}
+
+
+
+// --- UNIT TESTS ---
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use validator::Validate;
+
+    #[test]
+    fn test_valid_create_server_request() {
+        let request = CreateServerRequest {
+            name: "My Server".to_string(),
+        };
+        assert!(request.validate().is_ok());
+    }
+
+    #[test]
+    fn test_empty_server_name() {
+        let request = CreateServerRequest {
+            name: "".to_string(),
+        };
+        assert!(request.validate().is_err());
+    }
+
+    #[test]
+    fn test_valid_join_server_request() {
+        let request = JoinServerRequest {
+            invitation_code: "ABC123".to_string(),
+        };
+        assert!(request.validate().is_ok());
+    }
+
+    #[test]
+    fn test_server_response_from_entity() {
+        let server = Server {
+            id: Uuid::new_v4(),
+            name: "Test Server".to_string(),
+            owner_id: Uuid::new_v4(),
+            invitation_code: "INVITE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+        let response = ServerResponse::from(server);
+        assert_eq!(response.name, "Test Server");
+    }
+
+    #[test]
+    fn test_member_response_from_tuple() {
+        let user_id = Uuid::new_v4();
+        let role = ServerRole::Admin;
+        let response = MemberResponse::from((user_id, role));
+        assert_eq!(response.role, ServerRole::Admin);
     }
 }

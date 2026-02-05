@@ -1,6 +1,6 @@
-use mongodb::{bson::doc, Collection};
 use crate::domain::entities::message::Message;
 use crate::utils::error::{AppError, AppResult};
+use mongodb::{bson::doc, Collection};
 
 /// Repository pour gérer les messages dans MongoDB
 #[derive(Clone)]
@@ -25,7 +25,9 @@ impl MongoDBMessageRepository {
         let id = result
             .inserted_id
             .as_object_id()
-            .ok_or_else(|| AppError::DatabaseError("Failed to get inserted message ID".to_string()))?
+            .ok_or_else(|| {
+                AppError::DatabaseError("Failed to get inserted message ID".to_string())
+            })?
             .to_hex();
 
         tracing::info!("Message saved with ID: {}", id);
@@ -43,7 +45,7 @@ impl MongoDBMessageRepository {
 
         let mut messages = Vec::new();
         use futures_util::stream::StreamExt;
-        
+
         while let Some(result) = cursor.next().await {
             match result {
                 Ok(message) => messages.push(message),
@@ -56,7 +58,11 @@ impl MongoDBMessageRepository {
         // Trier par date de création (les plus anciens en premier)
         messages.sort_by(|a, b| a.created_at.cmp(&b.created_at));
 
-        tracing::info!("Retrieved {} messages for channel {}", messages.len(), channel_id);
+        tracing::info!(
+            "Retrieved {} messages for channel {}",
+            messages.len(),
+            channel_id
+        );
         Ok(messages)
     }
 
@@ -83,7 +89,7 @@ impl MongoDBMessageRepository {
 
         let mut messages = Vec::new();
         use futures_util::stream::StreamExt;
-        
+
         while let Some(result) = cursor.next().await {
             match result {
                 Ok(message) => messages.push(message),
@@ -96,7 +102,11 @@ impl MongoDBMessageRepository {
         // Inverser pour avoir les plus anciens en premier
         messages.reverse();
 
-        tracing::info!("Retrieved {} recent messages for channel {}", messages.len(), channel_id);
+        tracing::info!(
+            "Retrieved {} recent messages for channel {}",
+            messages.len(),
+            channel_id
+        );
         Ok(messages)
     }
 

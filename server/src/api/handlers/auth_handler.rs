@@ -1,3 +1,8 @@
+use crate::application::dto::auth::{LoginRequest, SignupRequest};
+use crate::application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase};
+use crate::infrastructure::repositories::UserRepository;
+use crate::infrastructure::security::JWTService;
+use crate::utils::error::AppError;
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
@@ -5,25 +10,21 @@ use axum::{
     Json,
 };
 use std::sync::Arc;
-use crate::application::dto::auth::{LoginRequest, SignupRequest};
-use crate::application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase};
-use crate::infrastructure::security::JWTService;
-use crate::utils::error::AppError;
 
 /// Handler contenant la logique métier pour l'authentification
 #[derive(Clone)]
-pub struct AuthHandler {
-    signup_uc: Arc<SignupUseCase>,
-    login_uc: Arc<LoginUseCase>,
-    logout_uc: Arc<LogoutUseCase>,
+pub struct AuthHandler<R: UserRepository> {
+    signup_uc: Arc<SignupUseCase<R>>,
+    login_uc: Arc<LoginUseCase<R>>,
+    logout_uc: Arc<LogoutUseCase<R>>,
     jwt_service: Arc<JWTService>,
 }
 
-impl AuthHandler {
+impl<R: UserRepository> AuthHandler<R> {
     pub fn new(
-        signup_uc: SignupUseCase,
-        login_uc: LoginUseCase,
-        logout_uc: LogoutUseCase,
+        signup_uc: SignupUseCase<R>,
+        login_uc: LoginUseCase<R>,
+        logout_uc: LogoutUseCase<R>,
         jwt_service: JWTService,
     ) -> Self {
         Self {
@@ -36,7 +37,7 @@ impl AuthHandler {
 
     /// POST /auth/signup - Créer un nouveau compte
     pub async fn signup(
-        State(handler): State<Arc<AuthHandler>>,
+        State(handler): State<Arc<AuthHandler<R>>>,
         Json(req): Json<SignupRequest>,
     ) -> Result<impl IntoResponse, AppError> {
         let response = handler.signup_uc.execute(req).await?;
@@ -45,7 +46,7 @@ impl AuthHandler {
 
     /// POST /auth/login - Se connecter
     pub async fn login(
-        State(handler): State<Arc<AuthHandler>>,
+        State(handler): State<Arc<AuthHandler<R>>>,
         Json(req): Json<LoginRequest>,
     ) -> Result<impl IntoResponse, AppError> {
         let response = handler.login_uc.execute(req).await?;
@@ -54,14 +55,16 @@ impl AuthHandler {
 
     /// POST /auth/logout - Se déconnecter
     pub async fn logout(
-        State(handler): State<Arc<AuthHandler>>,
+        State(handler): State<Arc<AuthHandler<R>>>,
         headers: HeaderMap,
     ) -> Result<impl IntoResponse, AppError> {
         let token = headers
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let response = handler.logout_uc.execute(token.to_string()).await?;
         Ok((StatusCode::OK, Json(response)))
@@ -69,21 +72,262 @@ impl AuthHandler {
 
     /// GET /auth/me - Obtenir les infos de l'utilisateur connecté
     pub async fn get_me(
-        State(handler): State<Arc<AuthHandler>>,
+        State(handler): State<Arc<AuthHandler<R>>>,
         headers: HeaderMap,
     ) -> Result<impl IntoResponse, AppError> {
         let token = headers
             .get("Authorization")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
 
         let claims = handler.jwt_service.verify_token(token)?;
-        
-        Ok((StatusCode::OK, Json(serde_json::json!({
-            "user_id": claims.sub_id,
-            "exp": claims.exp,
-            "iat": claims.iat
-        }))))
+
+        Ok((
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "user_id": claims.sub_id,
+                "exp": claims.exp,
+                "iat": claims.iat
+            })),
+        ))
+    }
+}
+
+
+// --- UNIT TESTS ---
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::application::dto::auth::{LoginRequest, SignupRequest};
+    use crate::domain::entities::User;
+    use crate::infrastructure::repositories::mocks::mock_user_repository::MockUserRepository;
+    use crate::infrastructure::security::PasswordService;
+    use crate::infrastructure::services::UserService;
+    use uuid::Uuid;
+
+    #[test]
+    fn test_jwt_service_integration() {
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let user_id = Uuid::new_v4();
+
+        let token = jwt_service
+            .create_token(user_id)
+            .expect("Failed to create token");
+        assert!(!token.is_empty());
+
+        let claims = jwt_service
+            .verify_token(&token)
+            .expect("Failed to verify token");
+        assert_eq!(claims.sub_id, user_id.to_string());
+    }
+
+    #[test]
+    fn test_jwt_invalid_token() {
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let result = jwt_service.verify_token("invalid_token");
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_signup_success() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let signup_uc = SignupUseCase::new(user_service, jwt_service);
+
+        let request = SignupRequest {
+            username: "newuser".to_string(),
+            email: "new@example.com".to_string(),
+            password: "password123".to_string(),
+        };
+
+        let result = signup_uc.execute(request).await;
+        assert!(result.is_ok());
+
+        let response = result.unwrap();
+        assert_eq!(response.user.username, "newuser");
+        assert_eq!(response.user.email, "new@example.com");
+        assert!(!response.token.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_signup_duplicate_email() {
+        let password_service = PasswordService::new();
+        let existing_user = User {
+            id: Uuid::new_v4(),
+            username: "existing".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "OFFLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(existing_user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let signup_uc = SignupUseCase::new(user_service, jwt_service);
+
+        let request = SignupRequest {
+            username: "newuser".to_string(),
+            email: "test@example.com".to_string(),
+            password: "password123".to_string(),
+        };
+
+        let result = signup_uc.execute(request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_signup_duplicate_username() {
+        let password_service = PasswordService::new();
+        let existing_user = User {
+            id: Uuid::new_v4(),
+            username: "testuser".to_string(),
+            email: "existing@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "OFFLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(existing_user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let signup_uc = SignupUseCase::new(user_service, jwt_service);
+
+        let request = SignupRequest {
+            username: "testuser".to_string(),
+            email: "new@example.com".to_string(),
+            password: "password123".to_string(),
+        };
+
+        let result = signup_uc.execute(request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_login_success() {
+        let password_service = PasswordService::new();
+        let user = User {
+            id: Uuid::new_v4(),
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password123").unwrap(),
+            status: "OFFLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let login_uc = LoginUseCase::new(user_service, jwt_service);
+
+        let request = LoginRequest {
+            email: "test@example.com".to_string(),
+            password: "password123".to_string(),
+        };
+
+        let result = login_uc.execute(request).await;
+        assert!(result.is_ok());
+
+        let response = result.unwrap();
+        assert_eq!(response.user.email, "test@example.com");
+        assert_eq!(response.user.status, "ONLINE");
+        assert!(!response.token.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_login_invalid_credentials() {
+        let password_service = PasswordService::new();
+        let user = User {
+            id: Uuid::new_v4(),
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password123").unwrap(),
+            status: "OFFLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let login_uc = LoginUseCase::new(user_service, jwt_service);
+
+        let request = LoginRequest {
+            email: "test@example.com".to_string(),
+            password: "wrongpassword".to_string(),
+        };
+
+        let result = login_uc.execute(request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_login_user_not_found() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let login_uc = LoginUseCase::new(user_service, jwt_service);
+
+        let request = LoginRequest {
+            email: "notfound@example.com".to_string(),
+            password: "password123".to_string(),
+        };
+
+        let result = login_uc.execute(request).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_logout_success() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password123").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let result = logout_uc.execute(token).await;
+
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert_eq!(response.message, "Vous êtes bien déconnecté");
+    }
+
+    #[tokio::test]
+    async fn test_logout_already_offline() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password123").unwrap(),
+            status: "OFFLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let result = logout_uc.execute(token).await;
+
+        assert!(result.is_err());
     }
 }
