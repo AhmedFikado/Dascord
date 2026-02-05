@@ -3,16 +3,24 @@ import UserCard from '../shared/user-card';
 import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
 import { Trash2, Edit } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { useServerStore } from '@/app/lib/stores/use-server-store';
+import { Role } from '@/types/models/role';
 
 interface MessageItemProps {
+    serverId: string;
     message: Message;
     onDelete: () => void;
 }
 
-export default function MessageItem({ message, onDelete }: MessageItemProps) {
+export default function MessageItem({ serverId, message, onDelete }: MessageItemProps) {
 
     const { user } = useCurrentUser();
     const currentUserId = user?.id;
+    const members = useServerStore((state) => state.members);
+    
+    const currentMember = members.find(m => m.user_id === currentUserId);
+    const isAdminOrOwner = currentMember ? 
+        (currentMember.role === Role.OWNER || currentMember.role === Role.ADMIN) : false;
 
     const formatDate = (dateStr: string) => {
         return new Intl.DateTimeFormat('fr-FR', {
@@ -24,18 +32,21 @@ export default function MessageItem({ message, onDelete }: MessageItemProps) {
         }).format(new Date(dateStr));
     };
     const isOwnerMessage = message.user_id === currentUserId;
+    const canDeleteMessage = isOwnerMessage || isAdminOrOwner;
 
     return (
 
         <div className="relative flex gap-4 px-4 py-2 hover:bg-gray-400/50 group">
-            {isOwnerMessage && (
+            {canDeleteMessage && (
                 <div className="absolute -top-4 right-4 hidden group-hover:flex bg-gray-300 border border-gray-200 rounded-lg shadow-lg">
-                    <Button className="p-2 hover:bg-hoverSide rounded-l-lg transition-colors"
-                        variant="noBackground"
-                        onClick={() => {/* TODO: implement edit */ }}>
-                        <Edit size={16} className="text-gray-light hover:text-white" />
-                    </Button>
-                    <Button className="p-2 hover:bg-red/20 rounded-r-lg transition-colors"
+                    {isOwnerMessage && (
+                        <Button className="p-2 hover:bg-hoverSide rounded-l-lg transition-colors"
+                            variant="noBackground"
+                            onClick={() => {/* TODO: implement edit */ }}>
+                            <Edit size={16} className="text-gray-light hover:text-white" />
+                        </Button>
+                    )}
+                    <Button className={`p-2 hover:bg-red/20 ${isOwnerMessage ? 'rounded-r-lg' : 'rounded-lg'} transition-colors`}
                         variant="noBackground"
                         onClick={onDelete}>
                         <Trash2 size={16} className="text-red" />

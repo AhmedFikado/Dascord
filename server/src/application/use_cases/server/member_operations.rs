@@ -57,8 +57,11 @@ impl<R: ServerRepository> UpdateMemberRoleUseCase<R> {
     }
 
     pub async fn execute(&self, server_id: Uuid, target_user_id: Uuid, requester_id: Uuid, new_role: ServerRole) -> AppResult<()> {
-        let server = self.server_repo.find_by_id(server_id).await?
+        let mut server = self.server_repo.find_by_id(server_id).await?
             .ok_or_else(|| AppError::NotFound("Server not found".to_string()))?;
+
+        let target_role = self.server_repo.get_member_role(server_id, target_user_id).await?
+            .ok_or_else(|| AppError::NotFound("Target user is not a member".to_string()))?;
 
         if server.owner_id != requester_id {
             let requester_role = self.server_repo.get_member_role(server_id, requester_id).await?
@@ -67,12 +70,29 @@ impl<R: ServerRepository> UpdateMemberRoleUseCase<R> {
             if requester_role != ServerRole::Admin {
                 return Err(AppError::Unauthorized("Only owner or admin can update roles".to_string()));
             }
+            
+            if new_role == ServerRole::Owner {
+                return Err(AppError::Unauthorized("Only owner can transfer ownership".to_string()));
+            }
+            
+            if target_role == ServerRole::Owner || target_role == ServerRole::Admin {
+                return Err(AppError::Unauthorized("Admins cannot modify owner or other admin roles".to_string()));
+            }
         }
 
         if new_role == ServerRole::Owner {
-            return Err(AppError::ValidationError("Cannot assign owner role".to_string()));
+            if server.owner_id != requester_id {
+                return Err(AppError::Unauthorized("Only current owner can transfer ownership".to_string()));
+            }
+            
+            server.owner_id = target_user_id;
+            self.server_repo.update(server).await?;
+            self.server_repo.update_member_role(server_id, requester_id, ServerRole::Admin).await?;
+            self.server_repo.update_member_role(server_id, target_user_id, ServerRole::Owner).await?;
+        } else {
+            self.server_repo.update_member_role(server_id, target_user_id, new_role).await?;
         }
 
-        self.server_repo.update_member_role(server_id, target_user_id, new_role).await
+        Ok(())
     }
 }

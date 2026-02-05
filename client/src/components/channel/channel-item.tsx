@@ -11,6 +11,7 @@ import { useServerStore } from "@/app/lib/stores/use-server-store";
 import { useCurrentUser } from "@/app/lib/hooks/use-current-user";
 import { Input } from "@/components/ui/input";
 import { Save } from "lucide-react";
+import { Role } from "@/types/models/role";
 
 interface ChannelItemProps {
     channel: Channel;
@@ -25,9 +26,12 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
 
     const { userId } = useCurrentUser();
     const servers = useServerStore((state) => state.servers);
+    const members = useServerStore((state) => state.members);
     const serverId = params?.serverId as string;
     const currentServer = servers.find(s => s.id === serverId);
-    const isOwner = currentServer ? userId === currentServer.owner_id : false;
+    const currentMember = members.find(m => m.user_id === userId);
+    const canManageChannels = currentMember ? 
+        (currentMember.role === Role.OWNER || currentMember.role === Role.ADMIN) : false;
     const currentChannelId = params?.channelId ? params.channelId as string : null;
     const isActive = currentChannelId === channel.id;
     const removeChannel = useChannelStore((state) => state.removeChannel);
@@ -81,7 +85,7 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
                         {channel.name}
                     </span>
                 </div>
-                {isOwner && (
+                {canManageChannels && (
                     <div>
                         <Button
                             onClick={handleSettingsClick}
