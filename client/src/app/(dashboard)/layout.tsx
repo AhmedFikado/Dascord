@@ -12,18 +12,18 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const params = useParams();
-    const serverId = params?.serverId ? (params.serverId as string) : '1';
+    const serverId = params?.serverId ? (params.serverId as string) : null;
 
     return (
         <div className="flex h-screen w-screen overflow-hidden">
             <Sidebar />
-            <ServerSidebar serverId={serverId} />
+            {serverId && <ServerSidebar serverId={serverId} />}
 
             <UserPanel />
 
             {children}
 
-            <MemberSidebar />
+            {serverId && <MemberSidebar />}
         </div>
     );
 }
