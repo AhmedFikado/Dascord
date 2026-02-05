@@ -10,6 +10,7 @@ import { use, useState } from "react";
 import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
 import { useServerStore } from "@/app/lib/stores/use-server-store";
 import { useSnackbar } from "@/components/shared/error-message";
+import { useRouter } from 'next/navigation';
 
 const InvitationDialog = dynamic(
     () => import('./invitation-dialog'),
@@ -24,6 +25,7 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
     const deleteServer = useServerStore((state) => state.deleteServer);
     const leaveServer = useServerStore((state) => state.leaveServer);
     const { showSnackbar } = useSnackbar();
+    const router = useRouter();
 
     const isOwner = userId === server.owner_id;
 
@@ -37,6 +39,7 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
         try {
             await leaveServer(server.id);
             showSnackbar({ message: "Vous avez quitté le serveur avec succès.", severity: "success" });
+            router.push('/servers');
         } catch (error) {
             showSnackbar({ message: "Erreur lors de la quitter le serveur.", severity: "error" });
         }
@@ -50,6 +53,7 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
         try {
             await deleteServer(server.id);
             showSnackbar({ message: "Vous avez supprimé votre serveur avec succès.", severity: "success" });
+            router.push('/servers');
         } catch (error) {
             showSnackbar({ message: "Erreur lors de la suppression du serveur.", severity: "error" });
         }
