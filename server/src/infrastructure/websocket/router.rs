@@ -37,11 +37,19 @@ pub async fn ws_handler(
         .get("token")
         .ok_or_else(|| AppError::Unauthorized("Missing token parameter".to_string()))?;
 
+
     let query_string = format!("token={}", token);
     let (user_id, username) = extract_and_verify_token(&query_string, &state.jwt_service, &state.user_repository).await?;
     
     // Accepter la connexion WebSocket
     Ok(ws.on_upgrade(move |socket| {
+        handle_connection(
+            socket,
+            user_id,
+            username,
+            state.manager,
+            state.message_repository,
+        )
         handle_connection(
             socket,
             user_id,
@@ -60,6 +68,11 @@ async fn handle_connection(
     manager: Arc<ConnectionManager>,
     message_repository: MongoDBMessageRepository,
 ) {
+    tracing::info!(
+        "Nouvelle connexion WebSocket: user_id={}, username={}",
+        user_id,
+        username
+    );
     tracing::info!(
         "Nouvelle connexion WebSocket: user_id={}, username={}",
         user_id,

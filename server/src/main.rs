@@ -1,17 +1,23 @@
 use server::{
     api::router,
     application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase},
+    api::router,
+    application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase},
     config::{AppConfig, DatabaseConfig},
     infrastructure::database::{init_databases, MongoDBMessageRepository},
     infrastructure::repositories::PostgresUserRepository,
     infrastructure::security::JWTService,
+    infrastructure::security::JWTService,
     infrastructure::services::UserService,
     infrastructure::websocket::{create_ws_router, ConnectionManager, WebSocketState},
+    infrastructure::websocket::{create_ws_router, ConnectionManager, WebSocketState},
 };
+use std::sync::Arc;
 use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt().with_env_filter("info").init();
     tracing_subscriber::fmt().with_env_filter("info").init();
 
     dotenvy::dotenv().ok();
@@ -26,6 +32,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app_state = init_databases(&db_config).await?;
     tracing::info!("Connexions aux bases de données établies");
+
 
     // Créer le repository de messages MongoDB
     let messages_collection = app_state
@@ -64,10 +71,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         app_state.pg_pool.clone(),
         app_state.mongo_client.clone(),
     );
+    let http_router = router::create_router(
+        signup_uc,
+        login_uc,
+        logout_uc,
+        jwt_service,
+        user_service,
+        app_state.pg_pool.clone(),
+        app_state.mongo_client.clone(),
+    );
     let ws_router = create_ws_router(ws_state);
+
 
     let app = http_router.merge(ws_router);
 
+    let listener = tokio::net::TcpListener::bind(&app_config.address()).await?;
     let listener = tokio::net::TcpListener::bind(&app_config.address()).await?;
 
     tracing::info!("Serveur démarré sur {}", app_config.address());

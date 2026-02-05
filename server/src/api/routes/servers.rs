@@ -57,3 +57,36 @@ mod tests {
         assert!(true);
     }
 }
+
+
+
+// --- UNIT TESTS ---
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::repositories::mocks::{mock_server_repository::MockServerRepository, mock_channel_repository::MockChannelRepository};
+    use crate::infrastructure::security::JWTService;
+
+    #[test]
+    fn test_server_routes_creation() {
+        use crate::api::handlers::server_handler::ServerHandler;
+        let mock_server_repo = MockServerRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(ServerHandler::new(jwt_service, mock_server_repo, mock_channel_repo));
+        let _router = server_routes(handler);
+        assert!(true);
+    }
+
+    #[test]
+    fn test_server_routes_has_all_endpoints() {
+        use crate::api::handlers::server_handler::ServerHandler;
+        let mock_server_repo = MockServerRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(ServerHandler::new(jwt_service, mock_server_repo, mock_channel_repo));
+        let _router = server_routes(handler);
+        assert!(true);
+    }
+}

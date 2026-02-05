@@ -14,6 +14,7 @@ pub trait ServerRepository: Send + Sync + Clone {
     async fn update(&self, server: Server) -> AppResult<Server>;
     async fn delete(&self, id: Uuid) -> AppResult<()>;
 
+
     async fn add_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<()>;
     async fn remove_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<()>;
     async fn is_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<bool>;
@@ -50,6 +51,7 @@ impl ServerRepository for PostgresServerRepository {
 
         sqlx::query(
             "INSERT INTO server_members (server_id, user_id, role) VALUES ($1, $2, $3::role_type)",
+            "INSERT INTO server_members (server_id, user_id, role) VALUES ($1, $2, $3::role_type)",
         )
         .bind(server.id)
         .bind(server.owner_id)
@@ -63,6 +65,7 @@ impl ServerRepository for PostgresServerRepository {
 
     async fn find_by_id(&self, id: Uuid) -> AppResult<Option<Server>> {
         let result = sqlx::query_as::<_, Server>(
+            "SELECT id, name, owner_id, invitation_code, created_at FROM servers WHERE id = $1",
             "SELECT id, name, owner_id, invitation_code, created_at FROM servers WHERE id = $1",
         )
         .bind(id)
@@ -91,6 +94,7 @@ impl ServerRepository for PostgresServerRepository {
              FROM servers s 
              INNER JOIN server_members sm ON s.id = sm.server_id 
              WHERE sm.user_id = $1",
+             WHERE sm.user_id = $1",
         )
         .bind(user_id)
         .fetch_all(&self.pool)
@@ -101,6 +105,12 @@ impl ServerRepository for PostgresServerRepository {
     }
 
     async fn update(&self, server: Server) -> AppResult<Server> {
+        sqlx::query("UPDATE servers SET name = $1 WHERE id = $2")
+            .bind(&server.name)
+            .bind(server.id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
         sqlx::query("UPDATE servers SET name = $1 WHERE id = $2")
             .bind(&server.name)
             .bind(server.id)
@@ -124,6 +134,7 @@ impl ServerRepository for PostgresServerRepository {
     async fn add_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<()> {
         sqlx::query(
             "INSERT INTO server_members (server_id, user_id, role) VALUES ($1, $2, $3::role_type)",
+            "INSERT INTO server_members (server_id, user_id, role) VALUES ($1, $2, $3::role_type)",
         )
         .bind(server_id)
         .bind(user_id)
@@ -142,12 +153,19 @@ impl ServerRepository for PostgresServerRepository {
             .execute(&self.pool)
             .await
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        sqlx::query("DELETE FROM server_members WHERE server_id = $1 AND user_id = $2")
+            .bind(server_id)
+            .bind(user_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
         Ok(())
     }
 
     async fn is_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<bool> {
         let result = sqlx::query(
+            "SELECT EXISTS(SELECT 1 FROM server_members WHERE server_id = $1 AND user_id = $2)",
             "SELECT EXISTS(SELECT 1 FROM server_members WHERE server_id = $1 AND user_id = $2)",
         )
         .bind(server_id)
@@ -192,7 +210,13 @@ impl ServerRepository for PostgresServerRepository {
         server_id: Uuid,
         user_id: Uuid,
     ) -> AppResult<Option<ServerRole>> {
+    async fn get_member_role(
+        &self,
+        server_id: Uuid,
+        user_id: Uuid,
+    ) -> AppResult<Option<ServerRole>> {
         let result = sqlx::query(
+            "SELECT role::text FROM server_members WHERE server_id = $1 AND user_id = $2",
             "SELECT role::text FROM server_members WHERE server_id = $1 AND user_id = $2",
         )
         .bind(server_id)
@@ -217,6 +241,12 @@ impl ServerRepository for PostgresServerRepository {
         user_id: Uuid,
         role: ServerRole,
     ) -> AppResult<()> {
+    async fn update_member_role(
+        &self,
+        server_id: Uuid,
+        user_id: Uuid,
+        role: ServerRole,
+    ) -> AppResult<()> {
         let role_str = match role {
             ServerRole::Owner => "OWNER",
             ServerRole::Admin => "ADMIN",
@@ -224,6 +254,7 @@ impl ServerRepository for PostgresServerRepository {
         };
 
         sqlx::query(
+            "UPDATE server_members SET role = $1::role_type WHERE server_id = $2 AND user_id = $3",
             "UPDATE server_members SET role = $1::role_type WHERE server_id = $2 AND user_id = $3",
         )
         .bind(role_str)
