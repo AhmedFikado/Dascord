@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 use crate::domain::entities::Server;
 use crate::domain::value_objects::ServerRole;
-use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Validate)]
 pub struct CreateServerRequest {
@@ -39,15 +38,19 @@ impl From<Server> for ServerResponse {
 
 #[derive(Debug, Serialize)]
 pub struct MemberResponse {
+    pub server_id: String,
     pub user_id: String,
     pub role: ServerRole,
+    pub joined_at: String,
+    pub user: UserInfo,
 }
 
-impl From<(Uuid, ServerRole)> for MemberResponse {
-    fn from((user_id, role): (Uuid, ServerRole)) -> Self {
-        Self {
-            user_id: user_id.to_string(),
-            role,
-        }
-    }
+#[derive(Debug, Serialize)]
+pub struct UserInfo {
+    pub id: String,
+    pub username: String,
+    pub email: String,
+    pub status: String,
+    pub created_at: String,
 }
+

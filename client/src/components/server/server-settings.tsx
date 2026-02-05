@@ -7,6 +7,7 @@ import { Trash2, Save, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { Server } from '@/types/models/Server';
 import MemberList from './member-list';
 import { useServerStore } from "@/app/lib/stores/use-server-store";
+import { useMembers } from "@/app/lib/hooks/use-members";
 
 interface ServerSettingsProps {
     server: Server;
@@ -22,6 +23,8 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [isMembersOpen, setIsMembersOpen] = useState(false);
     const [searchMember, setSearchMember] = useState('');
+    const serverId = server.id;
+    const { members } = useMembers(serverId);
 
     const handleSave = async () => {
         if (!serverName.trim()) return;
@@ -97,7 +100,7 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
 
                             <div className="bg-gray-400 rounded-lg p-4 max-h-96 overflow-y-auto overflow-x-visible">
                                 <div className="overflow-visible">
-                                    <MemberList searchQuery={searchMember} isRole={true} />
+                                    <MemberList searchQuery={searchMember} isRole={true} listMembers={members} />
                                 </div>
                             </div>
                         </div>

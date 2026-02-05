@@ -1,4 +1,5 @@
 import { Server } from "@/types/models/Server";
+import { Member } from "@/types/models/member";
 import { apiClient } from './client';
 
 export const serversApi = {
@@ -43,5 +44,10 @@ export const serversApi = {
     // DELETE /servers/{id}/leave
     leave: async (serverId: string): Promise<void> => {
         await apiClient.delete(`/servers/${serverId}/leave`);
+    },
+
+    // GET /servers/{id}/members
+    getMembers: async (serverId: string): Promise<Member[]> => {
+        return await apiClient.get<Member[]>(`/servers/${serverId}/members`);
     }
 };

@@ -1,55 +1,33 @@
+import { Member } from "@/types/models/member";
 import { User, Status } from "../../types/models/user";
 import MemberItem from "./member-item";
 
 interface MemberListProps {
     searchQuery?: string;
     isRole?: boolean;
+    listMembers: Member[];
 }
 
-export default function MemberList({ searchQuery = '', isRole = false }: MemberListProps) {
+export default function MemberList({ searchQuery = '', isRole = false, listMembers }: MemberListProps) {
 
-    const Users: User[] = [
-        {
-            id: '1',
-            username: 'Ethan',
-            email: 'ethan@gmail.com',
-            created_at: new Date(),
-            status: Status.ONLINE
-        },
-        {
-            id: '2',
-            username: 'Ahmed',
-            email: 'ahmed@gmail.com',
-            created_at: new Date(),
-            status: Status.OFFLINE
-        },
-        {
-            id: '3',
-            username: 'Alexis',
-            email: 'alexis@gmail.com',
-            created_at: new Date(),
-            status: Status.ONLINE
-        },
-    ];
-
-    const filterUsers = Users.filter(user =>
-        user.username.toLowerCase().includes(searchQuery.toLowerCase())
+    const filterUsers = listMembers.filter(member =>
+        member?.user?.username?.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
 
     return (
         <div className="flex flex-col py-2">
             <h3 className="px-4 py-2 text-xs font-semibold text-gray-50 uppercase">
-                Membres — {Users.length}
+                Membres — {listMembers.length}
             </h3>
 
             {isRole ? (
-                filterUsers.map((user) => (
-                    <MemberItem key={user.id} user={user} isRole={true} />
+                filterUsers.map((member) => (
+                    <MemberItem key={member.user.id} member={member} isRole={true} />
                 ))
             ) : (
-                filterUsers.map((user) => (
-                    <MemberItem key={user.id} user={user} />
+                filterUsers.map((member) => (
+                    <MemberItem key={member.user.id} member={member} />
                 ))
             )}
         </div>

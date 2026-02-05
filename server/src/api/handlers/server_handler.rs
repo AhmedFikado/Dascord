@@ -10,11 +10,11 @@ use crate::application::dto::server::CreateServerRequest;
 use crate::application::dto::server::JoinServerRequest;
 use crate::application::use_cases::server::*;
 use crate::infrastructure::security::JWTService;
-use crate::infrastructure::repositories::{ServerRepository, ChannelRepository};
+use crate::infrastructure::repositories::{ServerRepository, ChannelRepository, UserRepository};
 use crate::utils::error::AppError;
 
 #[derive(Clone)]
-pub struct ServerHandler<SR: ServerRepository, CR: ChannelRepository> {
+pub struct ServerHandler<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> {
     jwt_service: Arc<JWTService>,
     create_server_uc: Arc<CreateServerUseCase<SR>>,
     get_user_servers_uc: Arc<GetUserServersUseCase<SR>>,
@@ -23,17 +23,18 @@ pub struct ServerHandler<SR: ServerRepository, CR: ChannelRepository> {
     delete_server_uc: Arc<DeleteServerUseCase<SR>>,
     join_server_uc: Arc<JoinServerUseCase<SR>>,
     leave_server_uc: Arc<LeaveServerUseCase<SR>>,
-    list_members_uc: Arc<ListMembersUseCase<SR>>,
+    list_members_uc: Arc<ListMembersUseCase<SR, UR>>,
     update_member_role_uc: Arc<UpdateMemberRoleUseCase<SR>>,
     get_channels_uc: Arc<GetChannelsUseCase<SR, CR>>,
     create_channel_uc: Arc<CreateChannelUseCase<SR, CR>>,
 }
 
-impl<SR: ServerRepository, CR: ChannelRepository> ServerHandler<SR, CR> {
+impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHandler<SR, CR, UR> {
     pub fn new(
         jwt_service: JWTService,
         server_repo: SR,
         channel_repo: CR,
+        user_repo: UR,
     ) -> Self {
         Self {
             jwt_service: Arc::new(jwt_service),
@@ -44,7 +45,7 @@ impl<SR: ServerRepository, CR: ChannelRepository> ServerHandler<SR, CR> {
             delete_server_uc: Arc::new(DeleteServerUseCase::new(server_repo.clone())),
             join_server_uc: Arc::new(JoinServerUseCase::new(server_repo.clone())),
             leave_server_uc: Arc::new(LeaveServerUseCase::new(server_repo.clone())),
-            list_members_uc: Arc::new(ListMembersUseCase::new(server_repo.clone())),
+            list_members_uc: Arc::new(ListMembersUseCase::new(server_repo.clone(), user_repo)),
             update_member_role_uc: Arc::new(UpdateMemberRoleUseCase::new(server_repo.clone())),
             get_channels_uc: Arc::new(GetChannelsUseCase::new(server_repo.clone(), channel_repo.clone())),
             create_channel_uc: Arc::new(CreateChannelUseCase::new(server_repo, channel_repo)),

@@ -23,7 +23,7 @@ export default function DashboardLayout({
 
             {children}
 
-            {serverId && <MemberSidebar />}
+            {serverId && <MemberSidebar serverId={serverId} />}
         </div>
     );
 }

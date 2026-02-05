@@ -1,16 +1,18 @@
-use crate::application::dto::server::MemberResponse;
+use crate::application::dto::server::{MemberResponse, UserInfo};
 use crate::infrastructure::repositories::server_repository::ServerRepository;
+use crate::infrastructure::repositories::user_repository::UserRepository;
 use crate::domain::value_objects::ServerRole;
 use crate::utils::error::{AppError, AppResult};
 use uuid::Uuid;
 
-pub struct ListMembersUseCase<R: ServerRepository> {
-    server_repo: R,
+pub struct ListMembersUseCase<SR: ServerRepository, UR: UserRepository> {
+    server_repo: SR,
+    user_repo: UR,
 }
 
-impl<R: ServerRepository> ListMembersUseCase<R> {
-    pub fn new(server_repo: R) -> Self {
-        Self { server_repo }
+impl<SR: ServerRepository, UR: UserRepository> ListMembersUseCase<SR, UR> {
+    pub fn new(server_repo: SR, user_repo: UR) -> Self {
+        Self { server_repo, user_repo }
     }
 
     pub async fn execute(&self, server_id: Uuid, user_id: Uuid) -> AppResult<Vec<MemberResponse>> {
@@ -20,7 +22,28 @@ impl<R: ServerRepository> ListMembersUseCase<R> {
         }
 
         let members = self.server_repo.get_members(server_id).await?;
-        Ok(members.into_iter().map(MemberResponse::from).collect())
+        
+        let mut responses = Vec::new();
+        for (srv_id, usr_id, role, joined_at) in members {
+            let user = self.user_repo.find_by_id(usr_id).await?
+                .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+            
+            responses.push(MemberResponse {
+                server_id: srv_id.to_string(),
+                user_id: usr_id.to_string(),
+                role,
+                joined_at: joined_at.to_rfc3339(),
+                user: UserInfo {
+                    id: user.id.to_string(),
+                    username: user.username,
+                    email: user.email,
+                    status: format!("{:?}", user.status),
+                    created_at: user.created_at.to_rfc3339(),
+                },
+            });
+        }
+        
+        Ok(responses)
     }
 }
 
