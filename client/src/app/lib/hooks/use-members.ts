@@ -11,7 +11,8 @@ export const useMembers = (serverId: string | null) => {
         if (serverId) {
             getMembers(serverId);
         }
-    }, [serverId, getMembers]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [serverId]);
 
     return {
         members,
