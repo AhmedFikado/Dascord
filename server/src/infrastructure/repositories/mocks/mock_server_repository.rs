@@ -124,13 +124,13 @@ impl ServerRepository for MockServerRepository {
         Ok(members.contains_key(&(server_id, user_id)))
     }
 
-    async fn get_members(&self, server_id: Uuid) -> AppResult<Vec<(Uuid, ServerRole)>> {
+    async fn get_members(&self, server_id: Uuid) -> AppResult<Vec<(Uuid, Uuid, ServerRole, chrono::DateTime<chrono::Utc>)>> {
         let members = self.members.lock().unwrap();
-        let server_members: Vec<(Uuid, ServerRole)> = members
+        let server_members: Vec<(Uuid, Uuid, ServerRole, chrono::DateTime<chrono::Utc>)> = members
             .iter()
             .filter_map(|((sid, uid), role)| {
                 if *sid == server_id {
-                    Some((*uid, role.clone()))
+                    Some((*sid, *uid, role.clone(), chrono::Utc::now()))
                 } else {
                     None
                 }

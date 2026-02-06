@@ -1,18 +1,13 @@
 use server::{
     api::router,
     application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase},
-    api::router,
-    application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase},
     config::{AppConfig, DatabaseConfig},
     infrastructure::database::{init_databases, MongoDBMessageRepository},
     infrastructure::repositories::PostgresUserRepository,
     infrastructure::security::JWTService,
-    infrastructure::security::JWTService,
     infrastructure::services::UserService,
     infrastructure::websocket::{create_ws_router, ConnectionManager, WebSocketState},
-    infrastructure::websocket::{create_ws_router, ConnectionManager, WebSocketState},
 };
-use std::sync::Arc;
 use std::sync::Arc;
 
 #[tokio::main]
@@ -66,17 +61,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         signup_uc,
         login_uc,
         logout_uc,
-        jwt_service,
-        user_service,
-        app_state.pg_pool.clone(),
-        app_state.mongo_client.clone(),
-    );
-    let http_router = router::create_router(
-        signup_uc,
-        login_uc,
-        logout_uc,
-        jwt_service,
-        user_service,
+        jwt_service.clone(),
+        user_service.clone(),
         app_state.pg_pool.clone(),
         app_state.mongo_client.clone(),
     );
@@ -85,7 +71,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app = http_router.merge(ws_router);
 
-    let listener = tokio::net::TcpListener::bind(&app_config.address()).await?;
     let listener = tokio::net::TcpListener::bind(&app_config.address()).await?;
 
     tracing::info!("Serveur démarré sur {}", app_config.address());

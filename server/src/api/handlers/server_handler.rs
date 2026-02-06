@@ -332,6 +332,7 @@ mod tests {
     use crate::infrastructure::repositories::mocks::{
         mock_channel_repository::MockChannelRepository,
         mock_server_repository::MockServerRepository,
+        mock_user_repository::MockUserRepository,
     };
 
     #[tokio::test]
@@ -340,12 +341,14 @@ mod tests {
 
         let mock_server_repo = MockServerRepository::new();
         let mock_channel_repo = MockChannelRepository::new();
+        let mock_user_repo = MockUserRepository::new();
         let jwt_service = JWTService::new("test_secret".to_string());
 
         let handler = Arc::new(ServerHandler::new(
             jwt_service.clone(),
             mock_server_repo,
             mock_channel_repo,
+            mock_user_repo,
         ));
 
         let token = jwt_service.create_token(owner_id).unwrap();
@@ -378,7 +381,7 @@ mod tests {
             jwt_service.clone(),
             mock_server_repo,
             mock_channel_repo,
-        ));
+        MockUserRepository::new(),));
 
         let token = jwt_service.create_token(user_id).unwrap();
         let mut headers = HeaderMap::new();
@@ -405,7 +408,7 @@ mod tests {
             jwt_service.clone(),
             mock_server_repo,
             mock_channel_repo,
-        ));
+        MockUserRepository::new(),));
 
         let token = jwt_service.create_token(user_id).unwrap();
         let mut headers = HeaderMap::new();
@@ -435,7 +438,7 @@ mod tests {
             jwt_service.clone(),
             mock_server_repo,
             mock_channel_repo,
-        ));
+        MockUserRepository::new(),));
 
         let token = jwt_service.create_token(owner_id).unwrap();
         let mut headers = HeaderMap::new();
@@ -464,7 +467,7 @@ mod tests {
             jwt_service,
             mock_server_repo,
             mock_channel_repo,
-        ));
+        MockUserRepository::new(),));
         let headers = HeaderMap::new();
 
         let result = ServerHandler::get_user_servers(State(handler), headers).await;
@@ -486,7 +489,7 @@ mod tests {
             jwt_service.clone(),
             mock_server_repo,
             mock_channel_repo,
-        ));
+        MockUserRepository::new(),));
         let token = jwt_service.create_token(owner_id).unwrap();
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -511,7 +514,7 @@ mod tests {
             jwt_service.clone(),
             mock_server_repo,
             mock_channel_repo,
-        ));
+        MockUserRepository::new(),));
         let token = jwt_service.create_token(owner_id).unwrap();
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -538,7 +541,7 @@ mod tests {
             jwt_service.clone(),
             mock_server_repo,
             mock_channel_repo,
-        ));
+        MockUserRepository::new(),));
         let token = jwt_service.create_token(owner_id).unwrap();
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -566,7 +569,7 @@ mod tests {
             jwt_service.clone(),
             mock_server_repo,
             mock_channel_repo,
-        ));
+        MockUserRepository::new(),));
         let token = jwt_service.create_token(user_id).unwrap();
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -580,19 +583,34 @@ mod tests {
 
     #[tokio::test]
     async fn test_list_members_success() {
+        use crate::domain::entities::User;
+        use crate::infrastructure::security::PasswordService;
+
         let owner_id = Uuid::new_v4();
         let server = Server::new("Test Server".to_string(), owner_id, "CODE123".to_string());
+
+        let password_service = PasswordService::new();
+        let owner = User {
+            id: owner_id,
+            username: "owner".to_string(),
+            email: "owner@test.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
 
         let mock_server_repo = MockServerRepository::new()
             .with_server(server.clone())
             .with_member(server.id, owner_id, ServerRole::Owner);
         let mock_channel_repo = MockChannelRepository::new();
+        let mock_user_repo = MockUserRepository::new().with_user(owner);
         let jwt_service = JWTService::new("test_secret".to_string());
 
         let handler = Arc::new(ServerHandler::new(
             jwt_service.clone(),
             mock_server_repo,
             mock_channel_repo,
+            mock_user_repo,
         ));
         let token = jwt_service.create_token(owner_id).unwrap();
         let mut headers = HeaderMap::new();
@@ -621,7 +639,7 @@ mod tests {
             jwt_service.clone(),
             mock_server_repo,
             mock_channel_repo,
-        ));
+        MockUserRepository::new(),));
         let token = jwt_service.create_token(owner_id).unwrap();
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -655,7 +673,7 @@ mod tests {
             jwt_service.clone(),
             mock_server_repo,
             mock_channel_repo,
-        ));
+        MockUserRepository::new(),));
         let token = jwt_service.create_token(owner_id).unwrap();
         let mut headers = HeaderMap::new();
         headers.insert(
@@ -677,7 +695,7 @@ mod tests {
             jwt_service,
             mock_server_repo,
             mock_channel_repo,
-        ));
+        MockUserRepository::new(),));
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
 
@@ -685,3 +703,4 @@ mod tests {
         assert!(result.is_err());
     }
 }
+

@@ -45,7 +45,7 @@ impl MessageRepository for MockMessageRepository {
         Ok(message)
     }
 
-    async fn find_by_channel(&self, channel_id: &str, _limit: i64) -> AppResult<Vec<Message>> {
+    async fn find_by_channel(&self, channel_id: &str) -> AppResult<Vec<Message>> {
         let messages = self.messages.lock().unwrap();
         let channel_messages: Vec<Message> = messages
             .values()

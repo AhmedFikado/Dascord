@@ -96,7 +96,7 @@ mod tests {
         let mock_channel_repo = MockChannelRepository::new();
         let mock_message_repo = MockMessageRepository::new();
 
-        let server_handler = Arc::new(ServerHandler::new(jwt_service.clone(), mock_server_repo.clone(), mock_channel_repo.clone()));
+        let server_handler = Arc::new(ServerHandler::new(jwt_service.clone(), mock_server_repo.clone(), mock_channel_repo.clone(), mock_user_repo.clone()));
         let channel_handler = Arc::new(ChannelHandler::new(jwt_service.clone(), mock_channel_repo.clone(), mock_server_repo.clone()));
         let message_handler = Arc::new(MessageHandler::new(jwt_service, mock_message_repo, mock_channel_repo, mock_server_repo, mock_user_repo));
 

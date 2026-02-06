@@ -50,13 +50,6 @@ pub async fn ws_handler(
             state.manager,
             state.message_repository,
         )
-        handle_connection(
-            socket,
-            user_id,
-            username,
-            state.manager,
-            state.message_repository,
-        )
     }))
 }
 
@@ -68,11 +61,6 @@ async fn handle_connection(
     manager: Arc<ConnectionManager>,
     message_repository: MongoDBMessageRepository,
 ) {
-    tracing::info!(
-        "Nouvelle connexion WebSocket: user_id={}, username={}",
-        user_id,
-        username
-    );
     tracing::info!(
         "Nouvelle connexion WebSocket: user_id={}, username={}",
         user_id,
