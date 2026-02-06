@@ -6,13 +6,13 @@ use serde::{Deserialize, Serialize};
 pub enum ClientMessage {
     /// S'abonner à un channel
     JoinChannel { channel_id: String },
-    
+
     /// Se désabonner d'un channel
     LeaveChannel { channel_id: String },
-    
+
     /// Envoyer un message dans un channel
     SendMessage { channel_id: String, content: String },
-    
+
     /// Indiquer que l'utilisateur est en train de taper
     Typing { channel_id: String, is_typing: bool },
 }
@@ -23,7 +23,7 @@ pub enum ClientMessage {
 pub enum ServerMessage {
     /// Confirmation de connexion réussie
     Connected { user_id: String },
-    
+
     /// Nouveau message dans un channel
     NewMessage {
         channel_id: String,
@@ -33,20 +33,17 @@ pub enum ServerMessage {
         content: String,
         created_at: chrono::DateTime<chrono::Utc>,
     },
-    
+
     /// Un user a rejoint le channel
     UserJoined {
         channel_id: String,
         user_id: String,
         username: String,
     },
-    
+
     /// Un user a quitté le channel
-    UserLeft {
-        channel_id: String,
-        user_id: String,
-    },
-    
+    UserLeft { channel_id: String, user_id: String },
+
     /// Un utilisateur est en train de taper
     UserTyping {
         channel_id: String,
@@ -54,15 +51,15 @@ pub enum ServerMessage {
         username: String,
         is_typing: bool,
     },
-    
+
     /// Historique des messages d'un channel (envoyé après JoinChannel)
     MessageHistory {
         channel_id: String,
         messages: Vec<MessageData>,
     },
-    
+
     /// Erreur avec code et détails
-    Error { 
+    Error {
         code: String,
         message: String,
         channel_id: Option<String>,

@@ -12,22 +12,18 @@ use crate::infrastructure::database::MongoDBMessageRepository;
 pub struct Connection {
     /// ID unique de la connexion
     pub id: Uuid,
-    
+
     /// ID + nom utilisateur connecté
     pub user_id: Uuid,
     pub username: String,
-    
+
     /// Sender pour envoyer des messages à cette connexion
     tx: mpsc::UnboundedSender<ServerMessage>,
 }
 
 impl Connection {
     /// Créer une nouvelle connexion
-    pub fn new(
-        user_id: Uuid,
-        username: String,
-        tx: mpsc::UnboundedSender<ServerMessage>,
-    ) -> Self {
+    pub fn new(user_id: Uuid, username: String, tx: mpsc::UnboundedSender<ServerMessage>) -> Self {
         Self {
             id: Uuid::new_v4(),
             user_id,
@@ -35,7 +31,7 @@ impl Connection {
             tx,
         }
     }
-    
+
     /// Envoyer un message à cette connexion
     pub fn send(&self, message: ServerMessage) -> Result<(), String> {
         self.tx
@@ -54,25 +50,27 @@ pub async fn handle_socket(
 ) {
     // Séparer le socket en deux parties : écriture (sink) et lecture (stream)
     let (mut sink, mut stream) = socket.split();
-    
+
     // Canal pour communiquer entre les tâches
     let (tx, mut rx) = mpsc::unbounded_channel::<ServerMessage>();
-    
+
     // Créer la connexion
     let connection = Connection::new(user_id, username.clone(), tx);
     let connection_id = connection.id;
-    
+
     // Enregistrer la connexion
     manager.add_connection(connection).await;
-    
+
     // Envoyer message de confirmation
-    let _ = manager.send_to_connection(
-        connection_id,
-        ServerMessage::Connected {
-            user_id: user_id.to_string(),
-        },
-    ).await;
-    
+    let _ = manager
+        .send_to_connection(
+            connection_id,
+            ServerMessage::Connected {
+                user_id: user_id.to_string(),
+            },
+        )
+        .await;
+
     // Écriture (envoyer messages au client)
     let write_task = tokio::spawn(async move {
         while let Some(msg) = rx.recv().await {
@@ -83,27 +81,29 @@ pub async fn handle_socket(
             }
         }
     });
-    
+
     // Lecture (recevoir messages du client)
     let manager_clone = manager.clone();
     let read_task = tokio::spawn(async move {
         while let Some(Ok(msg)) = stream.next().await {
             if let Message::Text(text) = msg {
                 if let Ok(client_msg) = serde_json::from_str::<ClientMessage>(&text) {
-                    manager_clone.handle_client_message(connection_id, client_msg, &message_repository).await;
+                    manager_clone
+                        .handle_client_message(connection_id, client_msg, &message_repository)
+                        .await;
                 }
             } else if let Message::Close(_) = msg {
                 break;
             }
         }
     });
-    
+
     // Attendre que l'une des tâches se termine
     tokio::select! {
         _ = write_task => {},
         _ = read_task => {},
     }
-    
+
     // Nettoyer la connexion
     manager.remove_connection(connection_id).await;
 }

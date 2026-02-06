@@ -17,3 +17,32 @@ impl ServerRole {
         matches!(self, ServerRole::Owner)
     }
 }
+
+
+// --- UNIT TESTS ---
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_owner_permissions() {
+        let role = ServerRole::Owner;
+        assert!(role.can_have_permissions());
+        assert!(role.can_delete_server());
+    }
+
+    #[test]
+    fn test_admin_permissions() {
+        let role = ServerRole::Admin;
+        assert!(role.can_have_permissions());
+        assert!(!role.can_delete_server());
+    }
+
+    #[test]
+    fn test_member_permissions() {
+        let role = ServerRole::Member;
+        assert!(!role.can_have_permissions());
+        assert!(!role.can_delete_server());
+    }
+}

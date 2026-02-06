@@ -13,7 +13,8 @@ pub trait ServerRepository: Send + Sync + Clone {
     async fn find_by_user(&self, user_id: Uuid) -> AppResult<Vec<Server>>;
     async fn update(&self, server: Server) -> AppResult<Server>;
     async fn delete(&self, id: Uuid) -> AppResult<()>;
-    
+
+
     async fn add_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<()>;
     async fn remove_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<()>;
     async fn is_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<bool>;
@@ -101,14 +102,12 @@ impl ServerRepository for PostgresServerRepository {
     }
 
     async fn update(&self, server: Server) -> AppResult<Server> {
-        sqlx::query(
-            "UPDATE servers SET name = $1 WHERE id = $2"
-        )
-        .bind(&server.name)
-        .bind(server.id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        sqlx::query("UPDATE servers SET name = $1 WHERE id = $2")
+            .bind(&server.name)
+            .bind(server.id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
         Ok(server)
     }
@@ -138,14 +137,12 @@ impl ServerRepository for PostgresServerRepository {
     }
 
     async fn remove_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<()> {
-        sqlx::query(
-            "DELETE FROM server_members WHERE server_id = $1 AND user_id = $2"
-        )
-        .bind(server_id)
-        .bind(user_id)
-        .execute(&self.pool)
-        .await
-        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        sqlx::query("DELETE FROM server_members WHERE server_id = $1 AND user_id = $2")
+            .bind(server_id)
+            .bind(user_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
         Ok(())
     }
@@ -191,7 +188,11 @@ impl ServerRepository for PostgresServerRepository {
         Ok(members)
     }
 
-    async fn get_member_role(&self, server_id: Uuid, user_id: Uuid) -> AppResult<Option<ServerRole>> {
+    async fn get_member_role(
+        &self,
+        server_id: Uuid,
+        user_id: Uuid,
+    ) -> AppResult<Option<ServerRole>> {
         let result = sqlx::query(
             "SELECT role::text FROM server_members WHERE server_id = $1 AND user_id = $2"
         )
@@ -211,7 +212,12 @@ impl ServerRepository for PostgresServerRepository {
         }))
     }
 
-    async fn update_member_role(&self, server_id: Uuid, user_id: Uuid, role: ServerRole) -> AppResult<()> {
+    async fn update_member_role(
+        &self,
+        server_id: Uuid,
+        user_id: Uuid,
+        role: ServerRole,
+    ) -> AppResult<()> {
         let role_str = match role {
             ServerRole::Owner => "OWNER",
             ServerRole::Admin => "ADMIN",
