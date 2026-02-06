@@ -55,6 +55,11 @@ impl MessageRepository for MockMessageRepository {
         Ok(channel_messages)
     }
 
+    async fn find_by_id(&self, message_id: &str) -> AppResult<Option<Message>> {
+        let messages = self.messages.lock().unwrap();
+        Ok(messages.get(message_id).cloned())
+    }
+
     async fn delete(&self, message_id: &str) -> AppResult<()> {
         let mut messages = self.messages.lock().unwrap();
         messages.remove(message_id);

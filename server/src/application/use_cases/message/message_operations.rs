@@ -112,16 +112,53 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository>
     }
 }
 
-pub struct DeleteMessageUseCase<MR: MessageRepository> {
+pub struct DeleteMessageUseCase<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> {
     message_repo: MR,
+    channel_repo: CR,
+    server_repo: SR,
 }
 
-impl<MR: MessageRepository> DeleteMessageUseCase<MR> {
-    pub fn new(message_repo: MR) -> Self {
-        Self { message_repo }
+impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> DeleteMessageUseCase<MR, CR, SR> {
+    pub fn new(message_repo: MR, channel_repo: CR, server_repo: SR) -> Self {
+        Self { message_repo, channel_repo, server_repo }
     }
 
-    pub async fn execute(&self, message_id: String, _user_id: Uuid) -> AppResult<()> {
+    pub async fn execute(&self, message_id: String, user_id: Uuid) -> AppResult<()> {
+        // Récupérer le message
+        let message = self.message_repo.find_by_id(&message_id).await?
+            .ok_or_else(|| AppError::NotFound("Message not found".to_string()))?;
+
+        //  Vérifier si l'utilisateur est le propriétaire du message
+        let message_owner_id = Uuid::parse_str(&message.user_id)
+            .map_err(|_| AppError::InternalServerError("Invalid user ID in message".to_string()))?;
+        
+        let is_message_owner = message_owner_id == user_id;
+
+        //  Si ce n'est pas le propriétaire, vérifier s'il est Admin ou Owner du serveur
+        if !is_message_owner {
+            // Récupérer le channel pour obtenir le server_id
+            let channel_id = Uuid::parse_str(&message.channel_id)
+                .map_err(|_| AppError::InternalServerError("Invalid channel ID in message".to_string()))?;
+            
+            let channel = self.channel_repo.find_by_id(channel_id).await?
+                .ok_or_else(|| AppError::NotFound("Channel not found".to_string()))?;
+
+            // Vérifier le rôle de l'utilisateur
+            let user_role = self.server_repo.get_member_role(channel.server_id, user_id).await?;
+            
+            match user_role {
+                Some(role) if role.can_have_permissions() => {
+                    // L'utilisateur est Admin ou Owner, il peut supprimer
+                }
+                _ => {
+                    return Err(AppError::Forbidden(
+                        "You don't have permission to delete this message".to_string()
+                    ));
+                }
+            }
+        }
+
+        // Supprimer le message
         self.message_repo.delete(&message_id).await
     }
 }
@@ -298,9 +335,21 @@ mod tests {
     #[tokio::test]
     async fn test_delete_message_success() {
         let user_id = Uuid::new_v4();
-        let mock_message_repo = MockMessageRepository::new();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+        
+        let message = Message::new(
+            channel.id.to_string(),
+            user_id.to_string(),
+            "TestUser".to_string(),
+            "Test message".to_string(),
+        );
+        
+        let mock_message_repo = MockMessageRepository::new().with_message(message.clone());
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
 
-        let use_case = DeleteMessageUseCase::new(mock_message_repo);
+        let use_case = DeleteMessageUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
         let result = use_case.execute("msg_123".to_string(), user_id).await;
 
         assert!(result.is_ok());
