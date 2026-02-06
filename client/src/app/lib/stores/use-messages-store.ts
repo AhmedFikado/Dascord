@@ -11,6 +11,7 @@ interface MessageState {
     fetchMessages: (channelId: string) => Promise<void>;
     sendMessage: (channelId: string, content: string) => Promise<void>;
     deleteMessage: (channelId: string, messageId: string) => Promise<void>;
+    reset: () => void;
 }
 
 export const useMessageStore = create<MessageState>((set) => ({
@@ -77,4 +78,6 @@ export const useMessageStore = create<MessageState>((set) => ({
             console.error("Erreur de suppression", error);
         }
     },
+
+    reset: () => set({ messages: [], messagesByChannel: {}, isLoading: false, error: null }),
 }));

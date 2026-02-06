@@ -14,6 +14,7 @@ interface ChannelState {
     addChannel: (serverId: string, channelName: string) => Promise<Channel>;
     removeChannel: (channelId: string) => Promise<void>;
     updateChannel: (channelId: string, name: string) => Promise<Channel>;
+    reset: () => void;
 }
 
 export const useChannelStore = create<ChannelState>((set) => ({
@@ -118,4 +119,5 @@ export const useChannelStore = create<ChannelState>((set) => ({
         }
     },
 
+    reset: () => set({ channels: [], currentChannel: null, channelsByServer: {}, isLoading: false, error: null }),
 }));

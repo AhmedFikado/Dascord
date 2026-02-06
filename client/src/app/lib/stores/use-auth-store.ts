@@ -3,6 +3,9 @@ import type { User } from '@/types/models/user';
 import * as authApi from '@/app/lib/api/auth';
 import { getMe } from '@/app/lib/api/users';
 import type { LoginFormData, SignupFormData } from '@/app/lib/api/validations/auth.schema';
+import { useServerStore } from './use-server-store';
+import { useChannelStore } from './use-channel-store';
+import { useMessageStore } from './use-messages-store';
 
 interface AuthState {
     user: User | null;
@@ -103,6 +106,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
         set({ isLoading: true, error: null });
         try {
             await authApi.logout();
+        } catch (error: any) {
+            // Ignorer l'erreur 401 lors de la déconnexion
+        } finally {
+            // Réinitialiser tous les stores
+            useServerStore.getState().reset();
+            useChannelStore.getState().reset();
+            useMessageStore.getState().reset();
+            
             set({
                 user: null,
                 userId: null,
@@ -112,12 +123,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
             if (typeof window !== 'undefined') {
                 window.location.href = '/login';
             }
-        } catch (error: any) {
-            set({
-                error: error.message || 'Erreur lors de la déconnexion',
-                isLoading: false,
-            });
-            throw error;
         }
     },
 

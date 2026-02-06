@@ -2,6 +2,8 @@
 
 import { Server } from "@/types/models/Server";
 import { useRouter, useParams } from 'next/navigation';
+import { useChannelStore } from '@/app/lib/stores/use-channel-store';
+import { useEffect, useState } from 'react';
 
 interface ServerItemProps {
     server: Server;
@@ -11,6 +13,15 @@ export default function ServerItem({ server }: ServerItemProps) {
     const router = useRouter();
     const params = useParams();
     const currentServerId = params?.serverId as string | undefined;
+    const { channelsByServer, fetchChannels } = useChannelStore();
+    const [firstChannelId, setFirstChannelId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const channels = channelsByServer[server.id];
+        if (channels && channels.length > 0) {
+            setFirstChannelId(channels[0].id);
+        }
+    }, [channelsByServer, server.id]);
 
     const getInitials = (name: string): string => {
         const words = name.trim().split(' ');
@@ -20,8 +31,17 @@ export default function ServerItem({ server }: ServerItemProps) {
         return words.slice(0, 2).map(word => word[0].toUpperCase()).join('');
     };
 
-    const handleClick = () => {
-        router.push(`/servers/${server.id}/channels/1`);
+    const handleClick = async () => {
+        const channels = channelsByServer[server.id];
+        if (!channels || channels.length === 0) {
+            await fetchChannels(server.id);
+            const updatedChannels = useChannelStore.getState().channelsByServer[server.id];
+            if (updatedChannels && updatedChannels.length > 0) {
+                router.push(`/servers/${server.id}/channels/${updatedChannels[0].id}`);
+            }
+        } else {
+            router.push(`/servers/${server.id}/channels/${channels[0].id}`);
+        }
     };
 
     const isActive = currentServerId === server.id;

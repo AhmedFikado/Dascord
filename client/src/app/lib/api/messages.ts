@@ -15,6 +15,11 @@ export const messagesApi = {
         return await apiClient.post<Message>(`/channels/${channelId}/messages`, { content });
     },
 
+    // POST /channels/{id}/messages/welcome
+    sendWelcome: async (channelId: string): Promise<Message> => {
+        return await apiClient.post<Message>(`/channels/${channelId}/messages/welcome`);
+    },
+
     // DELETE /messages/{id}
     delete: async (channelId: string, messageId: string): Promise<void> => {
         await apiClient.delete(`/messages/${messageId}`);

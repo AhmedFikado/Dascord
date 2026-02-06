@@ -135,6 +135,40 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
             Json(serde_json::json!({"message": "Message deleted"})),
         ))
     }
+
+    pub async fn send_welcome_message(
+        State(handler): State<Arc<Self>>,
+        Path(channel_id): Path<Uuid>,
+        headers: HeaderMap,
+    ) -> Result<impl IntoResponse, AppError> {
+        let token = headers
+            .get("Authorization")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.strip_prefix("Bearer "))
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
+
+        let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+        let user = handler
+            .user_repo
+            .find_by_id(user_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+
+        let content = format!("👋 Bienvenue {} ! Tu as trouvé le serveur ! On a des pokémons légendaires pour toi !"
+        , user.username);
+        let system_username = "Système".to_string();
+
+        let message = handler
+            .send_message_uc
+            .execute(channel_id, user_id, system_username, content)
+            .await?;
+        Ok((StatusCode::CREATED, Json(message)))
+    }
 }
 
 
