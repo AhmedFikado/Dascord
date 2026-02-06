@@ -7,9 +7,8 @@ interface TypingUser {
   timestamp: number;
 }
 
-
- // État global du WebSocket
- //Contient les messages, les utilisateurs en train de taper, et le statut de connexion
+// État global du WebSocket
+//Contient les messages, les utilisateurs en train de taper, et le statut de connexion
 interface WebSocketState {
   // État de la connexion
   status: WebSocketStatus;
@@ -26,6 +25,7 @@ interface WebSocketState {
   setError: (error: string | null) => void;
   handleServerMessage: (message: ServerMessage) => void;
   addMessage: (channelId: string, message: MessageData) => void;
+  removeMessage: (channelId: string, messageId: string) => void;
   setMessages: (channelId: string, messages: MessageData[]) => void;
   setTyping: (channelId: string, userId: string, username: string, isTyping: boolean) => void;
   // Gestion des utilisateurs dans les channels
@@ -108,6 +108,20 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         [channelId]: [...(state.messagesByChannel[channelId] || []), message],
       },
     })),
+
+  // Supprimer un message d'un channel
+  removeMessage: (channelId: string, messageId: string) =>
+    set((state: WebSocketState) => {
+      const currentMessages = state.messagesByChannel[channelId] || [];
+      const filtered = currentMessages.filter(m => m.message_id !== messageId);
+
+      return {
+        messagesByChannel: {
+          ...state.messagesByChannel,
+          [channelId]: filtered,
+        },
+      };
+    }),
 
   // Définir l'historique complet des messages d'un channel
   setMessages: (channelId: string, messages: MessageData[]) =>
