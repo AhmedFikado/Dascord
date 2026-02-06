@@ -26,6 +26,10 @@ pub fn message_routes<
             get(MessageHandler::<MR, CR, SR, UR>::get_message_history),
         )
         .route(
+            "/channels/:channel_id/messages/welcome",
+            post(MessageHandler::<MR, CR, SR, UR>::send_welcome_message),
+        )
+        .route(
             "/messages/:id",
             delete(MessageHandler::<MR, CR, SR, UR>::delete_message),
         )

@@ -3,6 +3,9 @@ import { Server } from '@/types/models/Server';
 import { serversApi } from '../api/servers';
 import { Member } from '@/types/models/member';
 import { Role } from '@/types/models/role';
+import { channelsApi } from '../api/channels';
+import { messagesApi } from '../api/messages';
+import { useMessageStore } from './use-messages-store';
 
 interface ServerState {
     servers: Server[];
@@ -21,7 +24,7 @@ interface ServerState {
     updateServer: (serverId: string, name: string) => Promise<Server>;
     getMembers: (serverId: string) => Promise<void>;
     updateRoleMember: (serverId: string, userId: string, role: Role) => Promise<void>;
-
+    reset: () => void;
 }
 
 export const useServerStore = create<ServerState>((set) => ({
@@ -79,6 +82,17 @@ export const useServerStore = create<ServerState>((set) => ({
         try {
             await serversApi.joinServer(invitationCode);
             const servers = await serversApi.getAll();
+            
+            const joinedServer = servers[servers.length - 1];
+            if (joinedServer) {
+                const channels = await channelsApi.getByServer(joinedServer.id);
+                if (channels.length > 0) {
+                    await messagesApi.sendWelcome(channels[0].id);
+                    // Invalider le cache des messages pour forcer le rechargement
+                    useMessageStore.getState().reset();
+                }
+            }
+            
             set({ servers, isLoading: false });
         } catch (error) {
             set({ error: 'Erreur lors de la connexion au serveur', isLoading: false });
@@ -135,4 +149,5 @@ export const useServerStore = create<ServerState>((set) => ({
         }
     },
 
+    reset: () => set({ servers: [], currentServer: null, members: [], isLoading: false, error: null }),
 }));

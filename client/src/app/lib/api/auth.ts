@@ -19,9 +19,14 @@ export const login = async (data: LoginFormData): Promise<AuthResponse> => {
 
 // Déconnexion de l'utilisateur
 export const logout = async (): Promise<LogoutResponse> => {
-    const response = await apiClient.post<LogoutResponse>('/auth/logout');
-    removeToken();
-    return response;
+    try {
+        const response = await apiClient.post<LogoutResponse>('/auth/logout');
+        removeToken();
+        return response;
+    } catch (error) {
+        removeToken();
+        throw error;
+    }
 };
 
 // Récupère les informations de l'utilisateur connecté

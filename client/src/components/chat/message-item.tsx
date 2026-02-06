@@ -33,6 +33,7 @@ export default function MessageItem({ serverId, message, onDelete }: MessageItem
     };
     const isOwnerMessage = message.user_id === currentUserId;
     const canDeleteMessage = isOwnerMessage || isAdminOrOwner;
+    const isSystemMessage = message.username === 'Système';
 
     return (
 
@@ -65,7 +66,9 @@ export default function MessageItem({ serverId, message, onDelete }: MessageItem
                         {formatDate(message.created_at)}
                     </span>
                 </div>
-                <div className="text-white leading-relaxed break-words">
+                <div className={`leading-relaxed break-words ${
+                    isSystemMessage ? 'text-gray-light italic' : 'text-white'
+                }`}>
                     {message.content}
                 </div>
             </div>

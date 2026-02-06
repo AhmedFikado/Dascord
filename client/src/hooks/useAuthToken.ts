@@ -1,12 +1,20 @@
 import { getToken } from '@/app/lib/api/auth/token';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export function useAuthToken() {
-  // Initialiser directement avec la valeur du cookie auth_token
-  const [token] = useState<string | null>(() => {
+  const [token, setToken] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
     return getToken();
   });
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const currentToken = getToken();
+      setToken(currentToken);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   return token;
 }
