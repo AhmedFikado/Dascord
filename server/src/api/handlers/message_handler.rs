@@ -23,7 +23,7 @@ pub struct MessageHandler<
     jwt_service: Arc<JWTService>,
     send_message_uc: Arc<SendMessageUseCase<MR, CR, SR>>,
     get_history_uc: Arc<GetMessageHistoryUseCase<MR, CR, SR>>,
-    delete_message_uc: Arc<DeleteMessageUseCase<MR>>,
+    delete_message_uc: Arc<DeleteMessageUseCase<MR, CR, SR>>,
     user_repo: Arc<UR>,
 }
 
@@ -46,10 +46,14 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
             )),
             get_history_uc: Arc::new(GetMessageHistoryUseCase::new(
                 message_repo.clone(),
+                channel_repo.clone(),
+                server_repo.clone(),
+            )),
+            delete_message_uc: Arc::new(DeleteMessageUseCase::new(
+                message_repo,
                 channel_repo,
                 server_repo,
             )),
-            delete_message_uc: Arc::new(DeleteMessageUseCase::new(message_repo)),
             user_repo: Arc::new(user_repo),
         }
     }
