@@ -330,4 +330,99 @@ mod tests {
 
         assert!(result.is_err());
     }
+
+    #[tokio::test]
+    async fn test_logout_missing_token() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
+        let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
+        let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
+
+        let handler = Arc::new(AuthHandler::new(signup_uc, login_uc, logout_uc, jwt_service));
+        let headers = HeaderMap::new();
+
+        let result = AuthHandler::logout(State(handler), headers).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_logout_invalid_token() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
+        let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
+        let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
+
+        let handler = Arc::new(AuthHandler::new(signup_uc, login_uc, logout_uc, jwt_service));
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
+
+        let result = AuthHandler::logout(State(handler), headers).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_me_success() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password123").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
+        let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
+        let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
+
+        let handler = Arc::new(AuthHandler::new(signup_uc, login_uc, logout_uc, jwt_service.clone()));
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
+        let result = AuthHandler::get_me(State(handler), headers).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_get_me_missing_token() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
+        let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
+        let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
+
+        let handler = Arc::new(AuthHandler::new(signup_uc, login_uc, logout_uc, jwt_service));
+        let headers = HeaderMap::new();
+
+        let result = AuthHandler::get_me(State(handler), headers).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_me_invalid_token() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
+        let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
+        let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
+
+        let handler = Arc::new(AuthHandler::new(signup_uc, login_uc, logout_uc, jwt_service));
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
+
+        let result = AuthHandler::get_me(State(handler), headers).await;
+        assert!(result.is_err());
+    }
 }

@@ -150,4 +150,158 @@ mod tests {
         let result = UserHandler::get_me(State(handler), headers).await;
         assert!(result.is_ok());
     }
+
+    #[tokio::test]
+    async fn test_update_status_missing_token() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service));
+
+        let headers = HeaderMap::new();
+        let payload = serde_json::json!({"status": "ONLINE"});
+        let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_status_invalid_token() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service));
+
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
+        let payload = serde_json::json!({"status": "ONLINE"});
+        let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_status_missing_status_field() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "OFFLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service.clone()));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let payload = serde_json::json!({});
+        let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_status_success() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "OFFLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service.clone()));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let payload = serde_json::json!({"status": "ONLINE"});
+        let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_status_invalid_status() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service.clone()));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let payload = serde_json::json!({"status": "INVALID"});
+        let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_status_with_ws_manager() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "OFFLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let ws_manager = Arc::new(ConnectionManager::new());
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service.clone()).with_ws_manager(ws_manager));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let payload = serde_json::json!({"status": "ONLINE"});
+        let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
+
+        assert!(result.is_ok());
+    }
 }

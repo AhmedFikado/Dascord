@@ -102,6 +102,8 @@ mod tests {
         assert!(result.is_ok());
         let user_dto = result.unwrap();
         assert_eq!(user_dto.username, "testuser");
+        assert_eq!(user_dto.email, "test@example.com");
+        assert_eq!(user_dto.status, "ONLINE");
     }
 
     #[tokio::test]
@@ -112,5 +114,104 @@ mod tests {
 
         let result = use_case.execute(Uuid::new_v4()).await;
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_status_success() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "OFFLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let use_case = UpdateUserStatusUseCase::new(user_service);
+
+        let result = use_case.execute(user_id, "ONLINE".to_string()).await;
+        assert!(result.is_ok());
+        let user_dto = result.unwrap();
+        assert_eq!(user_dto.status, "ONLINE");
+    }
+
+    #[tokio::test]
+    async fn test_update_user_status_invalid_status() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let use_case = UpdateUserStatusUseCase::new(user_service);
+
+        let result = use_case.execute(user_id, "INVALID".to_string()).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_status_user_not_found() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let use_case = UpdateUserStatusUseCase::new(user_service);
+
+        let result = use_case.execute(Uuid::new_v4(), "ONLINE".to_string()).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_status_offline() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let use_case = UpdateUserStatusUseCase::new(user_service);
+
+        let result = use_case.execute(user_id, "OFFLINE".to_string()).await;
+        assert!(result.is_ok());
+        let user_dto = result.unwrap();
+        assert_eq!(user_dto.status, "OFFLINE");
+    }
+
+    #[tokio::test]
+    async fn test_update_user_status_with_ws_manager() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "OFFLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let ws_manager = Arc::new(ConnectionManager::new());
+        let use_case = UpdateUserStatusUseCase::new(user_service).with_ws_manager(ws_manager);
+
+        let result = use_case.execute(user_id, "ONLINE".to_string()).await;
+        assert!(result.is_ok());
     }
 }

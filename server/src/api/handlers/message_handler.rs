@@ -294,6 +294,57 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn test_send_message_missing_token() {
+        let channel_id = Uuid::new_v4();
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service,
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let headers = HeaderMap::new();
+        let payload = serde_json::json!({"content": "Hello"});
+
+        let result = MessageHandler::send_message(State(handler), Path(channel_id), headers, Json(payload)).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_send_message_missing_content() {
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service.clone(),
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+        let payload = serde_json::json!({});
+
+        let result = MessageHandler::send_message(State(handler), Path(channel_id), headers, Json(payload)).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
     async fn test_get_message_history_success() {
         let user_id = Uuid::new_v4();
         let server_id = Uuid::new_v4();
@@ -327,12 +378,44 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_delete_message_success() {
-        let user_id = Uuid::new_v4();
-
+    async fn test_get_message_history_missing_token() {
+        let channel_id = Uuid::new_v4();
         let mock_message_repo = MockMessageRepository::new();
         let mock_channel_repo = MockChannelRepository::new();
         let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service,
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let headers = HeaderMap::new();
+        let result = MessageHandler::get_message_history(State(handler), Path(channel_id), headers).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_delete_message_success() {
+        use crate::domain::entities::Message;
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+        
+        let message = Message::new(
+            channel.id.to_string(),
+            user_id.to_string(),
+            "TestUser".to_string(),
+            "Test message".to_string(),
+        );
+
+        let mock_message_repo = MockMessageRepository::new().with_message(message);
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
         let mock_user_repo = MockUserRepository::new();
         let jwt_service = JWTService::new("test_secret".to_string());
 
@@ -352,18 +435,28 @@ mod tests {
         );
 
         let result =
-            MessageHandler::delete_message(State(handler), Path("msg_123".to_string()), headers)
+            MessageHandler::delete_message(State(handler), Path("msg_1".to_string()), headers)
                 .await;
         assert!(result.is_ok());
     }
 
     #[tokio::test]
     async fn test_update_message_success() {
+        use crate::domain::entities::Message;
         let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+        
+        let message = Message::new(
+            channel.id.to_string(),
+            user_id.to_string(),
+            "TestUser".to_string(),
+            "Original content".to_string(),
+        );
 
-        let mock_message_repo = MockMessageRepository::new();
-        let mock_channel_repo = MockChannelRepository::new();
-        let mock_server_repo = MockServerRepository::new();
+        let mock_message_repo = MockMessageRepository::new().with_message(message);
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
         let mock_user_repo = MockUserRepository::new();
         let jwt_service = JWTService::new("test_secret".to_string());
 
@@ -385,8 +478,254 @@ mod tests {
         let payload = serde_json::json!({"content": "Updated message"});
 
         let result =
-            MessageHandler::update_message(State(handler), Path("msg_123".to_string()), headers, Json(payload))
+            MessageHandler::update_message(State(handler), Path("msg_1".to_string()), headers, Json(payload))
                 .await;
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_message_missing_token() {
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service,
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let headers = HeaderMap::new();
+        let payload = serde_json::json!({"content": "Updated"});
+        let result = MessageHandler::update_message(State(handler), Path("msg_1".to_string()), headers, Json(payload)).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_message_missing_content() {
+        let user_id = Uuid::new_v4();
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service.clone(),
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+        let payload = serde_json::json!({});
+
+        let result = MessageHandler::update_message(State(handler), Path("msg_1".to_string()), headers, Json(payload)).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_send_message_invalid_token() {
+        let channel_id = Uuid::new_v4();
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service,
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
+        let payload = serde_json::json!({"content": "Hello"});
+
+        let result = MessageHandler::send_message(State(handler), Path(channel_id), headers, Json(payload)).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_delete_message_missing_token() {
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service,
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let headers = HeaderMap::new();
+        let result = MessageHandler::delete_message(State(handler), Path("msg_1".to_string()), headers).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_send_welcome_message_success() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+
+        let password_service = PasswordService::new();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
+        let mock_user_repo = MockUserRepository::new().with_user(user);
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service.clone(),
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
+        let result = MessageHandler::send_welcome_message(State(handler), Path(channel.id), headers).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_send_welcome_message_with_ws_manager() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+
+        let password_service = PasswordService::new();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
+        let mock_user_repo = MockUserRepository::new().with_user(user);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let ws_manager = Arc::new(ConnectionManager::new());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service.clone(),
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ).with_ws_manager(ws_manager));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
+        let result = MessageHandler::send_welcome_message(State(handler), Path(channel.id), headers).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_send_welcome_message_missing_token() {
+        let channel_id = Uuid::new_v4();
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service,
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let headers = HeaderMap::new();
+        let result = MessageHandler::send_welcome_message(State(handler), Path(channel_id), headers).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_send_message_user_not_found() {
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service.clone(),
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+        let payload = serde_json::json!({"content": "Hello"});
+
+        let result = MessageHandler::send_message(State(handler), Path(channel_id), headers, Json(payload)).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_send_welcome_message_user_not_found() {
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service.clone(),
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
+        let result = MessageHandler::send_welcome_message(State(handler), Path(channel_id), headers).await;
+        assert!(result.is_err());
     }
 }
