@@ -12,6 +12,7 @@ interface MessageState {
   fetchMessages: (channelId: string) => Promise<void>;
   sendMessage: (channelId: string, content: string) => Promise<void>;
   deleteMessage: (channelId: string, messageId: string) => Promise<void>;
+  updateMessage: (channelId: string, messageId: string, content: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -82,6 +83,30 @@ export const useMessageStore = create<MessageState>(set => ({
       console.error('Erreur de suppression', error);
       const errorMessage =
         error?.response?.data?.error || "Vous n'avez pas la permission de supprimer ce message";
+      set({ error: errorMessage });
+      throw error;
+    }
+  },
+
+  updateMessage: async (channelId: string, messageId: string, content: string) => {
+    try {
+      const updatedMessage = await messagesApi.update(messageId, content);
+      set(state => ({
+        messages: state.messages.map(m => m.id === messageId ? updatedMessage : m),
+        messagesByChannel: {
+          ...state.messagesByChannel,
+          [channelId]: (state.messagesByChannel[channelId] || []).map(m => 
+            m.id === messageId ? updatedMessage : m
+          ),
+        },
+        error: null,
+      }));
+      // Mettre à jour aussi dans le store WebSocket
+      useWebSocketStore.getState().updateMessage(channelId, messageId, content);
+    } catch (error: any) {
+      console.error('Erreur de modification', error);
+      const errorMessage =
+        error?.response?.data?.error || "Vous n'avez pas la permission de modifier ce message";
       set({ error: errorMessage });
       throw error;
     }

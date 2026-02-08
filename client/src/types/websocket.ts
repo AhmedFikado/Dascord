@@ -75,6 +75,22 @@ export type ServerMessage =
       };
     }
   | {
+      type: 'MessageUpdated';
+      payload: {
+        channel_id: string;
+        message_id: string;
+        user_id: string;
+        content: string;
+      };
+    }
+  | {
+      type: 'MessageDeleted';
+      payload: {
+        channel_id: string;
+        message_id: string;
+      };
+    }
+  | {
       type: 'Error';
       payload: {
         code: string;

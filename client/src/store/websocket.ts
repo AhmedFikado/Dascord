@@ -26,6 +26,7 @@ interface WebSocketState {
   handleServerMessage: (message: ServerMessage) => void;
   addMessage: (channelId: string, message: MessageData) => void;
   removeMessage: (channelId: string, messageId: string) => void;
+  updateMessage: (channelId: string, messageId: string, content: string) => void;
   setMessages: (channelId: string, messages: MessageData[]) => void;
   setTyping: (channelId: string, userId: string, username: string, isTyping: boolean) => void;
   // Gestion des utilisateurs dans les channels
@@ -93,6 +94,20 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         );
         break;
 
+      case 'MessageUpdated':
+        // Un message a été modifié
+        get().updateMessage(
+          message.payload.channel_id,
+          message.payload.message_id,
+          message.payload.content
+        );
+        break;
+
+      case 'MessageDeleted':
+        // Un message a été supprimé
+        get().removeMessage(message.payload.channel_id, message.payload.message_id);
+        break;
+
       case 'Error':
         console.error('WebSocket error:', message.payload);
         set({ error: message.payload.message });
@@ -119,6 +134,22 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         messagesByChannel: {
           ...state.messagesByChannel,
           [channelId]: filtered,
+        },
+      };
+    }),
+
+  // Mettre à jour un message dans un channel
+  updateMessage: (channelId: string, messageId: string, content: string) =>
+    set((state: WebSocketState) => {
+      const currentMessages = state.messagesByChannel[channelId] || [];
+      const updated = currentMessages.map(m => 
+        m.message_id === messageId ? { ...m, content } : m
+      );
+
+      return {
+        messagesByChannel: {
+          ...state.messagesByChannel,
+          [channelId]: updated,
         },
       };
     }),
