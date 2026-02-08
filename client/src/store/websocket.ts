@@ -94,6 +94,18 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         );
         break;
 
+      case 'UserStatusChanged':
+        // Mettre à jour le statut dans le store des membres
+        const { useServerStore } = require('@/app/lib/stores/use-server-store');
+        const members = useServerStore.getState().members;
+        const updatedMembers = members.map(member => 
+          member.user_id === message.payload.user_id
+            ? { ...member, user: { ...member.user, status: message.payload.status } }
+            : member
+        );
+        useServerStore.setState({ members: updatedMembers });
+        break;
+
       case 'MessageUpdated':
         // Un message a été modifié
         get().updateMessage(

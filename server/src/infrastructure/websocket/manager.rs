@@ -287,4 +287,18 @@ impl ConnectionManager {
     pub fn connection_count(&self) -> usize {
         self.connections.len()
     }
+
+    /// Broadcaster un changement de statut à toutes les connexions
+    pub async fn broadcast_status_change(&self, user_id: Uuid, status: String) {
+        let message = ServerMessage::UserStatusChanged {
+            user_id: user_id.to_string(),
+            status,
+        };
+        
+        for conn in self.connections.iter() {
+            let _ = conn.value().send(message.clone());
+        }
+        
+        tracing::info!("Status change broadcasted for user {}", user_id);
+    }
 }

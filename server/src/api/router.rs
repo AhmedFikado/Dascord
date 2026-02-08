@@ -9,6 +9,7 @@ use crate::infrastructure::repositories::{
 };
 use crate::infrastructure::security::JWTService;
 use crate::infrastructure::services::UserService;
+use crate::infrastructure::websocket::ConnectionManager;
 use axum::Router;
 use mongodb::Client as MongoClient;
 use sqlx::PgPool;
@@ -23,6 +24,7 @@ pub fn create_router(
     user_service: UserService<PostgresUserRepository>,
     pg_pool: PgPool,
     mongo_client: MongoClient,
+    ws_manager: Arc<ConnectionManager>,
 ) -> Router {
     let auth_handler = Arc::new(AuthHandler::new(
         signup_uc,
@@ -30,7 +32,8 @@ pub fn create_router(
         logout_uc,
         jwt_service.clone(),
     ));
-    let user_handler = Arc::new(UserHandler::new(user_service, jwt_service.clone()));
+    let user_handler = Arc::new(UserHandler::new(user_service, jwt_service.clone())
+        .with_ws_manager(ws_manager.clone()));
 
     let server_repo = PostgresServerRepository::new(pg_pool.clone());
     let channel_repo = PostgresChannelRepository::new(pg_pool.clone());
@@ -55,7 +58,7 @@ pub fn create_router(
         channel_repo,
         server_repo,
         user_repo2,
-    ));
+    ).with_ws_manager(ws_manager));
 
     let cors = CorsLayer::new()
         .allow_origin(Any)

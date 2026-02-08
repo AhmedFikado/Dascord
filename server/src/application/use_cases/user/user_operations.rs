@@ -1,11 +1,14 @@
 use crate::application::dto::user_dto::UserDto;
+use crate::domain::value_objects::user_status::UserStatus;
 use crate::infrastructure::repositories::UserRepository;
 use crate::infrastructure::services::UserService;
+use crate::infrastructure::websocket::ConnectionManager;
 use crate::utils::error::{AppError, AppResult};
+use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct GetUserInfoUseCase<R: UserRepository> {
-    user_service: UserService<R>,
+    pub user_service: UserService<R>,
 }
 
 impl<R: UserRepository> GetUserInfoUseCase<R> {
@@ -19,6 +22,44 @@ impl<R: UserRepository> GetUserInfoUseCase<R> {
             .find_by_id(user_id)
             .await?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+
+        Ok(UserDto {
+            id: user.id.to_string(),
+            username: user.username,
+            email: user.email,
+            status: user.status,
+        })
+    }
+}
+
+#[derive(Clone)]
+pub struct UpdateUserStatusUseCase<R: UserRepository> {
+    pub user_service: UserService<R>,
+    ws_manager: Option<Arc<ConnectionManager>>,
+}
+
+impl<R: UserRepository> UpdateUserStatusUseCase<R> {
+    pub fn new(user_service: UserService<R>) -> Self {
+        Self {
+            user_service,
+            ws_manager: None,
+        }
+    }
+
+    pub fn with_ws_manager(mut self, ws_manager: Arc<ConnectionManager>) -> Self {
+        self.ws_manager = Some(ws_manager);
+        self
+    }
+
+    pub async fn execute(&self, user_id: Uuid, status: String) -> AppResult<UserDto> {
+        let _: UserStatus = serde_json::from_str(&format!(r#""{}""#, status))
+            .map_err(|_| AppError::ValidationError("Invalid status".to_string()))?;
+
+        let user = self.user_service.update_status(user_id, &status).await?;
+        
+        if let Some(ws_manager) = &self.ws_manager {
+            ws_manager.broadcast_status_change(user_id, status.clone()).await;
+        }
 
         Ok(UserDto {
             id: user.id.to_string(),

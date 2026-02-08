@@ -78,6 +78,12 @@ pub enum ServerMessage {
         message: String,
         channel_id: Option<String>,
     },
+
+    /// Changement de statut d'un utilisateur
+    UserStatusChanged {
+        user_id: String,
+        status: String,
+    },
 }
 
 /// Structure pour les données d'un message dans l'historique

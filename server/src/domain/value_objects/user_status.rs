@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
 pub enum UserStatus {
     Online,
     Offline,
@@ -24,12 +25,12 @@ mod tests {
     fn test_user_status_serialization() {
         let status = UserStatus::Online;
         let json = serde_json::to_string(&status).unwrap();
-        assert!(json.contains("Online"));
+        assert!(json.contains("ONLINE"));
     }
 
     #[test]
     fn test_user_status_deserialization() {
-        let json = r#""Offline""#;
+        let json = r#""OFFLINE""#;
         let status: UserStatus = serde_json::from_str(json).unwrap();
         assert_eq!(status, UserStatus::Offline);
     }

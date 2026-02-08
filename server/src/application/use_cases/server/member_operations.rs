@@ -39,7 +39,7 @@ impl<SR: ServerRepository, UR: UserRepository> ListMembersUseCase<SR, UR> {
                     id: user.id.to_string(),
                     username: user.username,
                     email: user.email,
-                    status: format!("{:?}", user.status),
+                    status: user.status,
                     created_at: user.created_at.to_rfc3339(),
                 },
             });

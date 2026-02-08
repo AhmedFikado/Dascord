@@ -2,12 +2,15 @@ use crate::application::dto::auth::LogoutResponse;
 use crate::infrastructure::repositories::UserRepository;
 use crate::infrastructure::security::jwt::JWTService;
 use crate::infrastructure::services::UserService;
+use crate::infrastructure::websocket::ConnectionManager;
 use crate::utils::error::{AppError, AppResult};
+use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct LogoutUseCase<R: UserRepository> {
     user_service: UserService<R>,
     jwt_service: JWTService,
+    ws_manager: Option<Arc<ConnectionManager>>,
 }
 
 impl<R: UserRepository> LogoutUseCase<R> {
@@ -15,7 +18,13 @@ impl<R: UserRepository> LogoutUseCase<R> {
         Self {
             user_service,
             jwt_service,
+            ws_manager: None,
         }
+    }
+
+    pub fn with_ws_manager(mut self, ws_manager: Arc<ConnectionManager>) -> Self {
+        self.ws_manager = Some(ws_manager);
+        self
     }
 
     pub async fn execute(&self, token: String) -> AppResult<LogoutResponse> {
@@ -34,6 +43,10 @@ impl<R: UserRepository> LogoutUseCase<R> {
         }
 
         self.user_service.update_status(user_id, "OFFLINE").await?;
+        
+        if let Some(ws_manager) = &self.ws_manager {
+            ws_manager.broadcast_status_change(user_id, "OFFLINE".to_string()).await;
+        }
 
         Ok(LogoutResponse {
             message: "Vous êtes bien déconnecté".to_string(),
