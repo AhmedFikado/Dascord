@@ -111,3 +111,216 @@ impl<R: ServerRepository> UpdateMemberRoleUseCase<R> {
         Ok(())
     }
 }
+
+
+// --- UNIT TESTS ---
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entities::{Server, User};
+    use crate::infrastructure::repositories::mocks::{
+        mock_server_repository::MockServerRepository,
+        mock_user_repository::MockUserRepository,
+    };
+    use crate::infrastructure::security::PasswordService;
+
+    #[tokio::test]
+    async fn test_list_members_not_member() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+
+        let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+
+        let use_case = ListMembersUseCase::new(mock_server_repo, mock_user_repo);
+        let result = use_case.execute(server_id, user_id).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_member_role_server_not_found() {
+        let server_id = Uuid::new_v4();
+        let target_id = Uuid::new_v4();
+        let requester_id = Uuid::new_v4();
+
+        let mock_server_repo = MockServerRepository::new();
+        let use_case = UpdateMemberRoleUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server_id, target_id, requester_id, ServerRole::Admin).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_member_role_target_not_member() {
+        let owner_id = Uuid::new_v4();
+        let target_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new().with_server(server.clone());
+        let use_case = UpdateMemberRoleUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, target_id, owner_id, ServerRole::Admin).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_member_role_requester_not_member() {
+        let owner_id = Uuid::new_v4();
+        let target_id = Uuid::new_v4();
+        let requester_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, target_id, ServerRole::Member);
+        let use_case = UpdateMemberRoleUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, target_id, requester_id, ServerRole::Admin).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_member_role_member_cannot_update() {
+        let owner_id = Uuid::new_v4();
+        let target_id = Uuid::new_v4();
+        let requester_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, target_id, ServerRole::Member)
+            .with_member(server.id, requester_id, ServerRole::Member);
+        let use_case = UpdateMemberRoleUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, target_id, requester_id, ServerRole::Admin).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_member_role_admin_cannot_transfer_ownership() {
+        let owner_id = Uuid::new_v4();
+        let target_id = Uuid::new_v4();
+        let admin_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, target_id, ServerRole::Member)
+            .with_member(server.id, admin_id, ServerRole::Admin);
+        let use_case = UpdateMemberRoleUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, target_id, admin_id, ServerRole::Owner).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_member_role_admin_cannot_modify_owner() {
+        let owner_id = Uuid::new_v4();
+        let admin_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, owner_id, ServerRole::Owner)
+            .with_member(server.id, admin_id, ServerRole::Admin);
+        let use_case = UpdateMemberRoleUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, owner_id, admin_id, ServerRole::Member).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_member_role_admin_cannot_modify_admin() {
+        let owner_id = Uuid::new_v4();
+        let admin1_id = Uuid::new_v4();
+        let admin2_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, admin1_id, ServerRole::Admin)
+            .with_member(server.id, admin2_id, ServerRole::Admin);
+        let use_case = UpdateMemberRoleUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, admin2_id, admin1_id, ServerRole::Member).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_member_role_admin_can_promote_member() {
+        let owner_id = Uuid::new_v4();
+        let admin_id = Uuid::new_v4();
+        let member_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, admin_id, ServerRole::Admin)
+            .with_member(server.id, member_id, ServerRole::Member);
+        let use_case = UpdateMemberRoleUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, member_id, admin_id, ServerRole::Admin).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_member_role_owner_transfers_ownership() {
+        let owner_id = Uuid::new_v4();
+        let member_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, owner_id, ServerRole::Owner)
+            .with_member(server.id, member_id, ServerRole::Member);
+        let use_case = UpdateMemberRoleUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, member_id, owner_id, ServerRole::Owner).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_member_role_owner_updates_member() {
+        let owner_id = Uuid::new_v4();
+        let member_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, owner_id, ServerRole::Owner)
+            .with_member(server.id, member_id, ServerRole::Member);
+        let use_case = UpdateMemberRoleUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, member_id, owner_id, ServerRole::Admin).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_list_members_success() {
+        let password_service = PasswordService::new();
+        let owner_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+        let user = User {
+            id: owner_id,
+            username: "owner".to_string(),
+            email: "owner@test.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, owner_id, ServerRole::Owner);
+        let mock_user_repo = MockUserRepository::new().with_user(user);
+
+        let use_case = ListMembersUseCase::new(mock_server_repo, mock_user_repo);
+        let result = use_case.execute(server.id, owner_id).await;
+
+        assert!(result.is_ok());
+        let members = result.unwrap();
+        assert_eq!(members.len(), 1);
+    }
+}

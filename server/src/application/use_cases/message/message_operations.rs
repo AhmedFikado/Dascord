@@ -404,7 +404,7 @@ mod tests {
         let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
 
         let use_case = DeleteMessageUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
-        let result = use_case.execute("msg_123".to_string(), user_id).await;
+        let result = use_case.execute("msg_1".to_string(), user_id).await;
 
         assert!(result.is_ok());
     }
