@@ -1,17 +1,25 @@
 use crate::api::handlers::UserHandler;
 use crate::infrastructure::repositories::UserRepository;
-use axum::{routing::get, Router};
+use axum::{routing::{get, put}, Router};
 use std::sync::Arc;
 
 /// Routes pour les utilisateurs
 pub fn user_routes<R: UserRepository + 'static>(handler: Arc<UserHandler<R>>) -> Router {
-    Router::new().route(
-        "/me",
-        get({
-            let handler = handler.clone();
-            move |headers| UserHandler::get_me(axum::extract::State(handler.clone()), headers)
-        }),
-    )
+    Router::new()
+        .route(
+            "/me",
+            get({
+                let handler = handler.clone();
+                move |headers| UserHandler::get_me(axum::extract::State(handler.clone()), headers)
+            }),
+        )
+        .route(
+            "/me/status",
+            put({
+                let handler = handler.clone();
+                move |headers, body| UserHandler::update_status(axum::extract::State(handler.clone()), headers, body)
+            }),
+        )
 }
 
 

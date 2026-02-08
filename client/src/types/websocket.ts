@@ -68,6 +68,13 @@ export type ServerMessage =
       };
     }
   | {
+      type: 'UserStatusChanged';
+      payload: {
+        user_id: string;
+        status: string;
+      };
+    }
+  | {
       type: 'MessageHistory';
       payload: {
         channel_id: string;

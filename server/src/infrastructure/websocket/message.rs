@@ -52,6 +52,12 @@ pub enum ServerMessage {
         is_typing: bool,
     },
 
+    /// Changement de statut d'un utilisateur
+    UserStatusChanged {
+        user_id: String,
+        status: String,
+    },
+
     /// Historique des messages d'un channel (envoyé après JoinChannel)
     MessageHistory {
         channel_id: String,

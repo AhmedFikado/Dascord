@@ -43,14 +43,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let user_repo = PostgresUserRepository::new(app_state.pg_pool.clone());
     let user_service = UserService::new(user_repo.clone());
     
-    let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
-    let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
-    let logout_uc = LogoutUseCase::new(user_service.clone(), jwt_service.clone());
-
     // Créer le gestionnaire WebSocket avec le repository
     let ws_manager = Arc::new(ConnectionManager::new());
+    
+    let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
+    let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone())
+        .with_ws_manager(ws_manager.clone());
+    let logout_uc = LogoutUseCase::new(user_service.clone(), jwt_service.clone())
+        .with_ws_manager(ws_manager.clone());
+
     let ws_state = WebSocketState {
-        manager: ws_manager,
+        manager: ws_manager.clone(),
         jwt_service: jwt_service.clone(),
         message_repository: message_repository.clone(),
         user_repository: user_repo.clone(),
@@ -64,6 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         user_service.clone(),
         app_state.pg_pool.clone(),
         app_state.mongo_client.clone(),
+        ws_manager.clone(),
     );
     let ws_router = create_ws_router(ws_state);
 

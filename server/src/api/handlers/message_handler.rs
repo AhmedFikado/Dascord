@@ -3,6 +3,7 @@ use crate::infrastructure::repositories::{
     ChannelRepository, MessageRepository, ServerRepository, UserRepository,
 };
 use crate::infrastructure::security::JWTService;
+use crate::infrastructure::websocket::ConnectionManager;
 use crate::utils::error::AppError;
 use axum::{
     extract::{Path, State},
@@ -25,6 +26,7 @@ pub struct MessageHandler<
     get_history_uc: Arc<GetMessageHistoryUseCase<MR, CR, SR>>,
     delete_message_uc: Arc<DeleteMessageUseCase<MR>>,
     user_repo: Arc<UR>,
+    ws_manager: Option<Arc<ConnectionManager>>,
 }
 
 impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: UserRepository>
@@ -51,7 +53,13 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
             )),
             delete_message_uc: Arc::new(DeleteMessageUseCase::new(message_repo)),
             user_repo: Arc::new(user_repo),
+            ws_manager: None,
         }
+    }
+
+    pub fn with_ws_manager(mut self, ws_manager: Arc<ConnectionManager>) -> Self {
+        self.ws_manager = Some(ws_manager);
+        self
     }
 
     pub async fn send_message(
@@ -167,6 +175,21 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
             .send_message_uc
             .execute(channel_id, user_id, system_username, content)
             .await?;
+        
+        if let Some(ws_manager) = &handler.ws_manager {
+            ws_manager.broadcast_to_channel(
+                &channel_id.to_string(),
+                crate::infrastructure::websocket::ServerMessage::NewMessage {
+                    channel_id: channel_id.to_string(),
+                    message_id: message.id.clone().unwrap_or_default(),
+                    user_id: user_id.to_string(),
+                    username: "Système".to_string(),
+                    content: format!("👋 Bienvenue {} ! Tu as trouvé le serveur ! On a des pokémons légendaires pour toi !", user.username),
+                    created_at: chrono::Utc::now(),
+                },
+            ).await;
+        }
+        
         Ok((StatusCode::CREATED, Json(message)))
     }
 }
