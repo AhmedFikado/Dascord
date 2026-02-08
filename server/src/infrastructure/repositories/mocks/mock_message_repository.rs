@@ -65,4 +65,14 @@ impl MessageRepository for MockMessageRepository {
         messages.remove(message_id);
         Ok(())
     }
+
+    async fn update(&self, message_id: &str, content: String) -> AppResult<Message> {
+        let mut messages = self.messages.lock().unwrap();
+        if let Some(message) = messages.get_mut(message_id) {
+            message.content = content;
+            Ok(message.clone())
+        } else {
+            Err(crate::utils::error::AppError::NotFound("Message not found".to_string()))
+        }
+    }
 }

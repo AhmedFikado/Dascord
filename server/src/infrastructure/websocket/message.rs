@@ -52,6 +52,20 @@ pub enum ServerMessage {
         is_typing: bool,
     },
 
+    /// Message mis à jour dans un channel
+    MessageUpdated {
+        channel_id: String,
+        message_id: String,
+        user_id: String,
+        content: String,
+    },
+
+    /// Message supprimé dans un channel
+    MessageDeleted {
+        channel_id: String,
+        message_id: String,
+    },
+
     /// Historique des messages d'un channel (envoyé après JoinChannel)
     MessageHistory {
         channel_id: String,

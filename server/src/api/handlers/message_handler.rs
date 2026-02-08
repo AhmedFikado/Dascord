@@ -24,6 +24,7 @@ pub struct MessageHandler<
     send_message_uc: Arc<SendMessageUseCase<MR, CR, SR>>,
     get_history_uc: Arc<GetMessageHistoryUseCase<MR, CR, SR>>,
     delete_message_uc: Arc<DeleteMessageUseCase<MR, CR, SR>>,
+    update_message_uc: Arc<UpdateMessageUseCase<MR, CR, SR>>,
     user_repo: Arc<UR>,
 }
 
@@ -50,6 +51,11 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
                 server_repo.clone(),
             )),
             delete_message_uc: Arc::new(DeleteMessageUseCase::new(
+                message_repo.clone(),
+                channel_repo.clone(),
+                server_repo.clone(),
+            )),
+            update_message_uc: Arc::new(UpdateMessageUseCase::new(
                 message_repo,
                 channel_repo,
                 server_repo,
@@ -138,6 +144,34 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
             StatusCode::OK,
             Json(serde_json::json!({"message": "Message deleted"})),
         ))
+    }
+
+    pub async fn update_message(
+        State(handler): State<Arc<Self>>,
+        Path(id): Path<String>,
+        headers: HeaderMap,
+        Json(payload): Json<serde_json::Value>,
+    ) -> Result<impl IntoResponse, AppError> {
+        let token = headers
+            .get("Authorization")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.strip_prefix("Bearer "))
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
+
+        let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+        let content = payload
+            .get("content")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| AppError::ValidationError("Missing content field".to_string()))?
+            .to_string();
+
+        let updated_message = handler.update_message_uc.execute(id, user_id, content).await?;
+        Ok((StatusCode::OK, Json(updated_message)))
     }
 
     pub async fn send_welcome_message(
@@ -296,6 +330,39 @@ mod tests {
 
         let result =
             MessageHandler::delete_message(State(handler), Path("msg_123".to_string()), headers)
+                .await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_message_success() {
+        let user_id = Uuid::new_v4();
+
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new();
+        let mock_server_repo = MockServerRepository::new();
+        let mock_user_repo = MockUserRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(MessageHandler::new(
+            jwt_service.clone(),
+            mock_message_repo,
+            mock_channel_repo,
+            mock_server_repo,
+            mock_user_repo,
+        ));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let payload = serde_json::json!({"content": "Updated message"});
+
+        let result =
+            MessageHandler::update_message(State(handler), Path("msg_123".to_string()), headers, Json(payload))
                 .await;
         assert!(result.is_ok());
     }

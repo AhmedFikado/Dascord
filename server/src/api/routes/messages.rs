@@ -3,7 +3,7 @@ use crate::infrastructure::repositories::{
     ChannelRepository, MessageRepository, ServerRepository, UserRepository,
 };
 use axum::{
-    routing::{delete, get, post},
+    routing::{delete, get, post, put},
     Router,
 };
 use std::sync::Arc;
@@ -32,6 +32,10 @@ pub fn message_routes<
         .route(
             "/messages/:id",
             delete(MessageHandler::<MR, CR, SR, UR>::delete_message),
+        )
+        .route(
+            "/messages/:id",
+            put(MessageHandler::<MR, CR, SR, UR>::update_message),
         )
         .with_state(handler)
 }

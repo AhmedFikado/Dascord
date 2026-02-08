@@ -10,6 +10,7 @@ interface MessageListProps {
   channelId: string;
   messages: Message[];
   onDeleteMessage: (id: string) => void;
+  onUpdateMessage: (id: string, content: string) => void;
 }
 
 interface WsMessage {
@@ -23,7 +24,7 @@ interface WsMessage {
 
 const EMPTY_ARRAY: WsMessage[] = [];
 
-export default function MessageList({ channelId, messages, onDeleteMessage }: MessageListProps) {
+export default function MessageList({ channelId, messages, onDeleteMessage, onUpdateMessage }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { joinChannel, leaveChannel } = useWebSocketContext();
 
@@ -76,6 +77,7 @@ export default function MessageList({ channelId, messages, onDeleteMessage }: Me
             key={message.id}
             message={message}
             onDelete={() => onDeleteMessage(message.id || '')}
+            onUpdate={(content) => onUpdateMessage(message.id || '', content)}
           />
         ))}
         <div ref={messagesEndRef} />

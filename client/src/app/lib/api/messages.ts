@@ -21,4 +21,9 @@ export const messagesApi = {
   delete: async (messageId: string): Promise<void> => {
     await apiClient.delete(`/messages/${messageId}`);
   },
+
+  // PUT /messages/{id}
+  update: async (messageId: string, content: string): Promise<Message> => {
+    return await apiClient.put<Message>(`/messages/${messageId}`, { content });
+  },
 };

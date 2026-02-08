@@ -6,6 +6,7 @@ export function useMessages(channelId: string) {
     const isLoading = useMessageStore((state) => state.isLoading);
     const sendMessage = useMessageStore((state) => state.sendMessage);
     const deleteMessage = useMessageStore((state) => state.deleteMessage);
+    const updateMessage = useMessageStore((state) => state.updateMessage);
     const fetchMessages = useMessageStore((state) => state.fetchMessages);
 
     useEffect(() => {
@@ -14,5 +15,5 @@ export function useMessages(channelId: string) {
         }
     }, [channelId, fetchMessages]);
 
-    return { messages, isLoading, sendMessage, deleteMessage };
+    return { messages, isLoading, sendMessage, deleteMessage, updateMessage };
 }
