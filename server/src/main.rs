@@ -1,3 +1,92 @@
-fn main() {
-    println!("Hello, world!");
+use server::{
+    api::router,
+    application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase},
+    config::{AppConfig, DatabaseConfig},
+    infrastructure::database::{init_databases, MongoDBMessageRepository},
+    infrastructure::repositories::PostgresUserRepository,
+    infrastructure::security::JWTService,
+    infrastructure::services::UserService,
+    infrastructure::websocket::{create_ws_router, ConnectionManager, WebSocketState},
+};
+use std::sync::Arc;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt().with_env_filter("info").init();
+
+    dotenvy::dotenv().ok();
+
+    let app_config = AppConfig::from_env();
+    let db_config = DatabaseConfig::from_env();
+
+    tracing::info!("Configuration chargée");
+    tracing::info!("   - Serveur: {}", app_config.address());
+    tracing::info!("   - PostgreSQL: {}", db_config.postgres_url);
+    tracing::info!("   - MongoDB: {}", db_config.mongodb_url);
+
+    let app_state = init_databases(&db_config).await?;
+    tracing::info!("Connexions aux bases de données établies");
+
+
+    // Créer le repository de messages MongoDB
+    let messages_collection = app_state
+        .mongo_client
+        .database("chat_db")
+        .collection("messages");
+    let message_repository = MongoDBMessageRepository::new(messages_collection);
+    tracing::info!("MessageRepository initialisé");
+
+    let jwt_secret = std::env::var("JWT_SECRET")
+        .unwrap_or_else(|_| "dev_secret_key_change_in_production".to_string());
+    let jwt_service = JWTService::new(jwt_secret);
+
+    let user_repo = PostgresUserRepository::new(app_state.pg_pool.clone());
+    let user_service = UserService::new(user_repo.clone());
+    
+    // Créer le gestionnaire WebSocket avec le repository
+    let ws_manager = Arc::new(ConnectionManager::new());
+    
+    let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
+    let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone())
+        .with_ws_manager(ws_manager.clone());
+    let logout_uc = LogoutUseCase::new(user_service.clone(), jwt_service.clone())
+        .with_ws_manager(ws_manager.clone());
+
+    let ws_state = WebSocketState {
+        manager: ws_manager.clone(),
+        jwt_service: jwt_service.clone(),
+        message_repository: message_repository.clone(),
+        user_repository: user_repo.clone(),
+    };
+
+    let http_router = router::create_router(
+        signup_uc,
+        login_uc,
+        logout_uc,
+        jwt_service.clone(),
+        user_service.clone(),
+        app_state.pg_pool.clone(),
+        app_state.mongo_client.clone(),
+        ws_manager.clone(),
+    );
+    let ws_router = create_ws_router(ws_state);
+
+
+    let app = http_router.merge(ws_router);
+
+    let listener = tokio::net::TcpListener::bind(&app_config.address()).await?;
+
+    tracing::info!("Serveur démarré sur {}", app_config.address());
+    tracing::info!("Endpoints HTTP:");
+    tracing::info!("   POST /auth/signup");
+    tracing::info!("   POST /auth/login");
+    tracing::info!("   POST /auth/logout");
+    tracing::info!("   GET  /auth/me");
+    tracing::info!("Endpoints WebSocket:");
+    tracing::info!("   WS   /ws?token=<jwt_token>");
+    tracing::info!("   GET  /users/me");
+
+    axum::serve(listener, app).await?;
+
+    Ok(())
 }

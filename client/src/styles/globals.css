@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+@theme {
+    /* Couleurs Discord */
+    --color-blurple: #5865F2;
+    --color-green: #57F287;
+    --color-red: #ED4245;
+    --color-white: #FFFFFF;
+    --color-background: #1D1D21;
+    --color-backgroundSide: #121214;
+    --color-hoverSide: #2C2C30;
+
+    /* Couleurs Gray */
+    --color-gray-light: #adadad;
+    --color-gray-50: #68696e;
+    --color-gray-100: #4E5058;
+    --color-gray-200: #36393F;
+    --color-gray-300: #2F3136;
+    --color-gray-400: #202225;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Personnalisation des scrollbars */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1D1D21;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #2F3136;
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #36393F;
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #2F3136 #1D1D21;
+}
+
+@layer utilities {
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+    }
+
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+}

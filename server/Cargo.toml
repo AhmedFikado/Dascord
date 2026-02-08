@@ -1,6 +1,60 @@
 [package]
 name = "server"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
+# Framework web
+axum = { version = "0.7", features = ["ws"] }
+tokio = { version = "1.0", features = ["full"] }
+tower = { version = "0.4", features = ["util"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+
+# PostgreSQL
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono"] }
+
+# MongoDB
+mongodb = "3.1"
+
+# Sérialisation
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# UUID et dates
+uuid = { version = "1.0", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# Variables d'environnement
+dotenvy = "0.15"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Sécurité
+argon2 = { version = "0.5", features = ["std"] }
+jsonwebtoken = "9.0"
+
+# Validation
+validator = { version = "0.18", features = ["derive"] }
+async-trait = "0.1"
+
+# WebSocket
+axum-extra = { version = "0.9", features = ["typed-header"] }
+tokio-tungstenite = "0.21"
+futures-util = "0.3"
+dashmap = "5.5"
+
+# Random
+rand = "0.8"
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.13"
+axum-test = "15.0"
+
+[profile.coverage]
+inherits = "dev"
+codegen-units = 1
+opt-level = 0
+overflow-checks = false
