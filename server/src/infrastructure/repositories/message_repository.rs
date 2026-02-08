@@ -9,6 +9,7 @@ pub trait MessageRepository: Send + Sync + Clone {
     async fn find_by_channel(&self, channel_id: &str) -> AppResult<Vec<Message>>;
     async fn find_by_id(&self, message_id: &str) -> AppResult<Option<Message>>;
     async fn delete(&self, message_id: &str) -> AppResult<()>;
+    async fn update(&self, message_id: &str, content: String) -> AppResult<Message>;
 }
 
 #[derive(Clone)]
@@ -94,5 +95,34 @@ impl MessageRepository for MongoMessageRepository {
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
         Ok(())
+    }
+
+    async fn update(&self, message_id: &str, content: String) -> AppResult<Message> {
+        let db = self.client.database("chat_db");
+        let collection = db.collection::<Message>("messages");
+
+        let object_id = mongodb::bson::oid::ObjectId::parse_str(message_id)
+            .map_err(|_| AppError::ValidationError("Invalid message ID".to_string()))?;
+
+        let filter = doc! { "_id": object_id };
+        let update = doc! {
+            "$set": {
+                "content": &content
+            }
+        };
+
+        collection
+            .update_one(filter.clone(), update)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        // Récupérer le message mis à jour
+        let updated_message = collection
+            .find_one(filter)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?
+            .ok_or_else(|| AppError::NotFound("Message not found after update".to_string()))?;
+
+        Ok(updated_message)
     }
 }
