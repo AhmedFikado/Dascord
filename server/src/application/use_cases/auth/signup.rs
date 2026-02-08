@@ -35,6 +35,8 @@ impl<R: UserRepository> SignupUseCase<R> {
             .user_service
             .create_user(request.username, request.email, request.password)
             .await?;
+        
+        let user = self.user_service.update_status(user.id, "ONLINE").await?;
         let token = self.jwt_service.create_token(user.id)?;
 
         Ok(SignupResponse {

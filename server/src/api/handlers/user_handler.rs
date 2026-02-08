@@ -2,6 +2,7 @@ use crate::application::use_cases::user::*;
 use crate::infrastructure::repositories::UserRepository;
 use crate::infrastructure::security::JWTService;
 use crate::infrastructure::services::UserService;
+use crate::infrastructure::websocket::ConnectionManager;
 use crate::utils::error::AppError;
 use axum::{
     extract::State,
@@ -16,14 +17,24 @@ use uuid::Uuid;
 pub struct UserHandler<R: UserRepository> {
     jwt_service: Arc<JWTService>,
     get_user_info_uc: Arc<GetUserInfoUseCase<R>>,
+    update_status_uc: Arc<UpdateUserStatusUseCase<R>>,
 }
 
 impl<R: UserRepository> UserHandler<R> {
     pub fn new(user_service: UserService<R>, jwt_service: JWTService) -> Self {
         Self {
             jwt_service: Arc::new(jwt_service.clone()),
-            get_user_info_uc: Arc::new(GetUserInfoUseCase::new(user_service)),
+            get_user_info_uc: Arc::new(GetUserInfoUseCase::new(user_service.clone())),
+            update_status_uc: Arc::new(UpdateUserStatusUseCase::new(user_service)),
         }
+    }
+
+    pub fn with_ws_manager(mut self, ws_manager: Arc<ConnectionManager>) -> Self {
+        self.update_status_uc = Arc::new(
+            Arc::try_unwrap(self.update_status_uc).unwrap_or_else(|arc| (*arc).clone())
+                .with_ws_manager(ws_manager)
+        );
+        self
     }
 
     pub async fn get_me(
@@ -43,6 +54,33 @@ impl<R: UserRepository> UserHandler<R> {
             .map_err(|_| AppError::Unauthorized("Invalid user ID in token".to_string()))?;
 
         let user = handler.get_user_info_uc.execute(user_id).await?;
+        Ok((StatusCode::OK, Json(user)))
+    }
+
+    pub async fn update_status(
+        State(handler): State<Arc<UserHandler<R>>>,
+        headers: HeaderMap,
+        Json(payload): Json<serde_json::Value>,
+    ) -> Result<impl IntoResponse, AppError> {
+        let token = headers
+            .get("Authorization")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.strip_prefix("Bearer "))
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
+
+        let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID in token".to_string()))?;
+
+        let status = payload
+            .get("status")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| AppError::ValidationError("Missing status field".to_string()))?
+            .to_string();
+
+        let user = handler.update_status_uc.execute(user_id, status).await?;
         Ok((StatusCode::OK, Json(user)))
     }
 }

@@ -2,12 +2,15 @@ use crate::application::dto::auth::{LoginRequest, LoginResponse};
 use crate::infrastructure::repositories::UserRepository;
 use crate::infrastructure::security::jwt::JWTService;
 use crate::infrastructure::services::UserService;
+use crate::infrastructure::websocket::ConnectionManager;
 use crate::utils::error::{AppError, AppResult};
+use std::sync::Arc;
 use validator::Validate;
 
 pub struct LoginUseCase<R: UserRepository> {
     user_service: UserService<R>,
     jwt_service: JWTService,
+    ws_manager: Option<Arc<ConnectionManager>>,
 }
 
 impl<R: UserRepository> LoginUseCase<R> {
@@ -15,7 +18,13 @@ impl<R: UserRepository> LoginUseCase<R> {
         Self {
             user_service,
             jwt_service,
+            ws_manager: None,
         }
+    }
+
+    pub fn with_ws_manager(mut self, ws_manager: Arc<ConnectionManager>) -> Self {
+        self.ws_manager = Some(ws_manager);
+        self
     }
 
     pub async fn execute(&self, request: LoginRequest) -> AppResult<LoginResponse> {
@@ -28,6 +37,11 @@ impl<R: UserRepository> LoginUseCase<R> {
             .authenticate(&request.email, &request.password)
             .await?;
         let user = self.user_service.update_status(user.id, "ONLINE").await?;
+        
+        if let Some(ws_manager) = &self.ws_manager {
+            ws_manager.broadcast_status_change(user.id, "ONLINE".to_string()).await;
+        }
+        
         let token = self.jwt_service.create_token(user.id)?;
 
         let message = format!("Vous êtes bien connecté avec {}", user.username);

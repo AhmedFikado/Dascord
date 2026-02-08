@@ -1,27 +1,39 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import UserPanelBar from './user-panel-bar';
 import UserPanelMenu from './user-panel-menu';
 import { Status } from '@/types/models/status';
 import { Dialog } from '../ui/dialog';
 import UserSetting from './user-setting';
-import { User } from '@/types/models/user';
 import { useAuthStore } from '@/app/lib/stores/use-auth-store';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
+import { updateStatus } from '@/app/lib/api/users';
 
 export default function UserPanel() {
     const [isOpen, setIsOpen] = useState(false);
-    const [status, setStatus] = useState(Status.ONLINE);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const router = useRouter();
     const authStore = useAuthStore();
     const { user } = useCurrentUser();
+    const [status, setStatus] = useState(user?.status || Status.ONLINE);
 
-    const handleStatusChange = (newStatus: Status) => {
-        setStatus(newStatus);
+    useEffect(() => {
+        if (user?.status) {
+            setStatus(user.status);
+        }
+    }, [user?.status]);
+
+    const handleStatusChange = async (newStatus: Status) => {
+        try {
+            const updatedUser = await updateStatus(newStatus);
+            authStore.setUser({ ...user!, status: updatedUser.status });
+            setStatus(newStatus);
+        } catch (error) {
+            console.error('Failed to update status:', error);
+        }
         setIsOpen(false);
     };
 
@@ -51,7 +63,7 @@ export default function UserPanel() {
                 <>
                     <UserPanelBar
                         username={user.username}
-                        status={status}
+                        status={user.status}
                         onClick={() => setIsOpen(!isOpen)}
                     />
 
