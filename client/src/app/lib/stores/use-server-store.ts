@@ -83,10 +83,12 @@ export const useServerStore = create<ServerState>((set) => ({
             await serversApi.joinServer(invitationCode);
             const servers = await serversApi.getAll();
             
+            // Trouver le serveur qu'on vient de rejoindre
             const joinedServer = servers[servers.length - 1];
             if (joinedServer) {
                 const channels = await channelsApi.getByServer(joinedServer.id);
                 if (channels.length > 0) {
+                    // Envoyer le message de bienvenue
                     await messagesApi.sendWelcome(channels[0].id);
                     // Invalider le cache des messages pour forcer le rechargement
                     useMessageStore.getState().reset();

@@ -67,6 +67,14 @@ impl ConnectionManager {
         }
     }
 
+    /// Broadcast un message à toutes les connexions actives
+    pub async fn broadcast_to_all(&self, message: ServerMessage) {
+        for entry in self.connections.iter() {
+            let conn_id = *entry.key();
+            let _ = self.send_to_connection(conn_id, message.clone()).await;
+        }
+    }
+
     /// Mettre une connexion à un channel
     pub async fn join_channel(
         &self,
