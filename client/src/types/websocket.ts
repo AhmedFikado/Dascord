@@ -98,6 +98,21 @@ export type ServerMessage =
       };
     }
   | {
+      type: 'ServerMemberJoined';
+      payload: {
+        server_id: string;
+        user_id: string;
+        username: string;
+      };
+    }
+  | {
+      type: 'ServerMemberLeft';
+      payload: {
+        server_id: string;
+        user_id: string;
+      };
+    }
+  | {
       type: 'Error';
       payload: {
         code: string;
