@@ -81,7 +81,7 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
                             variant={'primary'}
                             width="200px"
                             type="submit"
-                            disabled={isLoading || !serverName}
+                            disabled={isLoading || !serverName || serverName.trim() === ""}
                         >
                             {isLoading ? "Création..." : "Créer le serveur"}
                         </Button>

@@ -117,20 +117,27 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
                     )}
                 </section>
 
-                <div className="border-t border-gray-200"></div>
+                {
+                    !showDeleteConfirm && (
+                        <div className="border-t border-gray-200"></div>
+                    )
+                }
 
                 {isOwner && (
                     <section>
-                        <div className="flex justify-center mb-4">
-                            <Button
-                                variant="danger"
-                                onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
-                                className="flex items-center gap-2"
-                            >
-                                <Trash2 size={16} />
-                                Supprimer le serveur
-                            </Button>
-                        </div>
+                        {
+                            !showDeleteConfirm && (<div className="flex justify-center mb-4">
+                                <Button
+                                    variant="danger"
+                                    onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
+                                    className="flex items-center gap-2"
+                                >
+                                    <Trash2 size={16} />
+                                    Supprimer le serveur
+                                </Button>
+                            </div>)
+                        }
+
 
                         {showDeleteConfirm && (
                             <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
