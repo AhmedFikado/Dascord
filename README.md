@@ -159,6 +159,10 @@ T-JSF-600-BDX/
 Le backend inclut des tests unitaires complets:
 
 ```bash
+# Installer llvm et ses dépendances sur la machine
+cargo install cargo-llvm-cov
+rustup component add llvm-tools-preview
+
 # Générer la couverture de code sans les mocks
 cargo llvm-cov --html --ignore-filename-regex "mocks|mock_"
 ```
