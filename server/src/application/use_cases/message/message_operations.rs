@@ -123,10 +123,13 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> DeleteM
         Self { message_repo, channel_repo, server_repo }
     }
 
-    pub async fn execute(&self, message_id: String, user_id: Uuid) -> AppResult<()> {
+    pub async fn execute(&self, message_id: String, user_id: Uuid) -> AppResult<String> {
         // Récupérer le message
         let message = self.message_repo.find_by_id(&message_id).await?
             .ok_or_else(|| AppError::NotFound("Message not found".to_string()))?;
+
+        // Conserver le channel_id avant suppression
+        let channel_id = message.channel_id.clone();
 
         //  Vérifier si l'utilisateur est le propriétaire du message
         let message_owner_id = Uuid::parse_str(&message.user_id)
@@ -137,10 +140,10 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> DeleteM
         //  Si ce n'est pas le propriétaire, vérifier s'il est Admin ou Owner du serveur
         if !is_message_owner {
             // Récupérer le channel pour obtenir le server_id
-            let channel_id = Uuid::parse_str(&message.channel_id)
+            let channel_uuid = Uuid::parse_str(&message.channel_id)
                 .map_err(|_| AppError::InternalServerError("Invalid channel ID in message".to_string()))?;
             
-            let channel = self.channel_repo.find_by_id(channel_id).await?
+            let channel = self.channel_repo.find_by_id(channel_uuid).await?
                 .ok_or_else(|| AppError::NotFound("Channel not found".to_string()))?;
 
             // Vérifier le rôle de l'utilisateur
@@ -159,7 +162,10 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> DeleteM
         }
 
         // Supprimer le message
-        self.message_repo.delete(&message_id).await
+        self.message_repo.delete(&message_id).await?;
+        
+        // Retourner le channel_id pour la diffusion WebSocket
+        Ok(channel_id)
     }
 }
 
@@ -399,6 +405,8 @@ mod tests {
             "Test message".to_string(),
         );
         
+        let expected_channel_id = channel.id.to_string();
+        
         let mock_message_repo = MockMessageRepository::new().with_message(message.clone());
         let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
         let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
@@ -407,6 +415,7 @@ mod tests {
         let result = use_case.execute("msg_1".to_string(), user_id).await;
 
         assert!(result.is_ok());
+        assert_eq!(result.unwrap(), expected_channel_id);
     }
 
     #[tokio::test]

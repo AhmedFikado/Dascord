@@ -113,7 +113,7 @@ impl<R: ServerRepository> JoinServerUseCase<R> {
         Self { server_repo }
     }
 
-    pub async fn execute(&self, invitation_code: &str, user_id: Uuid) -> AppResult<()> {
+    pub async fn execute(&self, invitation_code: &str, user_id: Uuid) -> AppResult<Uuid> {
         let server = self
             .server_repo
             .find_by_invitation_code(invitation_code)
@@ -127,7 +127,10 @@ impl<R: ServerRepository> JoinServerUseCase<R> {
             return Err(AppError::Conflict("Already a member".to_string()));
         }
 
-        self.server_repo.add_member(server.id, user_id).await
+        self.server_repo.add_member(server.id, user_id).await?;
+        
+        // Retourner le server_id pour la diffusion WebSocket
+        Ok(server.id)
     }
 }
 
@@ -359,6 +362,7 @@ mod tests {
         let result = use_case.execute("CODE123", user_id).await;
 
         assert!(result.is_ok());
+        assert_eq!(result.unwrap(), server.id);
     }
 
     #[tokio::test]
