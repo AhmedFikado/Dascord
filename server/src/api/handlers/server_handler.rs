@@ -3,6 +3,7 @@ use crate::application::dto::server::JoinServerRequest;
 use crate::application::use_cases::server::*;
 use crate::infrastructure::repositories::{ChannelRepository, ServerRepository, UserRepository};
 use crate::infrastructure::security::JWTService;
+use crate::infrastructure::websocket::ConnectionManager;
 use crate::utils::error::AppError;
 use axum::{
     extract::{Path, State},
@@ -27,6 +28,8 @@ pub struct ServerHandler<SR: ServerRepository, CR: ChannelRepository, UR: UserRe
     update_member_role_uc: Arc<UpdateMemberRoleUseCase<SR>>,
     get_channels_uc: Arc<GetChannelsUseCase<SR, CR>>,
     create_channel_uc: Arc<CreateChannelUseCase<SR, CR>>,
+    user_repo: Arc<UR>,
+    ws_manager: Option<Arc<ConnectionManager>>,
 }
 
 impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHandler<SR, CR, UR> {
@@ -45,14 +48,21 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             delete_server_uc: Arc::new(DeleteServerUseCase::new(server_repo.clone())),
             join_server_uc: Arc::new(JoinServerUseCase::new(server_repo.clone())),
             leave_server_uc: Arc::new(LeaveServerUseCase::new(server_repo.clone())),
-            list_members_uc: Arc::new(ListMembersUseCase::new(server_repo.clone(), user_repo)),
+            list_members_uc: Arc::new(ListMembersUseCase::new(server_repo.clone(), user_repo.clone())),
             update_member_role_uc: Arc::new(UpdateMemberRoleUseCase::new(server_repo.clone())),
             get_channels_uc: Arc::new(GetChannelsUseCase::new(
                 server_repo.clone(),
                 channel_repo.clone(),
             )),
             create_channel_uc: Arc::new(CreateChannelUseCase::new(server_repo, channel_repo)),
+            user_repo: Arc::new(user_repo),
+            ws_manager: None,
         }
+    }
+
+    pub fn with_ws_manager(mut self, ws_manager: Arc<ConnectionManager>) -> Self {
+        self.ws_manager = Some(ws_manager);
+        self
     }
 
     pub async fn create_server(
@@ -186,10 +196,29 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
-        handler
+        let server_id = handler
             .join_server_uc
             .execute(&request.invitation_code, user_id)
             .await?;
+        
+        // Récupérer les infos de l'utilisateur pour la diffusion
+        let user = handler
+            .user_repo
+            .find_by_id(user_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+        
+        // Diffuser l'événement WebSocket à tous les clients connectés
+        if let Some(ws_manager) = &handler.ws_manager {
+            ws_manager.broadcast_to_all(
+                crate::infrastructure::websocket::ServerMessage::ServerMemberJoined {
+                    server_id: server_id.to_string(),
+                    user_id: user_id.to_string(),
+                    username: user.username,
+                },
+            ).await;
+        }
+        
         Ok((
             StatusCode::OK,
             Json(serde_json::json!({"message": "Joined server"})),
@@ -214,6 +243,17 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
         handler.leave_server_uc.execute(id, user_id).await?;
+        
+        // Diffuser l'événement WebSocket à tous les clients connectés
+        if let Some(ws_manager) = &handler.ws_manager {
+            ws_manager.broadcast_to_all(
+                crate::infrastructure::websocket::ServerMessage::ServerMemberLeft {
+                    server_id: id.to_string(),
+                    user_id: user_id.to_string(),
+                },
+            ).await;
+        }
+        
         Ok((
             StatusCode::OK,
             Json(serde_json::json!({"message": "Left server"})),
@@ -396,19 +436,34 @@ mod tests {
 
     #[tokio::test]
     async fn test_join_server_success() {
+        use crate::domain::entities::User;
+        use crate::infrastructure::security::PasswordService;
+
         let owner_id = Uuid::new_v4();
         let user_id = Uuid::new_v4();
         let server = Server::new("Test Server".to_string(), owner_id, "CODE123".to_string());
 
+        let password_service = PasswordService::new();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@test.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
         let mock_server_repo = MockServerRepository::new().with_server(server.clone());
         let mock_channel_repo = MockChannelRepository::new();
+        let mock_user_repo = MockUserRepository::new().with_user(user);
         let jwt_service = JWTService::new("test_secret".to_string());
 
         let handler = Arc::new(ServerHandler::new(
             jwt_service.clone(),
             mock_server_repo,
             mock_channel_repo,
-        MockUserRepository::new(),));
+            mock_user_repo,
+        ));
 
         let token = jwt_service.create_token(user_id).unwrap();
         let mut headers = HeaderMap::new();
