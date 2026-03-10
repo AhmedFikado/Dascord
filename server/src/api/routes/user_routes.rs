@@ -20,6 +20,13 @@ pub fn user_routes<R: UserRepository + 'static>(handler: Arc<UserHandler<R>>) ->
                 move |headers, body| UserHandler::update_status(axum::extract::State(handler.clone()), headers, body)
             }),
         )
+        .route(
+            "/update_user",
+            put({
+                let handler = handler.clone();
+                move |headers, body| UserHandler::update_user(axum::extract::State(handler.clone()), headers, body)
+            }),
+        )
 }
 
 
@@ -50,6 +57,30 @@ mod tests {
                     .uri("/me")
                     .method("GET")
                     .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_user_routes_update_user_unauthorized() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service));
+        let app = user_routes(handler);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .uri("/update_user")
+                    .method("PUT")
+                    .header("content-type", "application/json")
+                    .body(Body::from(r#"{"username":"x","email":"x@x.com"}"#))
                     .unwrap(),
             )
             .await
