@@ -76,6 +76,10 @@ impl<R: UserRepository> UserService<R> {
     pub async fn find_by_id(&self, user_id: Uuid) -> AppResult<Option<User>> {
         self.user_repo.find_by_id(user_id).await
     }
+
+    pub async fn update_user(&self, user: User) -> AppResult<Option<User>> {
+        self.user_repo.update_user(user).await
+    }
 }
 
 
@@ -262,5 +266,45 @@ mod tests {
         let result = service.find_by_id(Uuid::new_v4()).await.unwrap();
 
         assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_not_found() {
+        let repo = MockUserRepository::new();
+        let service = UserService::new(repo);
+
+        let user = User {
+            id: Uuid::new_v4(),
+            username: "nonexistent".to_string(),
+            email: "nonexistent@example.com".to_string(),
+            password_hash: String::new(),
+            status: String::new(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let result = service.update_user(user).await.unwrap();
+
+        assert!(result.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_update_status_success() {
+        let password_service = PasswordService::new();
+        let existing_user = User {
+            id: Uuid::new_v4(),
+            username: "testuser".to_string(),
+            email: "existing@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "OFFLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let user_id = existing_user.id;
+        let repo = MockUserRepository::new().with_user(existing_user);
+        let service = UserService::new(repo);
+
+        let result = service.update_status(user_id, "ONLINE").await;
+
+        assert!(result.is_ok());
     }
 }

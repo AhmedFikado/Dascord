@@ -7,18 +7,15 @@ import { User, Status } from '@/types/models/user';
 import { useSnackbar } from "@/components/shared/error-message";
 import { useAuthStore } from '@/app/lib/stores/use-auth-store';
 import { useRouter } from 'next/navigation';
+import { updateUserInfo } from '@/app/lib/api/users';
 
 interface UserSettingProps {
     user: User;
-    onUpdate?: (updatedUser: Partial<User>) => Promise<void>;
 }
 
-export default function UserSetting({ user, onUpdate }: UserSettingProps) {
+export default function UserSetting({ user }: UserSettingProps) {
     const [username, setUsername] = useState(user.username);
     const [email, setEmail] = useState(user.email);
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
     const { showSnackbar } = useSnackbar();
     const authStore = useAuthStore();
     const router = useRouter();
@@ -29,22 +26,17 @@ export default function UserSetting({ user, onUpdate }: UserSettingProps) {
             return;
         }
         try {
-            await onUpdate?.({ username, email });
+            const updatedUser = await updateUserInfo({ username, email });
+            authStore.setUser({
+                ...user,
+                username: updatedUser.username,
+                email: updatedUser.email
+            });
+            console.table(updatedUser);
             showSnackbar({ message: "Profil mis à jour", severity: "success" });
         } catch {
             showSnackbar({ message: "Erreur lors de la mise à jour", severity: "error" });
         }
-    };
-
-    const handlePasswordChange = async () => {
-        if (newPassword !== confirmPassword) {
-            showSnackbar({ message: "Les mots de passe ne correspondent pas", severity: "error" });
-            return;
-        }
-        showSnackbar({ message: "Mot de passe modifié avec succès !", severity: "success" });
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
     };
 
     const handleLogout = () => {
@@ -81,43 +73,6 @@ export default function UserSetting({ user, onUpdate }: UserSettingProps) {
 
                         <Button onClick={handleSave} className="bg-blurple hover:bg-blurple/80 text-white">
                             Enregistrer
-                        </Button>
-                    </div>
-                </div>
-
-                <div className="bg-gray-300 rounded-lg p-6 mb-4">
-                    <h2 className="text-lg font-semibold text-white mb-4">Changer le mot de passe</h2>
-
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-sm text-gray-light mb-2">Mot de passe actuel</label>
-                            <Input
-                                type="password"
-                                value={currentPassword}
-                                onChange={(e) => setCurrentPassword(e.target.value)}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="text-sm text-gray-light mb-2">Nouveau mot de passe</label>
-                            <Input
-                                type="password"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="text-sm text-gray-light mb-2">Confirmer</label>
-                            <Input
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                            />
-                        </div>
-
-                        <Button onClick={handlePasswordChange} className="bg-blurple hover:bg-blurple/80 text-white">
-                            Modifier
                         </Button>
                     </div>
                 </div>

@@ -10,3 +10,8 @@ export const getMe = async (): Promise<User> => {
 export const updateStatus = async (status: Status): Promise<User> => {
     return await apiClient.put<User>('/users/me/status', { status });
 };
+
+// Met à jour les informations de l'utilisateur connecté
+export const updateUserInfo = async (userInfo: Partial<User>): Promise<User> => {
+    return await apiClient.put<User>('/users/update_user', userInfo);
+};

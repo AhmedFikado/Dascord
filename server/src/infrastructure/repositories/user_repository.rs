@@ -11,6 +11,7 @@ pub trait UserRepository: Send + Sync + Clone {
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>>;
     async fn find_by_username(&self, username: &str) -> AppResult<Option<User>>;
     async fn update_status(&self, id: Uuid, status: &str) -> AppResult<()>;
+    async fn update_user(&self, user: User) -> AppResult<Option<User>>;
 }
 
 #[derive(Clone)]
@@ -88,5 +89,17 @@ impl UserRepository for PostgresUserRepository {
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
         Ok(())
+    }
+
+    async fn update_user(&self, user: User) -> AppResult<Option<User>> {
+        sqlx::query_as::<_, User>(
+            "UPDATE users SET username = $1, email = $2 WHERE id = $3 RETURNING id, username, email, status::text as status"
+        )
+        .bind(&user.username)
+        .bind(&user.email)
+        .bind(user.id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|e| AppError::InternalServerError(e.to_string()))
     }
 }
