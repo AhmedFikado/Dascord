@@ -46,7 +46,7 @@ pub fn create_router(
         server_repo.clone(),
         channel_repo.clone(),
         user_repo,
-    ));
+    ).with_ws_manager(ws_manager.clone()));
     let channel_handler = Arc::new(ChannelHandler::new(
         jwt_service.clone(),
         channel_repo.clone(),

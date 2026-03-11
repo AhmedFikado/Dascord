@@ -1,4 +1,7 @@
 import { MessageData, ServerMessage, WebSocketStatus } from '@/types/websocket';
+import { Member } from '@/types/models/member';
+import { Status } from '@/types/models/user';
+import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { create } from 'zustand';
 
 interface TypingUser {
@@ -96,14 +99,15 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
 
       case 'UserStatusChanged':
         // Mettre à jour le statut dans le store des membres
-        const { useServerStore } = require('@/app/lib/stores/use-server-store');
-        const members = useServerStore.getState().members;
-        const updatedMembers = members.map(member => 
-          member.user_id === message.payload.user_id
-            ? { ...member, user: { ...member.user, status: message.payload.status } }
-            : member
-        );
-        useServerStore.setState({ members: updatedMembers });
+        {
+          const members = useServerStore.getState().members;
+          const updatedMembers = members.map((member: Member) => 
+            member.user_id === message.payload.user_id
+              ? { ...member, user: { ...member.user, status: message.payload.status as Status } }
+              : member
+          );
+          useServerStore.setState({ members: updatedMembers });
+        }
         break;
 
       case 'MessageUpdated':
@@ -118,6 +122,34 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
       case 'MessageDeleted':
         // Un message a été supprimé
         get().removeMessage(message.payload.channel_id, message.payload.message_id);
+        break;
+
+      case 'ServerMemberJoined':
+        // Un nouveau membre a rejoint le serveur, rafraîchir la liste
+        {
+          const serverStore = useServerStore.getState();
+          const currentServer = serverStore.currentServer;
+          const members = serverStore.members;
+          
+          // Si on est sur le serveur concerné et qu'on a déjà des membres chargés
+          if (currentServer?.id === message.payload.server_id && members.length > 0) {
+            serverStore.getMembers(message.payload.server_id);
+          }
+        }
+        break;
+
+      case 'ServerMemberLeft':
+        // Un membre a quitté le serveur, rafraîchir la liste
+        {
+          const serverStore = useServerStore.getState();
+          const currentServer = serverStore.currentServer;
+          const members = serverStore.members;
+          
+          // Si on est sur le serveur concerné et qu'on a déjà des membres chargés
+          if (currentServer?.id === message.payload.server_id && members.length > 0) {
+            serverStore.getMembers(message.payload.server_id);
+          }
+        }
         break;
 
       case 'Error':

@@ -1,4 +1,5 @@
 use crate::application::use_cases::user::*;
+use crate::domain::entities::User;
 use crate::infrastructure::repositories::UserRepository;
 use crate::infrastructure::security::JWTService;
 use crate::infrastructure::services::UserService;
@@ -18,6 +19,7 @@ pub struct UserHandler<R: UserRepository> {
     jwt_service: Arc<JWTService>,
     get_user_info_uc: Arc<GetUserInfoUseCase<R>>,
     update_status_uc: Arc<UpdateUserStatusUseCase<R>>,
+    update_user_uc: Arc<UpdateUserInfoUseCase<R>>,
 }
 
 impl<R: UserRepository> UserHandler<R> {
@@ -25,7 +27,8 @@ impl<R: UserRepository> UserHandler<R> {
         Self {
             jwt_service: Arc::new(jwt_service.clone()),
             get_user_info_uc: Arc::new(GetUserInfoUseCase::new(user_service.clone())),
-            update_status_uc: Arc::new(UpdateUserStatusUseCase::new(user_service)),
+            update_status_uc: Arc::new(UpdateUserStatusUseCase::new(user_service.clone())),
+            update_user_uc: Arc::new(UpdateUserInfoUseCase::new(user_service)),
         }
     }
 
@@ -82,6 +85,48 @@ impl<R: UserRepository> UserHandler<R> {
 
         let user = handler.update_status_uc.execute(user_id, status).await?;
         Ok((StatusCode::OK, Json(user)))
+    }
+
+    pub async fn update_user(
+        State(handler): State<Arc<UserHandler<R>>>,
+        headers: HeaderMap,
+        Json(payload): Json<serde_json::Value>,
+    ) -> Result<impl IntoResponse, AppError> {
+        let token = headers
+            .get("Authorization")
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.strip_prefix("Bearer "))
+            .ok_or_else(|| {
+                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+            })?;
+
+        let claims = handler.jwt_service.verify_token(token)?;
+        let user_id = Uuid::parse_str(&claims.sub_id)
+            .map_err(|_| AppError::Unauthorized("Invalid user ID in token".to_string()))?;
+
+        let username = payload
+            .get("username")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| AppError::ValidationError("Missing username field".to_string()))?
+            .to_string();
+
+        let email = payload
+            .get("email")
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| AppError::ValidationError("Missing email field".to_string()))?
+            .to_string();
+
+        let user = User {
+            id: user_id,
+            username,
+            email,
+            password_hash: String::new(),
+            status: String::new(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let updated_user = handler.update_user_uc.execute(user).await?;
+        Ok((StatusCode::OK, Json(updated_user)))
     }
 }
 
@@ -303,5 +348,135 @@ mod tests {
         let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_missing_token() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service));
+
+        let headers = HeaderMap::new();
+        let payload = serde_json::json!({"username": "newname", "email": "new@example.com"});
+        let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_invalid_token() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service));
+
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
+        let payload = serde_json::json!({"username": "newname", "email": "new@example.com"});
+        let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_missing_username_field() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service.clone()));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
+        let payload = serde_json::json!({"email": "new@example.com"});
+        let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_missing_email_field() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service.clone()));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
+        let payload = serde_json::json!({"username": "newname"});
+        let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_success() {
+        let password_service = PasswordService::new();
+        let user_id = Uuid::new_v4();
+        let user = User {
+            id: user_id,
+            username: "oldname".to_string(),
+            email: "old@example.com".to_string(),
+            password_hash: password_service.hash("password").unwrap(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        };
+
+        let mock_repo = MockUserRepository::new().with_user(user);
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service.clone()));
+
+        let token = jwt_service.create_token(user_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
+        let payload = serde_json::json!({"username": "newname", "email": "new@example.com"});
+        let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_user_not_found() {
+        let mock_repo = MockUserRepository::new();
+        let user_service = UserService::new(mock_repo);
+        let jwt_service = JWTService::new("test_secret".to_string());
+        let handler = Arc::new(UserHandler::new(user_service, jwt_service.clone()));
+
+        let token = jwt_service.create_token(Uuid::new_v4()).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
+        let payload = serde_json::json!({"username": "ghost", "email": "ghost@example.com"});
+        let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
+
+        assert!(result.is_err());
     }
 }

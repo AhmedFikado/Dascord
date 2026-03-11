@@ -69,4 +69,16 @@ impl UserRepository for MockUserRepository {
             Err(AppError::NotFound("User not found".to_string()))
         }
     }
+
+    async fn update_user(&self, user: User) -> AppResult<Option<User>> {
+        let mut users = self.users.lock().unwrap();
+
+        if let Some(existing_user) = users.get_mut(&user.id) {
+            existing_user.username = user.username.clone();
+            existing_user.email = user.email.clone();
+            Ok(Some(existing_user.clone()))
+        } else {
+            Ok(None)
+        }
+}
 }

@@ -5,7 +5,8 @@ import ServerSidebar from "@/components/server/server-sidebar";
 import MemberSidebar from "@/components/server/member-sidebar";
 import { useParams } from 'next/navigation';
 import UserPanel from "@/components/user/user-panel";
-import { useState, createContext, useContext } from 'react';
+import { useServerStore } from '@/app/lib/stores/use-server-store';
+import { useState, createContext, useContext, useEffect } from 'react';
 
 interface MobileNavContextType {
     openNav: () => void;
@@ -28,6 +29,18 @@ export default function DashboardLayout({
     const serverId = params?.serverId ? (params.serverId as string) : null;
     const [isMembersOpen, setIsMembersOpen] = useState(false);
     const [isNavOpen, setIsNavOpen] = useState(false);
+    const { setCurrentServer, servers } = useServerStore();
+
+    useEffect(() => {
+        if (serverId && servers.length > 0) {
+            const server = servers.find(s => s.id === serverId);
+            if (server) {
+                setCurrentServer(server);
+            }
+        } else {
+            setCurrentServer(null);
+        }
+    }, [serverId, servers, setCurrentServer]);
 
     return (
         <MobileNavContext.Provider value={{

@@ -84,6 +84,19 @@ pub enum ServerMessage {
         user_id: String,
         status: String,
     },
+
+    /// Un membre a rejoint le serveur
+    ServerMemberJoined {
+        server_id: String,
+        user_id: String,
+        username: String,
+    },
+
+    /// Un membre a quitté le serveur
+    ServerMemberLeft {
+        server_id: String,
+        user_id: String,
+    },
 }
 
 /// Structure pour les données d'un message dans l'historique

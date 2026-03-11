@@ -1,8 +1,9 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { channelsApi } from '@/app/lib/api/channels';
+import { Loading } from '@/components/shared/loading-spinner';
 
 export default function ServerPage({
     params
@@ -11,10 +12,39 @@ export default function ServerPage({
 }) {
     const { serverId } = use(params);
     const router = useRouter();
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        router.push(`/servers/${serverId}/channels/1`);
+        const redirectToFirstChannel = async () => {
+            try {
+                const channels = await channelsApi.getByServer(serverId);
+                
+                if (channels.length > 0) {
+                    router.push(`/servers/${serverId}/channels/${channels[0].id}`);
+                } else {
+                    // Si pas de channels, rester sur la page du serveur
+                    setIsLoading(false);
+                }
+            } catch (error) {
+                console.error('Error fetching channels:', error);
+                setIsLoading(false);
+            }
+        };
+
+        redirectToFirstChannel();
     }, [serverId, router]);
 
-    return null;
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <Loading size="lg" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex items-center justify-center h-screen">
+            <p className="text-gray-500">Aucun channel disponible dans ce serveur.</p>
+        </div>
+    );
 }

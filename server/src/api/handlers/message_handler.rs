@@ -147,7 +147,19 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
         let user_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
-        handler.delete_message_uc.execute(id, user_id).await?;
+        let channel_id = handler.delete_message_uc.execute(id.clone(), user_id).await?;
+        
+        // Diffuser l'événement WebSocket à tous les clients du channel
+        if let Some(ws_manager) = &handler.ws_manager {
+            ws_manager.broadcast_to_channel(
+                &channel_id,
+                crate::infrastructure::websocket::ServerMessage::MessageDeleted {
+                    channel_id: channel_id.clone(),
+                    message_id: id,
+                },
+            ).await;
+        }
+        
         Ok((
             StatusCode::OK,
             Json(serde_json::json!({"message": "Message deleted"})),
@@ -178,7 +190,21 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
             .ok_or_else(|| AppError::ValidationError("Missing content field".to_string()))?
             .to_string();
 
-        let updated_message = handler.update_message_uc.execute(id, user_id, content).await?;
+        let updated_message = handler.update_message_uc.execute(id.clone(), user_id, content).await?;
+        
+        // Diffuser l'événement WebSocket à tous les clients du channel
+        if let Some(ws_manager) = &handler.ws_manager {
+            ws_manager.broadcast_to_channel(
+                &updated_message.channel_id,
+                crate::infrastructure::websocket::ServerMessage::MessageUpdated {
+                    channel_id: updated_message.channel_id.clone(),
+                    message_id: id,
+                    user_id: updated_message.user_id.clone(),
+                    content: updated_message.content.clone(),
+                },
+            ).await;
+        }
+        
         Ok((StatusCode::OK, Json(updated_message)))
     }
 
