@@ -52,7 +52,7 @@ export default function LoginForm() {
     };
 
     return (
-        <div className="bg-gray-300 p-8 rounded-lg shadow-md">
+        <div className="bg-gray-300 p-8 rounded-lg shadow-md w-full">
             <h1 className="text-2xl font-bold text-center mb-6 text-white">Connexion</h1>
 
             {authError && (
@@ -61,7 +61,7 @@ export default function LoginForm() {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4 w-80">
+            <form onSubmit={handleSubmit} className="space-y-4 w-full">
                 <div>
                     <Input
                         label="Email"

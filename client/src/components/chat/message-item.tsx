@@ -19,6 +19,7 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
   const members = useServerStore(state => state.members);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
+  const [isActionsVisible, setIsActionsVisible] = useState(false);
 
   const currentMember = members.find(m => m.user_id === currentUserId);
   const isAdminOrOwner = currentMember
@@ -60,9 +61,10 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
   };
 
   return (
-    <div className="relative flex gap-4 px-4 py-2 hover:bg-gray-400/50 group">
+    <div className={`relative flex gap-4 px-4 py-2 lg:hover:bg-gray-400/50 group ${isActionsVisible ? 'bg-gray-400/50 lg:bg-transparent' : ''}`}
+      onClick={() => setIsActionsVisible(v => !v)}>
       {canDeleteMessage && !isEditing && (
-        <div className="absolute -top-4 right-4 hidden group-hover:flex bg-gray-300 border border-gray-200 rounded-lg shadow-lg">
+        <div className={`absolute -top-4 right-4 ${isActionsVisible ? 'flex lg:hidden' : 'hidden'} lg:group-hover:flex bg-gray-300 border border-gray-200 rounded-lg shadow-lg`}>
           {isOwnerMessage && (
             <Button
               className="p-2 hover:bg-hoverSide rounded-l-lg transition-colors"
@@ -121,7 +123,7 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
           <div
             className={`leading-relaxed break-words ${
               isSystemMessage ? 'text-gray-light italic' : 'text-white'
-            }`}
+              }`}
           >
             {message.content}
           </div>
