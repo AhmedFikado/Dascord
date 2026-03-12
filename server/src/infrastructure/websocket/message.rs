@@ -97,6 +97,13 @@ pub enum ServerMessage {
         server_id: String,
         user_id: String,
     },
+
+    /// Le rôle d'un membre a été modifié
+    MemberRoleUpdated {
+        server_id: String,
+        user_id: String,
+        new_role: String,
+    },
 }
 
 /// Structure pour les données d'un message dans l'historique
