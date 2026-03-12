@@ -1,6 +1,7 @@
 use crate::application::dto::server::CreateServerRequest;
 use crate::application::dto::server::JoinServerRequest;
 use crate::application::use_cases::server::*;
+use crate::domain::value_objects::ServerRole;
 use crate::infrastructure::repositories::{ChannelRepository, ServerRepository, UserRepository};
 use crate::infrastructure::security::JWTService;
 use crate::infrastructure::websocket::ConnectionManager;
@@ -299,13 +300,40 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
         let requester_id = Uuid::parse_str(&claims.sub_id)
             .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
-        let role = serde_json::from_value(payload.get("role").cloned().unwrap_or_default())
-            .map_err(|_| AppError::ValidationError("Invalid role".to_string()))?;
+        let role: ServerRole = 
+            serde_json::from_value(payload.get("role").cloned().unwrap_or_default())
+                .map_err(|_| AppError::ValidationError("Invalid role".to_string()))?;
 
         handler
             .update_member_role_uc
-            .execute(id, target_user_id, requester_id, role)
+            .execute(id, target_user_id, requester_id, role.clone())
             .await?;
+
+        if let Some(ws_manager) = &handler.ws_manager {
+            let role_string = serde_json::to_value(&role)
+                .ok()
+                .and_then(|v| v.as_str().map(String::from))
+                .unwrap_or_else(|| "MEMBER".to_string());
+            
+            ws_manager.broadcast_to_all(
+                crate::infrastructure::websocket::ServerMessage::MemberRoleUpdated {
+                    server_id: id.to_string(),
+                    user_id: target_user_id.to_string(),
+                    new_role: role_string.clone(),
+                },
+            ).await;
+
+            if role == ServerRole::Owner {
+                ws_manager.broadcast_to_all(
+                    crate::infrastructure::websocket::ServerMessage::MemberRoleUpdated {
+                        server_id: id.to_string(),
+                        user_id: requester_id.to_string(),
+                        new_role: "ADMIN".to_string(),
+                    },
+                ).await;
+            }
+        }
+
         Ok((
             StatusCode::OK,
             Json(serde_json::json!({"message": "Member role updated"})),

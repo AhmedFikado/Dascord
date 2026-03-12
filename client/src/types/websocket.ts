@@ -119,7 +119,14 @@ export type ServerMessage =
       user_id: string;
       username: string;
     };
-  }
+  }| {
+      type: 'MemberRoleUpdated';
+      payload: {
+        server_id: string;
+        user_id: string;
+        new_role: string;
+      };
+    }
   | {
       type: 'Error';
       payload: {

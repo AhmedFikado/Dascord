@@ -102,8 +102,9 @@ impl ServerRepository for PostgresServerRepository {
     }
 
     async fn update(&self, server: Server) -> AppResult<Server> {
-        sqlx::query("UPDATE servers SET name = $1 WHERE id = $2")
+        sqlx::query("UPDATE servers SET name = $1, owner_id = $2 WHERE id = $3")
             .bind(&server.name)
+            .bind(server.owner_id)
             .bind(server.id)
             .execute(&self.pool)
             .await

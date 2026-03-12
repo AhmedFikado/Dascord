@@ -65,6 +65,13 @@ impl<R: ServerRepository> UpdateMemberRoleUseCase<R> {
         let target_role = self.server_repo.get_member_role(server_id, target_user_id).await?
             .ok_or_else(|| AppError::NotFound("Target user is not a member".to_string()))?;
 
+        // Empêcher l'owner de modifier son propre rôle sans transférer la propriété(sinon pb de sécurité)
+        if server.owner_id == requester_id && target_user_id == requester_id && new_role != ServerRole::Owner {
+            return Err(AppError::ValidationError(
+                "Owner cannot change their own role. Transfer ownership to another member instead.".to_string(),
+            ));
+        }
+
         if server.owner_id != requester_id {
             let requester_role = self
                 .server_repo
@@ -295,6 +302,20 @@ mod tests {
 
         let result = use_case.execute(server.id, member_id, owner_id, ServerRole::Admin).await;
         assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_update_member_role_owner_cannot_change_own_role() {
+        let owner_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, owner_id, ServerRole::Owner);
+        let use_case = UpdateMemberRoleUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, owner_id, owner_id, ServerRole::Admin).await;
+        assert!(result.is_err());
     }
 
     #[tokio::test]

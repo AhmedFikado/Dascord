@@ -1,7 +1,8 @@
-import { MessageData, ServerMessage, WebSocketStatus } from '@/types/websocket';
-import { Member } from '@/types/models/member';
-import { Status } from '@/types/models/user';
 import { useServerStore } from '@/app/lib/stores/use-server-store';
+import { Member } from '@/types/models/member';
+import { Role } from '@/types/models/role';
+import { Status } from '@/types/models/user';
+import { MessageData, ServerMessage, WebSocketStatus } from '@/types/websocket';
 import { create } from 'zustand';
 
 interface TypingUser {
@@ -101,7 +102,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         // Mettre à jour le statut dans le store des membres
         {
           const members = useServerStore.getState().members;
-          const updatedMembers = members.map((member: Member) => 
+          const updatedMembers = members.map((member: Member) =>
             member.user_id === message.payload.user_id
               ? { ...member, user: { ...member.user, status: message.payload.status as Status } }
               : member
@@ -144,7 +145,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           const serverStore = useServerStore.getState();
           const currentServer = serverStore.currentServer;
           const members = serverStore.members;
-          
+
           // Si on est sur le serveur concerné et qu'on a déjà des membres chargés
           if (currentServer?.id === message.payload.server_id && members.length > 0) {
             serverStore.getMembers(message.payload.server_id);
@@ -161,10 +162,33 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           // Si on est sur le serveur concerné et qu'on a déjà des membres chargés
           if (currentServer?.id === message.payload.server_id && members.length > 0) {
             serverStore.getMembers(message.payload.server_id);
+            
+            }
+        }
+        break;
+            
+            
+      case 'MemberRoleUpdated':
+        // Le rôle d'un membre a changé, mettre à jour le store
+        {
+          const serverStore = useServerStore.getState();
+          const currentServer = serverStore.currentServer;
+
+          // Si on est sur le serveur concerné
+          if (currentServer?.id === message.payload.server_id) {
+            // Mettre à jour le rôle du membre localement en récupérant toujours le state le plus récent
+            const latestMembers = useServerStore.getState().members;
+            const updatedMembers = latestMembers.map((member: Member) => {
+              if (member.user_id === message.payload.user_id) {
+                return { ...member, role: message.payload.new_role as Role };
+              }
+              return member;
+            });
+
+            useServerStore.setState({ members: updatedMembers });
           }
         }
         break;
-
 
       case 'Error':
         console.error('WebSocket error:', message.payload);
@@ -200,7 +224,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
   updateMessage: (channelId: string, messageId: string, content: string) =>
     set((state: WebSocketState) => {
       const currentMessages = state.messagesByChannel[channelId] || [];
-      const updated = currentMessages.map(m => 
+      const updated = currentMessages.map(m =>
         m.message_id === messageId ? { ...m, content } : m
       );
 
