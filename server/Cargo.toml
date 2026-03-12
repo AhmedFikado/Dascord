@@ -48,6 +48,10 @@ dashmap = "5.5"
 # Random
 rand = "0.8"
 
+# Swagger/OpenAPI
+utoipa = { version = "4.0", features = ["axum_extras", "chrono", "uuid"] }
+utoipa-swagger-ui = { version = "6.0", features = ["axum"] }
+
 [dev-dependencies]
 tokio-test = "0.4"
 mockall = "0.13"

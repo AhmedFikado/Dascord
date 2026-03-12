@@ -71,191 +71,253 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
         self.ws_manager = Some(ws_manager);
         self
     }
+}
 
-    pub async fn send_message(
-        State(handler): State<Arc<Self>>,
-        Path(channel_id): Path<Uuid>,
-        headers: HeaderMap,
-        Json(payload): Json<serde_json::Value>,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
+/// - Envoyer un message dans un channel
+#[utoipa::path(
+    post,
+    path = "/channels/{channel_id}/messages",
+    tag = "messages",
+    request_body = serde_json::Value,
+    responses(
+        (status = 201, description = "Message envoyé avec succès", body = MessageDto),
+        (status = 401, description = "Non autorisé"),
+        (status = 404, description = "Channel non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn send_message<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: UserRepository>(
+    State(handler): State<Arc<MessageHandler<MR, CR, SR, UR>>>,
+    Path(channel_id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
 
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
-        let content = payload
-            .get("content")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| AppError::ValidationError("Missing content field".to_string()))?
-            .to_string();
+    let content = payload
+        .get("content")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError::ValidationError("Missing content field".to_string()))?
+        .to_string();
 
-        let user = handler
-            .user_repo
-            .find_by_id(user_id)
-            .await?
-            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+    let user = handler
+        .user_repo
+        .find_by_id(user_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
-        let message = handler
-            .send_message_uc
-            .execute(channel_id, user_id, user.username, content)
-            .await?;
-        Ok((StatusCode::CREATED, Json(message)))
+    let message = handler
+        .send_message_uc
+        .execute(channel_id, user_id, user.username, content)
+        .await?;
+    Ok((StatusCode::CREATED, Json(message)))
+}
+
+/// - Obtenir les messages d'un channel (historique)
+#[utoipa::path(
+    get,
+    path = "/channels/{channel_id}/messages",
+    tag = "messages",
+    responses(
+        (status = 201, description = "Historique des messages récupéré avec succès", body = MessageDto),
+        (status = 401, description = "Non autorisé"),
+        (status = 404, description = "Channel non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn get_message_history<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: UserRepository>(
+    State(handler): State<Arc<MessageHandler<MR, CR, SR, UR>>>,
+    Path(channel_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+    
+    let messages = handler.get_history_uc.execute(channel_id, user_id).await?;
+    Ok((StatusCode::OK, Json(messages)))
+}
+
+/// - Supprimer un message
+#[utoipa::path(
+    delete,
+    path = "/messages/{id}",
+    tag = "messages",
+    responses(
+        (status = 201, description = "Message supprimé avec succès", body = serde_json::json),
+        (status = 401, description = "Non autorisé"),
+        (status = 404, description = "Message non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn delete_message<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: UserRepository>(
+    State(handler): State<Arc<MessageHandler<MR, CR, SR, UR>>>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let channel_id = handler.delete_message_uc.execute(id.clone(), user_id).await?;
+    
+    // Diffuser l'événement WebSocket à tous les clients du channel
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_channel(
+            &channel_id,
+            crate::infrastructure::websocket::ServerMessage::MessageDeleted {
+                channel_id: channel_id.clone(),
+                message_id: id,
+            },
+        ).await;
     }
+    
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({"message": "Message deleted"})),
+    ))
+}
 
-    pub async fn get_message_history(
-        State(handler): State<Arc<Self>>,
-        Path(channel_id): Path<Uuid>,
-        headers: HeaderMap,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
+/// - Modifier un message
+#[utoipa::path(
+    put,
+    path = "/messages/{id}",
+    tag = "messages",
+    request_body = serde_json::Value,
+    responses(
+        (status = 201, description = "Message mis à jour avec succès", body = MessageDto),
+        (status = 401, description = "Non autorisé"),
+        (status = 404, description = "Message non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]    
+pub async fn update_message<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: UserRepository>(
+    State(handler): State<Arc<MessageHandler<MR, CR, SR, UR>>>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
 
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-        
-        let messages = handler.get_history_uc.execute(channel_id, user_id).await?;
-        Ok((StatusCode::OK, Json(messages)))
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let content = payload
+        .get("content")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError::ValidationError("Missing content field".to_string()))?
+        .to_string();
+
+    let updated_message = handler.update_message_uc.execute(id.clone(), user_id, content).await?;
+    
+    // Diffuser l'événement WebSocket à tous les clients du channel
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_channel(
+            &updated_message.channel_id,
+            crate::infrastructure::websocket::ServerMessage::MessageUpdated {
+                channel_id: updated_message.channel_id.clone(),
+                message_id: id,
+                user_id: updated_message.user_id.clone(),
+                content: updated_message.content.clone(),
+            },
+        ).await;
     }
+    
+    Ok((StatusCode::OK, Json(updated_message)))
+}
 
-    pub async fn delete_message(
-        State(handler): State<Arc<Self>>,
-        Path(id): Path<String>,
-        headers: HeaderMap,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
+/// - Envoyer un message de bienvenue dans un channel lorsqu'un utilisateur rejoint le serveur
+#[utoipa::path(
+    post,
+    path = "/channels/{channel_id}/messages/welcome",
+    tag = "messages",
+    responses(
+        (status = 201, description = "Message envoyé avec succès", body = MessageDto),
+        (status = 401, description = "Non autorisé"),
+        (status = 404, description = "Channel non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn send_welcome_message<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: UserRepository>(
+    State(handler): State<Arc<MessageHandler<MR, CR, SR, UR>>>,
+    Path(channel_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
 
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
-        let channel_id = handler.delete_message_uc.execute(id.clone(), user_id).await?;
-        
-        // Diffuser l'événement WebSocket à tous les clients du channel
-        if let Some(ws_manager) = &handler.ws_manager {
-            ws_manager.broadcast_to_channel(
-                &channel_id,
-                crate::infrastructure::websocket::ServerMessage::MessageDeleted {
-                    channel_id: channel_id.clone(),
-                    message_id: id,
-                },
-            ).await;
-        }
-        
-        Ok((
-            StatusCode::OK,
-            Json(serde_json::json!({"message": "Message deleted"})),
-        ))
+    let user = handler
+        .user_repo
+        .find_by_id(user_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+
+    let content = format!("👋 Bienvenue {} ! Tu as trouvé le serveur ! On a des pokémons légendaires pour toi !"
+    , user.username);
+    let system_username = "Système".to_string();
+
+    let message = handler
+        .send_message_uc
+        .execute(channel_id, user_id, system_username, content)
+        .await?;
+    
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_channel(
+            &channel_id.to_string(),
+            crate::infrastructure::websocket::ServerMessage::NewMessage {
+                channel_id: channel_id.to_string(),
+                message_id: message.id.clone().unwrap_or_default(),
+                user_id: user_id.to_string(),
+                username: "Système".to_string(),
+                content: format!("👋 Bienvenue {} ! Tu as trouvé le serveur ! On a des pokémons légendaires pour toi !", user.username),
+                created_at: chrono::Utc::now(),
+            },
+        ).await;
     }
-
-    pub async fn update_message(
-        State(handler): State<Arc<Self>>,
-        Path(id): Path<String>,
-        headers: HeaderMap,
-        Json(payload): Json<serde_json::Value>,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
-
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-
-        let content = payload
-            .get("content")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| AppError::ValidationError("Missing content field".to_string()))?
-            .to_string();
-
-        let updated_message = handler.update_message_uc.execute(id.clone(), user_id, content).await?;
-        
-        // Diffuser l'événement WebSocket à tous les clients du channel
-        if let Some(ws_manager) = &handler.ws_manager {
-            ws_manager.broadcast_to_channel(
-                &updated_message.channel_id,
-                crate::infrastructure::websocket::ServerMessage::MessageUpdated {
-                    channel_id: updated_message.channel_id.clone(),
-                    message_id: id,
-                    user_id: updated_message.user_id.clone(),
-                    content: updated_message.content.clone(),
-                },
-            ).await;
-        }
-        
-        Ok((StatusCode::OK, Json(updated_message)))
-    }
-
-    pub async fn send_welcome_message(
-        State(handler): State<Arc<Self>>,
-        Path(channel_id): Path<Uuid>,
-        headers: HeaderMap,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
-
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-
-        let user = handler
-            .user_repo
-            .find_by_id(user_id)
-            .await?
-            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
-
-        let content = format!("👋 Bienvenue {} ! Tu as trouvé le serveur ! On a des pokémons légendaires pour toi !"
-        , user.username);
-        let system_username = "Système".to_string();
-
-        let message = handler
-            .send_message_uc
-            .execute(channel_id, user_id, system_username, content)
-            .await?;
-        
-        if let Some(ws_manager) = &handler.ws_manager {
-            ws_manager.broadcast_to_channel(
-                &channel_id.to_string(),
-                crate::infrastructure::websocket::ServerMessage::NewMessage {
-                    channel_id: channel_id.to_string(),
-                    message_id: message.id.clone().unwrap_or_default(),
-                    user_id: user_id.to_string(),
-                    username: "Système".to_string(),
-                    content: format!("👋 Bienvenue {} ! Tu as trouvé le serveur ! On a des pokémons légendaires pour toi !", user.username),
-                    created_at: chrono::Utc::now(),
-                },
-            ).await;
-        }
-        
-        Ok((StatusCode::CREATED, Json(message)))
-    }
+    
+    Ok((StatusCode::CREATED, Json(message)))
 }
 
 

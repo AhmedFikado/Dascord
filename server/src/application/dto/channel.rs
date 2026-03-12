@@ -1,8 +1,9 @@
 use crate::domain::entities::Channel;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use validator::Validate;
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct CreateChannelRequest {
     #[validate(length(
         min = 1,
@@ -12,7 +13,7 @@ pub struct CreateChannelRequest {
     pub name: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ChannelResponse {
     pub id: String,
     pub server_id: String,

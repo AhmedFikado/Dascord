@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct MessageDto {
     pub id: Option<String>,
     pub channel_id: String,
@@ -10,7 +11,7 @@ pub struct MessageDto {
     pub created_at: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct CreateMessageDto {
     pub channel_id: String,
     pub user_id: String,
