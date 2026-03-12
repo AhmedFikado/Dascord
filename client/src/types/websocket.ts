@@ -113,6 +113,13 @@ export type ServerMessage =
       };
     }
   | {
+    type: 'ServerMemberUpdated';
+    payload: {
+      server_id: string;
+      user_id: string;
+      username: string;
+    };
+  }| {
       type: 'MemberRoleUpdated';
       payload: {
         server_id: string;

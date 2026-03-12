@@ -34,6 +34,7 @@ export default function JoinServerDialog({ isOpen, onClose, onBack }: JoinServer
             showSnackbar({ message: "Échec de la connexion au serveur.", severity: "error" });
         } finally {
             setIsLoading(false);
+            setInvitationCode("");
         }
     };
 

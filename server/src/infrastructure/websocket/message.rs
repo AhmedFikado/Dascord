@@ -98,6 +98,13 @@ pub enum ServerMessage {
         user_id: String,
     },
 
+    /// Un membre du serveur a été mis à jour
+    ServerMemberUpdated {
+        server_id: String,
+        user_id: String,
+        username: String,
+     },
+  
     /// Le rôle d'un membre a été modifié
     MemberRoleUpdated {
         server_id: String,
