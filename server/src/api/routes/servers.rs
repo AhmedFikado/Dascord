@@ -1,28 +1,30 @@
-use crate::api::handlers::server_handler::ServerHandler;
-use crate::infrastructure::repositories::{ServerRepository, ChannelRepository, UserRepository};
+use crate::api::handlers::server_handler::{
+    create_server, get_user_servers, get_server_info, update_server, delete_server,
+    join_server, leave_server, list_members, update_member_role, get_channels, create_channel,
+    ServerHandler,
+};
+use crate::infrastructure::repositories::{ChannelRepository, ServerRepository, UserRepository};
 use axum::{
-    routing::{get, post, put, delete},
+    routing::{delete, get, post, put},
     Router,
 };
 use std::sync::Arc;
 
-/// Configure les routes des serveurs
-/// 
 pub fn server_routes<SR: ServerRepository + 'static, CR: ChannelRepository + 'static, UR: UserRepository + 'static>(
-    handler: Arc<ServerHandler<SR, CR, UR>>
+    handler: Arc<ServerHandler<SR, CR, UR>>,
 ) -> Router {
     Router::new()
-        .route("/", post(ServerHandler::<SR, CR, UR>::create_server))
-        .route("/", get(ServerHandler::<SR, CR, UR>::get_user_servers))
-        .route("/:id", get(ServerHandler::<SR, CR, UR>::get_server_info))
-        .route("/:id", put(ServerHandler::<SR, CR, UR>::update_server))
-        .route("/:id", delete(ServerHandler::<SR, CR, UR>::delete_server))
-        .route("/join", post(ServerHandler::<SR, CR, UR>::join_server))
-        .route("/:id/leave", delete(ServerHandler::<SR, CR, UR>::leave_server))
-        .route("/:id/members", get(ServerHandler::<SR, CR, UR>::list_members))
-        .route("/:id/members/:userId", put(ServerHandler::<SR, CR, UR>::update_member_role))
-        .route("/:id/channels", get(ServerHandler::<SR, CR, UR>::get_channels))
-        .route("/:id/channels", post(ServerHandler::<SR, CR, UR>::create_channel))
+        .route("/", post(create_server::<SR, CR, UR>))
+        .route("/", get(get_user_servers::<SR, CR, UR>))
+        .route("/:id", get(get_server_info::<SR, CR, UR>))
+        .route("/:id", put(update_server::<SR, CR, UR>))
+        .route("/:id", delete(delete_server::<SR, CR, UR>))
+        .route("/join", post(join_server::<SR, CR, UR>))
+        .route("/:id/leave", delete(leave_server::<SR, CR, UR>))
+        .route("/:id/members", get(list_members::<SR, CR, UR>))
+        .route("/:id/members/:userId", put(update_member_role::<SR, CR, UR>))
+        .route("/:id/channels", get(get_channels::<SR, CR, UR>))
+        .route("/:id/channels", post(create_channel::<SR, CR, UR>))
         .with_state(handler)
 }
 
