@@ -7,9 +7,9 @@ use std::sync::Arc;
 /// Routes pour les utilisateurs
 pub fn user_routes<R: UserRepository + 'static, SR: ServerRepository + 'static>(handler: Arc<UserHandler<R, SR>>) -> Router {
     Router::new()
-        .route("/me", get(get_me::<R>))
-        .route("/me/status", put(update_status::<R>))
-        .route("/update_user", put(update_user::<R>))
+        .route("/me", get(get_me::<R, SR>))
+        .route("/me/status", put(update_status::<R, SR>))
+        .route("/update_user", put(update_user::<R, SR>))
         .with_state(handler)
 }
 
