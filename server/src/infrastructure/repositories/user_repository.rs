@@ -93,7 +93,7 @@ impl UserRepository for PostgresUserRepository {
 
     async fn update_user(&self, user: User) -> AppResult<Option<User>> {
         sqlx::query_as::<_, User>(
-            "UPDATE users SET username = $1, email = $2 WHERE id = $3 RETURNING id, username, email, status::text as status"
+            "UPDATE users SET username = $1, email = $2 WHERE id = $3 RETURNING id, username, email, password_hash, status::text as status, created_at"
         )
         .bind(&user.username)
         .bind(&user.email)

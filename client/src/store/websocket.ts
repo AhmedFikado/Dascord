@@ -130,7 +130,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           const serverStore = useServerStore.getState();
           const currentServer = serverStore.currentServer;
           const members = serverStore.members;
-          
+
           // Si on est sur le serveur concerné et qu'on a déjà des membres chargés
           if (currentServer?.id === message.payload.server_id && members.length > 0) {
             serverStore.getMembers(message.payload.server_id);
@@ -151,6 +151,20 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           }
         }
         break;
+
+      case 'ServerMemberUpdated':
+        // Un membre a été mis à jour, rafraîchir la liste
+        {
+          const serverStore = useServerStore.getState();
+          const currentServer = serverStore.currentServer;
+          const members = serverStore.members;
+          // Si on est sur le serveur concerné et qu'on a déjà des membres chargés
+          if (currentServer?.id === message.payload.server_id && members.length > 0) {
+            serverStore.getMembers(message.payload.server_id);
+          }
+        }
+        break;
+
 
       case 'Error':
         console.error('WebSocket error:', message.payload);

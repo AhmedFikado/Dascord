@@ -97,6 +97,13 @@ pub enum ServerMessage {
         server_id: String,
         user_id: String,
     },
+
+    /// Un membre du serveur a été mis à jour
+    ServerMemberUpdated {
+        server_id: String,
+        user_id: String,
+        username: String,
+    },
 }
 
 /// Structure pour les données d'un message dans l'historique

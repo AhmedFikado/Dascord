@@ -33,7 +33,8 @@ pub fn create_router(
         jwt_service.clone(),
     ));
     let user_handler = Arc::new(UserHandler::new(user_service, jwt_service.clone())
-        .with_ws_manager(ws_manager.clone()));
+        .with_ws_manager(ws_manager.clone())
+        .with_server_repo(PostgresServerRepository::new(pg_pool.clone())));
 
     let server_repo = PostgresServerRepository::new(pg_pool.clone());
     let channel_repo = PostgresChannelRepository::new(pg_pool.clone());
@@ -93,7 +94,7 @@ mod tests {
         let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
 
         let auth_handler = Arc::new(AuthHandler::new(signup_uc, login_uc, logout_uc, jwt_service.clone()));
-        let user_handler = Arc::new(UserHandler::new(UserService::new(mock_user_repo.clone()), jwt_service.clone()));
+        let user_handler = Arc::new(UserHandler::<_, MockServerRepository>::new(UserService::new(mock_user_repo.clone()), jwt_service.clone()));
 
         let mock_server_repo = MockServerRepository::new();
         let mock_channel_repo = MockChannelRepository::new();

@@ -113,6 +113,14 @@ export type ServerMessage =
       };
     }
   | {
+    type: 'ServerMemberUpdated';
+    payload: {
+      server_id: string;
+      user_id: string;
+      username: string;
+    };
+  }
+  | {
       type: 'Error';
       payload: {
         code: string;
