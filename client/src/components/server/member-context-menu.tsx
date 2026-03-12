@@ -1,7 +1,9 @@
 import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
 import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { Role } from '@/types/models/role';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import PermanentBanDialog from './permanent-ban-dialog';
+import TempBanDialog from './temp-ban-dialog';
 
 interface MemberContextMenuProps {
   targetMemberId: string;
@@ -26,8 +28,16 @@ export default function MemberContextMenu({
   const menuRef = useRef<HTMLDivElement | null>(null);
   const hasPermission = currentUserRole === Role.OWNER || currentUserRole === Role.ADMIN;
 
+  const [showTempBan, setShowTempBan] = useState(false);
+  const [showPermBan, setShowPermBan] = useState(false);
+  const isDialogOpen = showTempBan || showPermBan;
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if (isDialogOpen) {
+        return;
+      }
+
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         onClose();
       }
@@ -37,54 +47,78 @@ export default function MemberContextMenu({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [onClose]);
+  }, [isDialogOpen, onClose]);
 
   if (!hasPermission) {
     return null;
   }
 
   const handleKick = () => {
-    console.log('Kick member:', targetMemberId);
     onClose();
   };
 
   const handleTempBan = () => {
-    console.log('Temp ban member:', targetMemberId);
-    onClose();
+    setShowTempBan(true);
   };
 
   const handlePermBan = () => {
-    console.log('Perm ban member:', targetMemberId);
-    onClose();
+    setShowPermBan(true);
   };
 
   return (
-    <div
-      ref={menuRef}
-      className="fixed bg-gray-700 text-white rounded-md shadow-lg p-1 z-50 min-w-[200px]"
-      style={{
-        top: `${y}px`,
-        left: `${x}px`,
-      }}
-    >
-      <button
-        onClick={handleKick}
-        className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
-      >
-        Ejecter
-      </button>
-      <button
-        onClick={handleTempBan}
-        className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
-      >
-        Bannir temporairement
-      </button>
-      <button
-        onClick={handlePermBan}
-        className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
-      >
-        Bannir définitivement
-      </button>
-    </div>
+    <>
+      {!isDialogOpen && (
+        <div
+          ref={menuRef}
+          className="fixed bg-gray-700 text-white rounded-md shadow-lg p-1 z-50 min-w-[200px]"
+          style={{
+            top: `${y}px`,
+            left: `${x}px`,
+          }}
+        >
+          <button
+            onClick={handleKick}
+            className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
+          >
+            Ejecter
+          </button>
+          <button
+            onClick={handleTempBan}
+            className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
+          >
+            Bannir temporairement
+          </button>
+          <button
+            onClick={handlePermBan}
+            className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
+          >
+            Bannir définitivement
+          </button>
+        </div>
+      )}
+
+      <TempBanDialog
+        isOpen={showTempBan}
+        onClose={() => {
+          setShowTempBan(false);
+          onClose();
+        }}
+        onConfirm={duration => {
+          setShowTempBan(false);
+          onClose();
+        }}
+      />
+      <PermanentBanDialog
+        isOpen={showPermBan}
+        onClose={() => {
+          setShowPermBan(false);
+          onClose();
+        }}
+        onConfirm={() => {
+          setShowPermBan(false);
+          onClose();
+        }}
+      />
+    </>
   );
 }
