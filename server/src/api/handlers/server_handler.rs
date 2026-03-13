@@ -1,6 +1,7 @@
 use crate::application::dto::server::CreateServerRequest;
 use crate::application::dto::server::JoinServerRequest;
 use crate::application::use_cases::server::*;
+use crate::domain::entities::BanType;
 use crate::domain::value_objects::ServerRole;
 use crate::infrastructure::repositories::{ChannelRepository, ServerRepository, UserRepository};
 use crate::infrastructure::security::JWTService;
@@ -27,6 +28,8 @@ pub struct ServerHandler<SR: ServerRepository, CR: ChannelRepository, UR: UserRe
     leave_server_uc: Arc<LeaveServerUseCase<SR>>,
     list_members_uc: Arc<ListMembersUseCase<SR, UR>>,
     update_member_role_uc: Arc<UpdateMemberRoleUseCase<SR>>,
+    kick_member_uc: Arc<KickMemberUseCase<SR>>,
+    ban_member_uc: Arc<BanMemberUseCase<SR>>,
     get_channels_uc: Arc<GetChannelsUseCase<SR, CR>>,
     create_channel_uc: Arc<CreateChannelUseCase<SR, CR>>,
     user_repo: Arc<UR>,
@@ -51,6 +54,8 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             leave_server_uc: Arc::new(LeaveServerUseCase::new(server_repo.clone())),
             list_members_uc: Arc::new(ListMembersUseCase::new(server_repo.clone(), user_repo.clone())),
             update_member_role_uc: Arc::new(UpdateMemberRoleUseCase::new(server_repo.clone())),
+            kick_member_uc: Arc::new(KickMemberUseCase::new(server_repo.clone())),
+            ban_member_uc: Arc::new(BanMemberUseCase::new(server_repo.clone())),
             get_channels_uc: Arc::new(GetChannelsUseCase::new(
                 server_repo.clone(),
                 channel_repo.clone(),
@@ -454,6 +459,110 @@ pub async fn update_member_role<SR: ServerRepository, CR: ChannelRepository, UR:
     Ok((
         StatusCode::OK,
         Json(serde_json::json!({"message": "Member role updated"})),
+    ))
+}
+
+/// - Expulser un membre d'un serveur
+#[utoipa::path(
+    delete,
+    path = "/servers/{id}/members/{userId}/kick",
+    tag = "servers",
+    responses(
+        (status = 200, description = "Membre expulsé"),
+        (status = 401, description = "Non autorisé"),
+        (status = 403, description = "Permissions insuffisantes"),
+        (status = 404, description = "Serveur ou membre non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn kick_member<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    Path((id, target_user_id)): Path<(Uuid, Uuid)>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let requester_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    handler.kick_member_uc.execute(id, target_user_id, requester_id).await?;
+
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_all(
+            crate::infrastructure::websocket::ServerMessage::MemberKicked {
+                server_id: id.to_string(),
+                user_id: target_user_id.to_string(),
+            },
+        ).await;
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({"message": "Member kicked"})),
+    ))
+}
+
+/// - Bannir un membre d'un serveur
+#[utoipa::path(
+    post,
+    path = "/servers/{id}/members/{userId}/ban",
+    tag = "servers",
+    request_body = serde_json::Value,
+    responses(
+        (status = 200, description = "Membre banni"),
+        (status = 401, description = "Non autorisé"),
+        (status = 403, description = "Permissions insuffisantes"),
+        (status = 404, description = "Serveur ou membre non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn ban_member<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    Path((id, target_user_id)): Path<(Uuid, Uuid)>,
+    headers: HeaderMap,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let requester_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let ban_type: BanType =
+        serde_json::from_value(payload.get("ban_type").cloned().unwrap_or_default())
+            .map_err(|_| AppError::ValidationError("Invalid ban_type".to_string()))?;
+
+    let expires_at: Option<chrono::DateTime<chrono::Utc>> = payload
+        .get("expires_at")
+        .and_then(|v| serde_json::from_value(v.clone()).ok());
+
+    handler.ban_member_uc.execute(id, target_user_id, requester_id, ban_type, expires_at).await?;
+
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_all(
+            crate::infrastructure::websocket::ServerMessage::MemberBanned {
+                server_id: id.to_string(),
+                user_id: target_user_id.to_string(),
+            },
+        ).await;
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({"message": "Member banned"})),
     ))
 }
 
@@ -909,6 +1018,61 @@ mod tests {
         );
 
         let result = ServerHandler::get_channels(State(handler), Path(server.id), headers).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_kick_member_success() {
+        let owner_id = Uuid::new_v4();
+        let member_id = Uuid::new_v4();
+        let server = Server::new("Test Server".to_string(), owner_id, "CODE123".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, member_id, ServerRole::Member);
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+            MockUserRepository::new(),
+        ));
+
+        let token = jwt_service.create_token(owner_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
+        let result = ServerHandler::kick_member(State(handler), Path((server.id, member_id)), headers).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_ban_member_success() {
+        let owner_id = Uuid::new_v4();
+        let member_id = Uuid::new_v4();
+        let server = Server::new("Test Server".to_string(), owner_id, "CODE123".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, member_id, ServerRole::Member);
+        let mock_channel_repo = MockChannelRepository::new();
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let handler = Arc::new(ServerHandler::new(
+            jwt_service.clone(),
+            mock_server_repo,
+            mock_channel_repo,
+            MockUserRepository::new(),
+        ));
+
+        let token = jwt_service.create_token(owner_id).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+
+        let payload = serde_json::json!({"ban_type": "Permanent"});
+        let result = ServerHandler::ban_member(State(handler), Path((server.id, member_id)), headers, Json(payload)).await;
         assert!(result.is_ok());
     }
 
