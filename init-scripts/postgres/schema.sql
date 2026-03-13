@@ -2,6 +2,7 @@ CREATE TYPE role_type AS ENUM ('OWNER', 'ADMIN', 'MEMBER');
 
 CREATE TYPE user_status AS ENUM ('ONLINE', 'OFFLINE');
 
+CREATE TYPE ban_type AS ENUM ('TEMPORARY', 'PERMANENT');
 
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -36,11 +37,24 @@ CREATE TABLE channels (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE bans (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    banned_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    ban_type ban_type NOT NULL,
+    expires_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Recherche rapide des serveurs d'un utilisateur
 CREATE INDEX idx_server_members_user_id ON server_members(user_id);
 
 -- Recherche rapide des channels d'un serveur
 CREATE INDEX idx_channels_server_id ON channels(server_id);
+
+-- Recherche rapide des bannissements (server_id + user_id couvre la majorité des requêtes)
+CREATE INDEX idx_bans_server_user ON bans(server_id, user_id);
 
 -- Utilisateurs de test
 INSERT INTO users (id, username, email, password_hash, status, language) VALUES
