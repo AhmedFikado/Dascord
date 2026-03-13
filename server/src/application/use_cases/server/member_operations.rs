@@ -1,4 +1,5 @@
 use crate::application::dto::server::{MemberResponse, UserInfo};
+use crate::domain::entities::BanType;
 use crate::domain::value_objects::ServerRole;
 use crate::infrastructure::repositories::server_repository::ServerRepository;
 use crate::infrastructure::repositories::user_repository::UserRepository;
@@ -118,7 +119,69 @@ impl<R: ServerRepository> UpdateMemberRoleUseCase<R> {
         Ok(())
     }
 }
+pub struct BanMemberUseCase<R: ServerRepository> {
+    server_repo: R,
+}
 
+impl<R: ServerRepository> BanMemberUseCase<R> {
+    pub fn new(server_repo: R) -> Self {
+        Self { server_repo }
+    }
+
+    pub async fn execute(&self, server_id: Uuid, target_user_id: Uuid, requester_id: Uuid, ban_type: BanType, expires_at: Option<chrono::DateTime<chrono::Utc>>) -> AppResult<()> {
+        let server = self.server_repo.find_by_id(server_id).await?
+            .ok_or_else(|| AppError::NotFound("Server not found".to_string()))?;
+
+        if server.owner_id != requester_id {
+            let requester_role = self
+                .server_repo
+                .get_member_role(server_id, requester_id)
+                .await?
+                .ok_or_else(|| AppError::Unauthorized("Not a member".to_string()))?;
+
+            if requester_role != ServerRole::Admin {
+                return Err(AppError::Unauthorized(
+                    "Only owner or admin can ban members".to_string(),
+                ));
+            }
+        }
+
+        self.server_repo.ban_member(server_id, target_user_id, requester_id, ban_type, expires_at).await?;
+        Ok(())
+    }
+}
+
+pub struct KickMemberUseCase<R: ServerRepository> {
+    server_repo: R,
+}
+
+impl<R: ServerRepository> KickMemberUseCase<R> {
+        pub fn new(server_repo: R) -> Self {
+            Self { server_repo }
+        }
+
+        pub async fn execute(&self, server_id: Uuid, target_user_id: Uuid, requester_id: Uuid) -> AppResult<()> {
+            let server = self.server_repo.find_by_id(server_id).await?
+                .ok_or_else(|| AppError::NotFound("Server not found".to_string()))?;
+
+            if server.owner_id != requester_id {
+                let requester_role = self
+                    .server_repo
+                    .get_member_role(server_id, requester_id)
+                    .await?
+                    .ok_or_else(|| AppError::Unauthorized("Not a member".to_string()))?;
+
+                if requester_role != ServerRole::Admin {
+                    return Err(AppError::Unauthorized(
+                        "Only owner or admin can kick members".to_string(),
+                    ));
+                }
+            }
+
+            self.server_repo.remove_member(server_id, target_user_id).await?;
+            Ok(())
+        }
+}
 
 // --- UNIT TESTS ---
 
@@ -315,6 +378,86 @@ mod tests {
         let use_case = UpdateMemberRoleUseCase::new(mock_server_repo);
 
         let result = use_case.execute(server.id, owner_id, owner_id, ServerRole::Admin).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_kick_member_success() {
+        let owner_id = Uuid::new_v4();
+        let member_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, member_id, ServerRole::Member);
+        let use_case = KickMemberUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, member_id, owner_id).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_kick_member_unauthorized() {
+        let owner_id = Uuid::new_v4();
+        let member_id = Uuid::new_v4();
+        let requester_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, member_id, ServerRole::Member)
+            .with_member(server.id, requester_id, ServerRole::Member);
+        let use_case = KickMemberUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, member_id, requester_id).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_ban_member_success() {
+        let owner_id = Uuid::new_v4();
+        let member_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, member_id, ServerRole::Member);
+        let use_case = BanMemberUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, member_id, owner_id, crate::domain::entities::BanType::Permanent, None).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_ban_member_temporary() {
+        let owner_id = Uuid::new_v4();
+        let member_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+        let expires_at = Some(chrono::Utc::now() + chrono::Duration::days(7));
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, member_id, ServerRole::Member);
+        let use_case = BanMemberUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, member_id, owner_id, crate::domain::entities::BanType::Temporary, expires_at).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_ban_member_unauthorized() {
+        let owner_id = Uuid::new_v4();
+        let member_id = Uuid::new_v4();
+        let requester_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, member_id, ServerRole::Member)
+            .with_member(server.id, requester_id, ServerRole::Member);
+        let use_case = BanMemberUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, member_id, requester_id, crate::domain::entities::BanType::Permanent, None).await;
         assert!(result.is_err());
     }
 
