@@ -84,7 +84,7 @@ export default function MemberContextMenu({
             onClick={handleKick}
             className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
           >
-            Ejecter
+            Expulser
           </button>
           <button
             onClick={handleTempBan}
@@ -109,7 +109,11 @@ export default function MemberContextMenu({
         }}
         onConfirm={async duration => {
           const durationMap: Record<string, number> = {
-            '1h': 1, '10h': 10, '24h': 24, '48h': 48, '1w': 168,
+            '1h': 1,
+            '10h': 10,
+            '24h': 24,
+            '48h': 48,
+            '1w': 168,
           };
           const hours = durationMap[duration] ?? 24;
           const expiresAt = new Date(Date.now() + hours * 3600 * 1000).toISOString();
