@@ -1,5 +1,5 @@
 
- // Réponses API pour l'auth
+// Réponses API pour l'auth
 export interface AuthResponse {
     token: string;
     user_id: string;

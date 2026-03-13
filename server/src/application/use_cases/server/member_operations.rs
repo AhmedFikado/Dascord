@@ -327,6 +327,7 @@ mod tests {
             id: owner_id,
             username: "owner".to_string(),
             email: "owner@test.com".to_string(),
+            language: "en".to_string(),
             password_hash: password_service.hash("password").unwrap(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),

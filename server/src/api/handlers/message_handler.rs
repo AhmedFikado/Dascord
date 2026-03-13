@@ -347,6 +347,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -677,6 +678,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -715,6 +717,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };

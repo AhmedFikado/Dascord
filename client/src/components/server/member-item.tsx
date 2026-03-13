@@ -7,6 +7,7 @@ import { Dropdown } from '@/components/ui/dropdown';
 import { Member } from '@/types/models/member';
 import { Role } from '@/types/models/role';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface MemberitemProps {
   member: Member;
@@ -15,6 +16,7 @@ interface MemberitemProps {
 }
 
 export default function MemberItem({ member, isRole = false, serverId }: MemberitemProps) {
+  const { t } = useTranslation();
   const [showTransferConfirm, setShowTransferConfirm] = useState(false);
   const [pendingRole, setPendingRole] = useState<Role | null>(null);
   const { userId } = useCurrentUser();
@@ -99,18 +101,18 @@ export default function MemberItem({ member, isRole = false, serverId }: Memberi
       <Dialog
         isOpen={showTransferConfirm}
         onClose={() => setShowTransferConfirm(false)}
-        title="Transférer la propriété du serveur"
+        title={t('Member_item.transfer_ownership')}
       >
         <div className="space-y-4">
           <p className="text-white text-sm">
-            Êtes-vous sûr de vouloir transférer la propriété du serveur à{' '}
+            {t('Member_item.transfer_confirm_question')} {' '}
             <span className="font-semibold">{member.user.username}</span> ?
           </p>
           <p className="text-gray-50 text-sm">
-            Vous deviendrez ADMIN et <span className="font-semibold">{member.user.username}</span>{' '}
-            deviendra le nouveau propriétaire (OWNER).
+            {t('Member_item.transfer_confirm_message')} <span className="font-semibold">{member.user.username}</span>{' '}
+            {t('Member_item.transfer_confirm_message_2')}
           </p>
-          <p className="text-red text-sm font-semibold">Cette action est irréversible !</p>
+          <p className="text-red text-sm font-semibold">{t('Member_item.irreversible_action')}</p>
           <div className="flex gap-4 justify-end mt-6">
             <Button
               variant="secondary"
@@ -119,10 +121,10 @@ export default function MemberItem({ member, isRole = false, serverId }: Memberi
                 setPendingRole(null);
               }}
             >
-              Annuler
+              {t('Member_item.cancel')}
             </Button>
             <Button variant="danger" onClick={confirmTransferOwnership}>
-              Confirmer le transfert
+              {t('Member_item.confirm_transfer')}
             </Button>
           </div>
         </div>

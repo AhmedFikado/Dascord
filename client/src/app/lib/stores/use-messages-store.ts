@@ -2,6 +2,7 @@ import { useWebSocketStore } from '@/store/websocket';
 import { Message } from '@/types/models/message';
 import { create } from 'zustand';
 import { messagesApi } from '../api/messages';
+import i18n from 'i18next';
 
 interface MessageState {
   messages: Message[];
@@ -15,6 +16,8 @@ interface MessageState {
   updateMessage: (channelId: string, messageId: string, content: string) => Promise<void>;
   reset: () => void;
 }
+
+const t = i18n.t.bind(i18n);
 
 export const useMessageStore = create<MessageState>(set => ({
   messages: [],
@@ -47,7 +50,7 @@ export const useMessageStore = create<MessageState>(set => ({
         isLoading: false,
       }));
     } catch (error) {
-      set({ error: 'Impossible de charger les messages', isLoading: false });
+      set({ error: t('Use_message_store.Error_loading_messages'), isLoading: false });
     }
   },
 
@@ -62,7 +65,7 @@ export const useMessageStore = create<MessageState>(set => ({
         },
       }));
     } catch (error) {
-      console.error("Erreur d'envoi", error);
+      console.error(t('Use_message_store.Error_sending_message'), error);
     }
   },
 
@@ -80,9 +83,9 @@ export const useMessageStore = create<MessageState>(set => ({
       // Supprimer aussi du store WebSocket
       useWebSocketStore.getState().removeMessage(channelId, messageId);
     } catch (error: any) {
-      console.error('Erreur de suppression', error);
+      console.error(t('Use_message_store.Error_deleting_message'), error);
       const errorMessage =
-        error?.response?.data?.error || "Vous n'avez pas la permission de supprimer ce message";
+        error?.response?.data?.error || t('Use_message_store.You_do_not_have_permission_to_delete_this_message');
       set({ error: errorMessage });
       throw error;
     }
@@ -95,7 +98,7 @@ export const useMessageStore = create<MessageState>(set => ({
         messages: state.messages.map(m => m.id === messageId ? updatedMessage : m),
         messagesByChannel: {
           ...state.messagesByChannel,
-          [channelId]: (state.messagesByChannel[channelId] || []).map(m => 
+          [channelId]: (state.messagesByChannel[channelId] || []).map(m =>
             m.id === messageId ? updatedMessage : m
           ),
         },
@@ -104,9 +107,9 @@ export const useMessageStore = create<MessageState>(set => ({
       // Mettre à jour aussi dans le store WebSocket
       useWebSocketStore.getState().updateMessage(channelId, messageId, content);
     } catch (error: any) {
-      console.error('Erreur de modification', error);
+      console.error(t('Use_message_store.Error_updating_message'), error);
       const errorMessage =
-        error?.response?.data?.error || "Vous n'avez pas la permission de modifier ce message";
+        error?.response?.data?.error || t('Use_message_store.You_do_not_have_permission_to_update_this_message');
       set({ error: errorMessage });
       throw error;
     }

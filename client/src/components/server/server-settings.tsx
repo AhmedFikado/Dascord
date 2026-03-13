@@ -10,6 +10,7 @@ import { useServerStore } from "@/app/lib/stores/use-server-store";
 import { useMembers } from "@/app/lib/hooks/use-members";
 import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
 import { Role } from '@/types/models/role';
+import { useTranslation } from 'react-i18next';
 
 interface ServerSettingsProps {
     server: Server;
@@ -19,6 +20,7 @@ interface ServerSettingsProps {
 }
 
 export default function ServerSettings({ server, onClose, onUpdate, onDelete }: ServerSettingsProps) {
+    const { t } = useTranslation();
     const [serverName, setServerName] = useState(server.name);
     const [isLoading, setIsLoading] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -64,14 +66,14 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
                 {canUpdateServer && (
                     <section>
                         <h3 className="text-white text-sm font-semibold uppercase mb-4">
-                            Aperçu du serveur
+                            {t('Server_settings.server_overview')}
                         </h3>
                         <div className="space-y-4">
                             <Input
-                                label="Nom du serveur"
+                                label={t('Server_settings.server_name')}
                                 value={serverName}
                                 onChange={(e) => setServerName(e.target.value)}
-                                placeholder="Entrez le nom du serveur"
+                                placeholder={t('Server_settings.server_name_placeholder')}
                                 maxLength={100}
                             />
                         </div>
@@ -86,7 +88,7 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
                         className="w-full flex items-center justify-between p-3 bg-gray-400 hover:bg-hoverSide rounded-lg transition-colors"
                     >
                         <h3 className="text-white text-sm font-semibold uppercase">
-                            Membres du serveur
+                            {t('Server_settings.server_members')}
                         </h3>
                         {isMembersOpen ? (
                             <ChevronUp className="text-white" size={20} />
@@ -103,7 +105,7 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
                                     type="text"
                                     value={searchMember}
                                     onChange={(e) => setSearchMember(e.target.value)}
-                                    placeholder="Rechercher un membre..."
+                                    placeholder={t('Server_settings.search_member')}
                                     className="w-9/10 text-white placeholder-gray-50 pl-10 pr-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blurple"
                                 />
                             </div>
@@ -133,7 +135,7 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
                                     className="flex items-center gap-2"
                                 >
                                     <Trash2 size={16} />
-                                    Supprimer le serveur
+                                    {t('Server_settings.delete_server')}
                                 </Button>
                             </div>)
                         }
@@ -142,10 +144,10 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
                         {showDeleteConfirm && (
                             <div className="mt-4 pt-4 border-t border-gray-200 space-y-3">
                                 <p className="text-white text-sm font-semibold">
-                                    Êtes-vous sûr de vouloir supprimer ce serveur ?
+                                    {t('Server_settings.delete_confirm_question')}
                                 </p>
                                 <p className="text-gray-50 text-sm">
-                                    Tapez <span className="text-white font-semibold">{server.name}</span> pour confirmer
+                                    {t('Server_settings.delete_confirm_instruction')} <span className="text-white font-semibold">{server.name}</span> {t('Server_settings.delete_confirm_instruction_2')}
                                 </p>
                                 <Input
                                     value={deleteConfirmText}
@@ -160,7 +162,7 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
                                             setDeleteConfirmText('');
                                         }}
                                     >
-                                        Annuler
+                                        {t('Server_settings.cancel')}
                                     </Button>
                                     <Button
                                         variant="danger"
@@ -168,7 +170,7 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
                                         disabled={deleteConfirmText !== server.name}
                                         isLoading={isLoading}
                                     >
-                                        Supprimer définitivement
+                                        {t('Server_settings.delete_permanently')}
                                     </Button>
                                 </div>
                             </div>
@@ -180,14 +182,14 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
             {hasChanges && canUpdateServer && (
                 <div className="bg-gray-400 p-4 flex items-center justify-between border-t border-gray-200 mt-4">
                     <p className="text-white text-sm">
-                        Attention — vous avez des modifications non enregistrées !
+                        {t('Server_settings.unsaved_changes')}
                     </p>
                     <div className="flex gap-2">
                         <Button
                             variant="secondary"
                             onClick={() => setServerName(server.name)}
                         >
-                            Réinitialiser
+                            {t('Server_settings.reset')}
                         </Button>
                         <Button
                             variant="primary"
@@ -196,7 +198,7 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
                             className="flex items-center gap-2"
                         >
                             <Save size={16} />
-                            Enregistrer
+                            {t('Server_settings.save')}
                         </Button>
                     </div>
                 </div>

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { serversApi } from "@/app/lib/api/servers";
 import { useServerStore } from "@/app/lib/stores/use-server-store";
 import { useChannelStore } from "@/app/lib/stores/use-channel-store";
+import { useTranslation } from 'react-i18next';
 
 interface CreateServerDialogProps {
     isOpen?: boolean;
@@ -13,6 +14,7 @@ interface CreateServerDialogProps {
 }
 
 export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateServerDialogProps) {
+    const { t } = useTranslation();
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     const [serverName, setServerName] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -49,20 +51,20 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
                     style={{ borderRadius: '10px', backgroundColor: '#5865F2', color: 'white', padding: 0 }}
                     onClick={() => setInternalIsOpen(true)}
                 >
-                    Créer un serveur
+                    {t('Create_server_dialog.create_server')}
                 </Button>
             )}
 
             <Dialog
                 isOpen={dialogIsOpen}
                 onClose={handleClose}
-                title="Créer un serveur"
+                title={t('Create_server_dialog.create_server')}
             >
                 <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                     <Input
-                        label="Nom du serveur"
+                        label={t('Create_server_dialog.server_name')}
                         type="text"
-                        placeholder="Ex: Le repaire des codeurs"
+                        placeholder={t('Create_server_dialog.server_name_placeholder')}
                         value={serverName}
                         onChange={(e) => setServerName(e.target.value)}
                         disabled={isLoading}
@@ -74,7 +76,7 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
                             variant={"noBackground"}
                             width="80px"
                             onClick={handleBack}>
-                            Retour
+                            {t('Create_server_dialog.back')}
                         </Button>
 
                         <Button
@@ -83,7 +85,7 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
                             type="submit"
                             disabled={isLoading || !serverName || serverName.trim() === ""}
                         >
-                            {isLoading ? "Création..." : "Créer le serveur"}
+                            {isLoading ? t('Create_server_dialog.creating') : t('Create_server_dialog.create_the_server')}
                         </Button>
                     </div>
 

@@ -29,13 +29,14 @@ impl PostgresUserRepository {
 impl UserRepository for PostgresUserRepository {
     async fn create(&self, user: User) -> AppResult<User> {
         sqlx::query(
-            "INSERT INTO users (id, username, email, password_hash, status, created_at) VALUES ($1, $2, $3, $4, $5::user_status, $6)"
+            "INSERT INTO users (id, username, email, password_hash, status, language, created_at) VALUES ($1, $2, $3, $4, $5::user_status, $6, $7)"
         )
         .bind(user.id)
         .bind(&user.username)
         .bind(&user.email)
         .bind(&user.password_hash)
         .bind(&user.status)
+        .bind(&user.language)
         .bind(user.created_at)
         .execute(&self.pool)
         .await
@@ -46,7 +47,7 @@ impl UserRepository for PostgresUserRepository {
 
     async fn find_by_id(&self, id: Uuid) -> AppResult<Option<User>> {
         let result = sqlx::query_as::<_, User>(
-            "SELECT id, username, email, password_hash, status::text as status, created_at FROM users WHERE id = $1"
+            "SELECT id, username, email, password_hash, status::text as status, language, created_at FROM users WHERE id = $1"
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -58,7 +59,7 @@ impl UserRepository for PostgresUserRepository {
 
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
         let result = sqlx::query_as::<_, User>(
-            "SELECT id, username, email, password_hash, status::text as status, created_at FROM users WHERE email = $1"
+            "SELECT id, username, email, password_hash, status::text as status, language, created_at FROM users WHERE email = $1"
         )
         .bind(email)
         .fetch_optional(&self.pool)
@@ -70,7 +71,7 @@ impl UserRepository for PostgresUserRepository {
 
     async fn find_by_username(&self, username: &str) -> AppResult<Option<User>> {
         let result = sqlx::query_as::<_, User>(
-            "SELECT id, username, email, password_hash, status::text as status, created_at FROM users WHERE username = $1"
+            "SELECT id, username, email, password_hash, status::text as status, language, created_at FROM users WHERE username = $1"
         )
         .bind(username)
         .fetch_optional(&self.pool)
@@ -93,10 +94,11 @@ impl UserRepository for PostgresUserRepository {
 
     async fn update_user(&self, user: User) -> AppResult<Option<User>> {
         sqlx::query_as::<_, User>(
-            "UPDATE users SET username = $1, email = $2 WHERE id = $3 RETURNING id, username, email, password_hash, status::text as status, created_at"
+            "UPDATE users SET username = $1, email = $2, language = $3 WHERE id = $4 RETURNING id, username, email, password_hash, status::text as status, language, created_at"
         )
         .bind(&user.username)
         .bind(&user.email)
+        .bind(&user.language)
         .bind(user.id)
         .fetch_optional(&self.pool)
         .await

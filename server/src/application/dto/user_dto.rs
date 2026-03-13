@@ -7,6 +7,7 @@ pub struct UserDto {
     pub username: String,
     pub email: String,
     pub status: String,
+    pub language: String,
 }
 
 
@@ -23,6 +24,7 @@ mod tests {
             id: "123".to_string(),
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
         };
 
@@ -36,6 +38,7 @@ mod tests {
             id: "123".to_string(),
             username: "test".to_string(),
             email: "test@test.com".to_string(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
         };
         let json = serde_json::to_string(&dto).unwrap();

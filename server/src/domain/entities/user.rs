@@ -6,6 +6,7 @@ pub struct User {
     pub id: Uuid,
     pub username: String,
     pub email: String,
+    pub language: String,
     #[serde(skip_serializing)]
     pub password_hash: String,
     pub status: String,
@@ -18,6 +19,7 @@ impl User {
             id: Uuid::new_v4(),
             username,
             email,
+            language: "fr".to_string(),
             password_hash,
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
@@ -44,6 +46,7 @@ mod tests {
         assert_eq!(user.email, "test@example.com");
         assert_eq!(user.password_hash, "hashed_password");
         assert_eq!(user.status, "OFFLINE");
+        assert_eq!(user.language, "fr");
     }
 
     #[test]
@@ -55,6 +58,7 @@ mod tests {
         );
 
         assert_eq!(user.status, "OFFLINE");
+        assert_eq!(user.language, "fr");
     }
 
     #[test]
@@ -63,6 +67,7 @@ mod tests {
             "user1".to_string(),
             "user1@test.com".to_string(),
             "hash".to_string(),
+            
         );
         let user2 = User::new(
             "user2".to_string(),

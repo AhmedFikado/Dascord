@@ -22,6 +22,7 @@ mod tests {
             username: "New User".to_string(),
             email: "newuser@example.com".to_string(),
             status: "OFFLINE".to_string(),
+            language: "en".to_string(),
         };
         let response = SignupResponse {
             user,
@@ -33,6 +34,7 @@ mod tests {
         assert_eq!(response.user.id, "123e4567-e89b-12d3-a456-426614174000");
         assert_eq!(response.token, "signup_token");
         assert_eq!(response.user.status, "OFFLINE");
+        assert_eq!(response.user.language, "en");
     }
 
     #[test]
@@ -42,6 +44,7 @@ mod tests {
             username: "test".to_string(),
             email: "test@test.com".to_string(),
             status: "OFFLINE".to_string(),
+            language: "en".to_string(),
         };
         let response = SignupResponse {
             user,

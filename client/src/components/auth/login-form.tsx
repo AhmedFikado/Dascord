@@ -7,10 +7,12 @@ import { useAuthStore } from '@/app/lib/stores/use-auth-store';
 import { loginSchema, type LoginFormData } from '@/app/lib/api/validations/auth.schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useTranslation } from 'react-i18next';
 
 export default function LoginForm() {
     const router = useRouter();
     const { login, isLoading, error: authError, clearError } = useAuthStore();
+    const { t } = useTranslation();
 
     const [formData, setFormData] = useState<LoginFormData>({
         email: '',
@@ -53,7 +55,7 @@ export default function LoginForm() {
 
     return (
         <div className="bg-gray-300 p-8 rounded-lg shadow-md w-full">
-            <h1 className="text-2xl font-bold text-center mb-6 text-white">Connexion</h1>
+            <h1 className="text-2xl font-bold text-center mb-6 text-white">{t('welcome')}</h1>
 
             {authError && (
                 <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">

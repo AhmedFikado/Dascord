@@ -9,6 +9,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     status user_status DEFAULT 'OFFLINE',
+    language VARCHAR(10) DEFAULT 'fr',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -42,11 +43,11 @@ CREATE INDEX idx_server_members_user_id ON server_members(user_id);
 CREATE INDEX idx_channels_server_id ON channels(server_id);
 
 -- Utilisateurs de test
-INSERT INTO users (id, username, email, password_hash, status) VALUES
-    ('00000000-0000-0000-0000-000000000001', 'alice', 'alice@example.com', '$argon2i$v=19$m=16,t=2,p=1$UWJrblNFQ2hweGVaeEZkeA$JVqT/cAE59JGhfLl/rTMPQ', 'ONLINE'),
-    ('00000000-0000-0000-0000-000000000002', 'bob', 'bob@example.com', '$argon2i$v=19$m=16,t=2,p=1$UWJrblNFQ2hweGVaeEZkeA$JVqT/cAE59JGhfLl/rTMPQ', 'ONLINE'),
-    ('00000000-0000-0000-0000-000000000003', 'charlie', 'charlie@example.com', '$argon2i$v=19$m=16,t=2,p=1$UWJrblNFQ2hweGVaeEZkeA$JVqT/cAE59JGhfLl/rTMPQ', 'OFFLINE'),
-    ('00000000-0000-0000-0000-000000000004', 'diana', 'diana@example.com', '$argon2i$v=19$m=16,t=2,p=1$UWJrblNFQ2hweGVaeEZkeA$JVqT/cAE59JGhfLl/rTMPQ', 'ONLINE');
+INSERT INTO users (id, username, email, password_hash, status, language) VALUES
+    ('00000000-0000-0000-0000-000000000001', 'alice', 'alice@example.com', '$argon2i$v=19$m=16,t=2,p=1$UWJrblNFQ2hweGVaeEZkeA$JVqT/cAE59JGhfLl/rTMPQ', 'ONLINE', 'fr'),
+    ('00000000-0000-0000-0000-000000000002', 'bob', 'bob@example.com', '$argon2i$v=19$m=16,t=2,p=1$UWJrblNFQ2hweGVaeEZkeA$JVqT/cAE59JGhfLl/rTMPQ', 'ONLINE', 'en'),
+    ('00000000-0000-0000-0000-000000000003', 'charlie', 'charlie@example.com', '$argon2i$v=19$m=16,t=2,p=1$UWJrblNFQ2hweGVaeEZkeA$JVqT/cAE59JGhfLl/rTMPQ', 'OFFLINE', 'fr'),
+    ('00000000-0000-0000-0000-000000000004', 'diana', 'diana@example.com', '$argon2i$v=19$m=16,t=2,p=1$UWJrblNFQ2hweGVaeEZkeA$JVqT/cAE59JGhfLl/rTMPQ', 'ONLINE', 'en');
 
 -- Serveurs de test
 INSERT INTO servers (id, name, owner_id, invitation_code) VALUES

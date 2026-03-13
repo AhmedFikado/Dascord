@@ -184,6 +184,7 @@ mod tests {
             username: "newuser".to_string(),
             email: "new@example.com".to_string(),
             password: "password123".to_string(),
+            language: "en".to_string(),
         };
 
         let result = signup_uc.execute(request).await;
@@ -203,6 +204,7 @@ mod tests {
             username: "existing".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -216,6 +218,7 @@ mod tests {
             username: "newuser".to_string(),
             email: "test@example.com".to_string(),
             password: "password123".to_string(),
+            language: "en".to_string(),
         };
 
         let result = signup_uc.execute(request).await;
@@ -230,6 +233,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "existing@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -243,6 +247,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "new@example.com".to_string(),
             password: "password123".to_string(),
+            language: "en".to_string(),
         };
 
         let result = signup_uc.execute(request).await;
@@ -257,6 +262,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password123").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -288,6 +294,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password123").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -331,6 +338,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password123").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -357,6 +365,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password123").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -414,6 +423,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password123").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
