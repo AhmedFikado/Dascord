@@ -1,7 +1,8 @@
 use super::user_response_dto::UserResponse;
 use serde::Serialize;
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct LoginResponse {
     pub message: String,
     pub user: UserResponse,

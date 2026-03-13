@@ -1,6 +1,7 @@
 use crate::api::handlers::{
     AuthHandler, ChannelHandler, MessageHandler, ServerHandler, UserHandler,
 };
+use crate::api::openapi::ApiDoc;
 use crate::api::routes::{auth_routes, channel_routes, message_routes, server_routes, user_routes};
 use crate::application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase};
 use crate::infrastructure::repositories::{
@@ -15,6 +16,8 @@ use mongodb::Client as MongoClient;
 use sqlx::PgPool;
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 pub fn create_router(
     signup_uc: SignupUseCase<PostgresUserRepository>,
@@ -42,24 +45,28 @@ pub fn create_router(
     let user_repo = PostgresUserRepository::new(pg_pool.clone());
     let user_repo2 = PostgresUserRepository::new(pg_pool);
     
-    let server_handler = Arc::new(ServerHandler::new(
-        jwt_service.clone(),
-        server_repo.clone(),
-        channel_repo.clone(),
-        user_repo,
-    ).with_ws_manager(ws_manager.clone()));
+    let server_handler = Arc::new(
+        ServerHandler::new(
+            jwt_service.clone(),
+            server_repo.clone(),
+            channel_repo.clone(),
+            user_repo,
+        ).with_ws_manager(ws_manager.clone())
+    );
     let channel_handler = Arc::new(ChannelHandler::new(
         jwt_service.clone(),
         channel_repo.clone(),
         server_repo.clone(),
     ));
-    let message_handler = Arc::new(MessageHandler::new(
-        jwt_service.clone(),
-        message_repo,
-        channel_repo,
-        server_repo,
-        user_repo2,
-    ).with_ws_manager(ws_manager));
+    let message_handler = Arc::new(
+        MessageHandler::new(
+            jwt_service.clone(),
+            message_repo,
+            channel_repo,
+            server_repo,
+            user_repo2,
+        ).with_ws_manager(ws_manager)
+    );
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -67,6 +74,7 @@ pub fn create_router(
         .allow_headers(Any);
 
     Router::new()
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .nest("/auth", auth_routes(auth_handler))
         .nest("/users", user_routes(user_handler))
         .nest("/servers", server_routes(server_handler))

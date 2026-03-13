@@ -1,4 +1,4 @@
-use crate::api::handlers::message_handler::MessageHandler;
+use crate::api::handlers::message_handler::{MessageHandler, send_welcome_message, get_message_history, send_message, delete_message, update_message};
 use crate::infrastructure::repositories::{
     ChannelRepository, MessageRepository, ServerRepository, UserRepository,
 };
@@ -19,23 +19,23 @@ pub fn message_routes<
     Router::new()
         .route(
             "/channels/:channel_id/messages",
-            post(MessageHandler::<MR, CR, SR, UR>::send_message),
+            post(send_message::<MR, CR, SR, UR>),
         )
         .route(
             "/channels/:channel_id/messages",
-            get(MessageHandler::<MR, CR, SR, UR>::get_message_history),
+            get(get_message_history::<MR, CR, SR, UR>),
         )
         .route(
             "/channels/:channel_id/messages/welcome",
-            post(MessageHandler::<MR, CR, SR, UR>::send_welcome_message),
+            post(send_welcome_message::<MR, CR, SR, UR>),
         )
         .route(
             "/messages/:id",
-            delete(MessageHandler::<MR, CR, SR, UR>::delete_message),
+            delete(delete_message::<MR, CR, SR, UR>),
         )
         .route(
             "/messages/:id",
-            put(MessageHandler::<MR, CR, SR, UR>::update_message),
+            put(update_message::<MR, CR, SR, UR>),
         )
         .with_state(handler)
 }

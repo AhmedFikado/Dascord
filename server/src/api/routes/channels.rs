@@ -1,7 +1,7 @@
-use crate::api::handlers::channel_handler::ChannelHandler;
+use crate::api::handlers::channel_handler::{ChannelHandler, get_channel_info, update_channel, delete_channel};
 use crate::infrastructure::repositories::{ChannelRepository, ServerRepository};
 use axum::{
-    routing::{delete, get, put},
+    routing::{delete as axum_delete, get, put},
     Router,
 };
 use std::sync::Arc;
@@ -10,9 +10,9 @@ pub fn channel_routes<CR: ChannelRepository + 'static, SR: ServerRepository + 's
     handler: Arc<ChannelHandler<CR, SR>>,
 ) -> Router {
     Router::new()
-        .route("/:id", get(ChannelHandler::<CR, SR>::get_channel_info))
-        .route("/:id", put(ChannelHandler::<CR, SR>::update_channel))
-        .route("/:id", delete(ChannelHandler::<CR, SR>::delete_channel))
+        .route("/:id", get(get_channel_info::<CR, SR>))
+        .route("/:id", put(update_channel::<CR, SR>))
+        .route("/:id", axum_delete(delete_channel::<CR, SR>))
         .with_state(handler)
 }
 

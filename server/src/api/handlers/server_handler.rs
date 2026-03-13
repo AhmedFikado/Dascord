@@ -65,326 +65,468 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
         self.ws_manager = Some(ws_manager);
         self
     }
+}
 
-    pub async fn create_server(
-        State(handler): State<Arc<Self>>,
-        headers: HeaderMap,
-        Json(request): Json<CreateServerRequest>,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
+/// - Créer un nouveau serveur
+#[utoipa::path(
+    post,
+    path = "/servers",
+    tag = "servers",
+    request_body = CreateServerRequest,
+    responses(
+        (status = 201, description = "Serveur créé avec succès", body = ServerResponse),
+        (status = 401, description = "Non autorisé"),
+        (status = 400, description = "Erreur de validation")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn create_server<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    headers: HeaderMap,
+    Json(request): Json<CreateServerRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
 
-        let claims = handler.jwt_service.verify_token(token)?;
-        let owner_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+    let claims = handler.jwt_service.verify_token(token)?;
+    let owner_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
-        let response = handler.create_server_uc.execute(request, owner_id).await?;
-        Ok((StatusCode::CREATED, Json(response)))
+    let response = handler.create_server_uc.execute(request, owner_id).await?;
+    Ok((StatusCode::CREATED, Json(response)))
+}
+
+/// - Obtenir la liste des serveurs dans lequel se trouve l'utilisateur
+#[utoipa::path(
+    get,
+    path = "/servers",
+    tag = "servers",
+    responses(
+        (status = 200, description = "Liste des serveurs", body = Vec<ServerResponse>),
+        (status = 401, description = "Non autorisé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn get_user_servers<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let servers = handler.get_user_servers_uc.execute(user_id).await?;
+    Ok((StatusCode::OK, Json(servers)))
+}
+
+/// - Obtenir les informations d'un serveur
+#[utoipa::path(
+    get,
+    path = "/servers/{id}",
+    tag = "servers",
+    responses(
+        (status = 200, description = "Informations du serveur", body = ServerResponse),
+        (status = 401, description = "Non autorisé"),
+        (status = 404, description = "Serveur non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn get_server_info<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let server = handler.get_server_info_uc.execute(id, user_id).await?;
+    Ok((StatusCode::OK, Json(server)))
+}
+
+/// - Mettre à jour les informations d'un serveur
+#[utoipa::path(
+    put,
+    path = "/servers/{id}",
+    tag = "servers",
+    request_body = serde_json::Value,
+    responses(
+        (status = 200, description = "Serveur mis à jour", body = ServerResponse),
+        (status = 401, description = "Non autorisé"),
+        (status = 403, description = "Accès refusé"),
+        (status = 404, description = "Serveur non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn update_server<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let name = payload
+        .get("name")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError::ValidationError("Missing name field".to_string()))?
+        .to_string();
+
+    let server = handler.update_server_uc.execute(id, user_id, name).await?;
+    Ok((StatusCode::OK, Json(server)))
+}
+
+/// - Supprimer un serveur
+#[utoipa::path(
+    delete,
+    path = "/servers/{id}",
+    tag = "servers",
+    responses(
+        (status = 200, description = "Serveur supprimé"),
+        (status = 401, description = "Non autorisé"),
+        (status = 403, description = "Accès refusé"),
+        (status = 404, description = "Serveur non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn delete_server<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    handler.delete_server_uc.execute(id, user_id).await?;
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({"message": "Server deleted"})),
+    ))
+}
+
+/// - Rejoindre un serveur
+#[utoipa::path(
+    post,
+    path = "/servers/join",
+    tag = "servers",
+    request_body = JoinServerRequest,
+    responses(
+        (status = 200, description = "Serveur rejoint avec succès"),
+        (status = 401, description = "Non autorisé"),
+        (status = 404, description = "Code d'invitation invalide"),
+        (status = 409, description = "Déjà membre du serveur")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn join_server<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    headers: HeaderMap,
+    Json(request): Json<JoinServerRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let server_id = handler
+        .join_server_uc
+        .execute(&request.invitation_code, user_id)
+        .await?;
+
+    // Récupérer les infos de l'utilisateur pour la diffusion
+    let user = handler
+        .user_repo
+        .find_by_id(user_id)
+        .await?
+        .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+
+    // Diffuser l'événement WebSocket à tous les clients connectés
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_all(
+            crate::infrastructure::websocket::ServerMessage::ServerMemberJoined {
+                server_id: server_id.to_string(),
+                user_id: user_id.to_string(),
+                username: user.username,
+            },
+        ).await;
     }
 
-    pub async fn get_user_servers(
-        State(handler): State<Arc<Self>>,
-        headers: HeaderMap,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({"message": "Joined server"})),
+    ))
+}
 
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+/// - Quitter un serveur
+#[utoipa::path(
+    delete,
+    path = "/servers/{id}/leave",
+    tag = "servers",
+    responses(
+        (status = 200, description = "Serveur quitté avec succès"),
+        (status = 401, description = "Non autorisé"),
+        (status = 400, description = "Le propriétaire ne peut pas quitter"),
+        (status = 404, description = "Serveur non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn leave_server<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
 
-        let servers = handler.get_user_servers_uc.execute(user_id).await?;
-        Ok((StatusCode::OK, Json(servers)))
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    handler.leave_server_uc.execute(id, user_id).await?;
+
+    // Diffuser l'événement WebSocket à tous les clients connectés
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_all(
+            crate::infrastructure::websocket::ServerMessage::ServerMemberLeft {
+                server_id: id.to_string(),
+                user_id: user_id.to_string(),
+            },
+        ).await;
     }
 
-    pub async fn get_server_info(
-        State(handler): State<Arc<Self>>,
-        Path(id): Path<Uuid>,
-        headers: HeaderMap,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({"message": "Left server"})),
+    ))
+}
 
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+/// - Obtenir la liste des membres d'un serveur
+#[utoipa::path(
+    get,
+    path = "/servers/{id}/members",
+    tag = "servers",
+    responses(
+        (status = 200, description = "Liste des membres", body = Vec<MemberResponse>),
+        (status = 401, description = "Non autorisé"),
+        (status = 404, description = "Serveur non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn list_members<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
 
-        let server = handler.get_server_info_uc.execute(id, user_id).await?;
-        Ok((StatusCode::OK, Json(server)))
-    }
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
-    pub async fn update_server(
-        State(handler): State<Arc<Self>>,
-        Path(id): Path<Uuid>,
-        headers: HeaderMap,
-        Json(payload): Json<serde_json::Value>,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
+    let members = handler.list_members_uc.execute(id, user_id).await?;
+    Ok((StatusCode::OK, Json(members)))
+}
 
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+/// - Mettre à jour le rôle d'un membre
+#[utoipa::path(
+    put,
+    path = "/servers/{id}/members/{userId}",
+    tag = "servers",
+    request_body = serde_json::Value,
+    responses(
+        (status = 200, description = "Rôle mis à jour"),
+        (status = 401, description = "Non autorisé"),
+        (status = 403, description = "Permissions insuffisantes"),
+        (status = 404, description = "Serveur ou membre non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn update_member_role<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    Path((id, target_user_id)): Path<(Uuid, Uuid)>,
+    headers: HeaderMap,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
 
-        let name = payload
-            .get("name")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| AppError::ValidationError("Missing name field".to_string()))?
-            .to_string();
+    let claims = handler.jwt_service.verify_token(token)?;
+    let requester_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
-        let server = handler.update_server_uc.execute(id, user_id, name).await?;
-        Ok((StatusCode::OK, Json(server)))
-    }
+    let role: ServerRole =
+        serde_json::from_value(payload.get("role").cloned().unwrap_or_default())
+            .map_err(|_| AppError::ValidationError("Invalid role".to_string()))?;
 
-    pub async fn delete_server(
-        State(handler): State<Arc<Self>>,
-        Path(id): Path<Uuid>,
-        headers: HeaderMap,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
+    handler
+        .update_member_role_uc
+        .execute(id, target_user_id, requester_id, role.clone())
+        .await?;
 
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+    if let Some(ws_manager) = &handler.ws_manager {
+        let role_string = serde_json::to_value(&role)
+            .ok()
+            .and_then(|v| v.as_str().map(String::from))
+            .unwrap_or_else(|| "MEMBER".to_string());
 
-        handler.delete_server_uc.execute(id, user_id).await?;
-        Ok((
-            StatusCode::OK,
-            Json(serde_json::json!({"message": "Server deleted"})),
-        ))
-    }
+        ws_manager.broadcast_to_all(
+            crate::infrastructure::websocket::ServerMessage::MemberRoleUpdated {
+                server_id: id.to_string(),
+                user_id: target_user_id.to_string(),
+                new_role: role_string.clone(),
+            },
+        ).await;
 
-    pub async fn join_server(
-        State(handler): State<Arc<Self>>,
-        headers: HeaderMap,
-        Json(request): Json<JoinServerRequest>,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
-
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-
-        let server_id = handler
-            .join_server_uc
-            .execute(&request.invitation_code, user_id)
-            .await?;
-        
-        // Récupérer les infos de l'utilisateur pour la diffusion
-        let user = handler
-            .user_repo
-            .find_by_id(user_id)
-            .await?
-            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
-        
-        // Diffuser l'événement WebSocket à tous les clients connectés
-        if let Some(ws_manager) = &handler.ws_manager {
-            ws_manager.broadcast_to_all(
-                crate::infrastructure::websocket::ServerMessage::ServerMemberJoined {
-                    server_id: server_id.to_string(),
-                    user_id: user_id.to_string(),
-                    username: user.username,
-                },
-            ).await;
-        }
-        
-        Ok((
-            StatusCode::OK,
-            Json(serde_json::json!({"message": "Joined server"})),
-        ))
-    }
-
-    pub async fn leave_server(
-        State(handler): State<Arc<Self>>,
-        Path(id): Path<Uuid>,
-        headers: HeaderMap,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
-
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-
-        handler.leave_server_uc.execute(id, user_id).await?;
-        
-        // Diffuser l'événement WebSocket à tous les clients connectés
-        if let Some(ws_manager) = &handler.ws_manager {
-            ws_manager.broadcast_to_all(
-                crate::infrastructure::websocket::ServerMessage::ServerMemberLeft {
-                    server_id: id.to_string(),
-                    user_id: user_id.to_string(),
-                },
-            ).await;
-        }
-        
-        Ok((
-            StatusCode::OK,
-            Json(serde_json::json!({"message": "Left server"})),
-        ))
-    }
-
-    pub async fn list_members(
-        State(handler): State<Arc<Self>>,
-        Path(id): Path<Uuid>,
-        headers: HeaderMap,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
-
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-
-        let members = handler.list_members_uc.execute(id, user_id).await?;
-        Ok((StatusCode::OK, Json(members)))
-    }
-
-    pub async fn update_member_role(
-        State(handler): State<Arc<Self>>,
-        Path((id, target_user_id)): Path<(Uuid, Uuid)>,
-        headers: HeaderMap,
-        Json(payload): Json<serde_json::Value>,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
-
-        let claims = handler.jwt_service.verify_token(token)?;
-        let requester_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
-
-        let role: ServerRole = 
-            serde_json::from_value(payload.get("role").cloned().unwrap_or_default())
-                .map_err(|_| AppError::ValidationError("Invalid role".to_string()))?;
-
-        handler
-            .update_member_role_uc
-            .execute(id, target_user_id, requester_id, role.clone())
-            .await?;
-
-        if let Some(ws_manager) = &handler.ws_manager {
-            let role_string = serde_json::to_value(&role)
-                .ok()
-                .and_then(|v| v.as_str().map(String::from))
-                .unwrap_or_else(|| "MEMBER".to_string());
-            
+        if role == ServerRole::Owner {
             ws_manager.broadcast_to_all(
                 crate::infrastructure::websocket::ServerMessage::MemberRoleUpdated {
                     server_id: id.to_string(),
-                    user_id: target_user_id.to_string(),
-                    new_role: role_string.clone(),
+                    user_id: requester_id.to_string(),
+                    new_role: "ADMIN".to_string(),
                 },
             ).await;
-
-            if role == ServerRole::Owner {
-                ws_manager.broadcast_to_all(
-                    crate::infrastructure::websocket::ServerMessage::MemberRoleUpdated {
-                        server_id: id.to_string(),
-                        user_id: requester_id.to_string(),
-                        new_role: "ADMIN".to_string(),
-                    },
-                ).await;
-            }
         }
-
-        Ok((
-            StatusCode::OK,
-            Json(serde_json::json!({"message": "Member role updated"})),
-        ))
     }
 
-    pub async fn get_channels(
-        State(handler): State<Arc<Self>>,
-        Path(id): Path<Uuid>,
-        headers: HeaderMap,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({"message": "Member role updated"})),
+    ))
+}
 
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+/// - Obtenir les channels d'un serveur
+#[utoipa::path(
+    get,
+    path = "/servers/{id}/channels",
+    tag = "servers",
+    responses(
+        (status = 200, description = "Liste des channels", body = Vec<ChannelResponse>),
+        (status = 401, description = "Non autorisé"),
+        (status = 404, description = "Serveur non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn get_channels<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
 
-        let channels = handler.get_channels_uc.execute(id, user_id).await?;
-        Ok((StatusCode::OK, Json(channels)))
-    }
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
-    pub async fn create_channel(
-        State(handler): State<Arc<Self>>,
-        Path(id): Path<Uuid>,
-        headers: HeaderMap,
-        Json(request): Json<crate::application::dto::channel::CreateChannelRequest>,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
+    let channels = handler.get_channels_uc.execute(id, user_id).await?;
+    Ok((StatusCode::OK, Json(channels)))
+}
 
-        let claims = handler.jwt_service.verify_token(token)?;
-        let user_id = Uuid::parse_str(&claims.sub_id)
-            .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+/// - Créer un channel dans un serveur
+#[utoipa::path(
+    post,
+    path = "/servers/{id}/channels",
+    tag = "servers",
+    request_body = CreateChannelRequest,
+    responses(
+        (status = 201, description = "Channel créé avec succès", body = ChannelResponse),
+        (status = 401, description = "Non autorisé"),
+        (status = 403, description = "Permissions insuffisantes"),
+        (status = 404, description = "Serveur non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn create_channel<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+    Json(request): Json<crate::application::dto::channel::CreateChannelRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
 
-        let channel = handler
-            .create_channel_uc
-            .execute(id, user_id, request)
-            .await?;
-        Ok((StatusCode::CREATED, Json(channel)))
-    }
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let channel = handler
+        .create_channel_uc
+        .execute(id, user_id, request)
+        .await?;
+    Ok((StatusCode::CREATED, Json(channel)))
 }
 
 
