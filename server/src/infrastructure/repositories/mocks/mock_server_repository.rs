@@ -1,4 +1,4 @@
-use crate::domain::entities::Server;
+use crate::domain::entities::{Server, BanType};
 use crate::domain::value_objects::ServerRole;
 use crate::infrastructure::repositories::ServerRepository;
 use crate::utils::error::{AppResult};
@@ -12,6 +12,7 @@ pub struct MockServerRepository {
     servers: Arc<Mutex<HashMap<Uuid, Server>>>,
     members: Arc<Mutex<HashMap<(Uuid, Uuid), ServerRole>>>, // (server_id, user_id) -> role
     invitation_codes: Arc<Mutex<HashMap<String, Uuid>>>,    // code -> server_id
+    bans: Arc<Mutex<HashMap<(Uuid, Uuid), Option<chrono::DateTime<chrono::Utc>>>>>, // (server_id, user_id) -> expires_at
 }
 
 impl MockServerRepository {
@@ -20,6 +21,7 @@ impl MockServerRepository {
             servers: Arc::new(Mutex::new(HashMap::new())),
             members: Arc::new(Mutex::new(HashMap::new())),
             invitation_codes: Arc::new(Mutex::new(HashMap::new())),
+            bans: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
@@ -157,5 +159,25 @@ impl ServerRepository for MockServerRepository {
         let mut members = self.members.lock().unwrap();
         members.insert((server_id, user_id), role);
         Ok(())
+    }
+
+    async fn is_banned(&self, server_id: Uuid, user_id: Uuid) -> AppResult<bool> {
+        let bans = self.bans.lock().unwrap();
+        if let Some(expires_at) = bans.get(&(server_id, user_id)) {
+            match expires_at {
+                None => Ok(true), // permanent
+                Some(exp) => Ok(*exp > chrono::Utc::now()), // temporaire actif
+            }
+        } else {
+            Ok(false)
+        }
+    }
+
+    async fn ban_member(&self, server_id: Uuid, user_id: Uuid, _banned_by: Uuid, _ban_type: BanType, expires_at: Option<chrono::DateTime<chrono::Utc>>) -> AppResult<()> {
+        {
+            let mut bans = self.bans.lock().unwrap();
+            bans.insert((server_id, user_id), expires_at);
+        }
+        self.remove_member(server_id, user_id).await
     }
 }
