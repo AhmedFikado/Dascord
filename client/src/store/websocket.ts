@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/app/lib/stores/use-auth-store';
 import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { Member } from '@/types/models/member';
 import { Role } from '@/types/models/role';
@@ -162,12 +163,10 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           // Si on est sur le serveur concerné et qu'on a déjà des membres chargés
           if (currentServer?.id === message.payload.server_id && members.length > 0) {
             serverStore.getMembers(message.payload.server_id);
-            
-            }
+          }
         }
         break;
-            
-            
+
       case 'MemberRoleUpdated':
         // Le rôle d'un membre a changé, mettre à jour le store
         {
@@ -186,6 +185,25 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
             });
 
             useServerStore.setState({ members: updatedMembers });
+          }
+        }
+        break;
+
+      case 'MemberKicked':
+      case 'MemberBanned':
+        {
+          const currentUserId = useAuthStore.getState().userId;
+
+          if (currentUserId === message.payload.user_id) {
+            useServerStore.getState().reset();
+            window.location.href = '/servers';
+          } else {
+            const serverStore = useServerStore.getState();
+            if (serverStore.currentServer?.id === message.payload.server_id) {
+              useServerStore.setState({
+                members: serverStore.members.filter(m => m.user_id !== message.payload.user_id),
+              });
+            }
           }
         }
         break;

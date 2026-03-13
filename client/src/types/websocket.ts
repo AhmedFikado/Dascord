@@ -128,6 +128,20 @@ export type ServerMessage =
       };
     }
   | {
+      type: 'MemberKicked';
+      payload: {
+        server_id: string;
+        user_id: string;
+      };
+    }
+  | {
+      type: 'MemberBanned';
+      payload: {
+        server_id: string;
+        user_id: string;
+      };
+    }
+  | {
       type: 'Error';
       payload: {
         code: string;
