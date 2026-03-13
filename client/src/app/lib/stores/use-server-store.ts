@@ -26,6 +26,8 @@ interface ServerState {
   updateServer: (serverId: string, name: string) => Promise<Server>;
   getMembers: (serverId: string) => Promise<void>;
   updateRoleMember: (serverId: string, userId: string, role: Role) => Promise<void>;
+  kickMember: (serverId: string, userId: string) => Promise<void>;
+  banMember: (serverId: string, userId: string, banType: 'Permanent' | 'Temporary', expiresAt?: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -150,6 +152,34 @@ export const useServerStore = create<ServerState>(set => ({
       set({ isLoading: false });
     } catch (error) {
       set({ error: t('Use_server_store.Error_updating_member_role'), isLoading: false });
+      throw error;
+    }
+  },
+
+  kickMember: async (serverId, userId) => {
+    set({ isLoading: true, error: null });
+    try {
+      await serversApi.kickMember(serverId, userId);
+      set(state => ({
+        members: state.members.filter(m => m.user_id !== userId),
+        isLoading: false,
+      }));
+    } catch (error) {
+      set({ error: t('Use_server_store.Error_kicking_member'), isLoading: false });
+      throw error;
+    }
+  },
+
+  banMember: async (serverId, userId, banType, expiresAt) => {
+    set({ isLoading: true, error: null });
+    try {
+      await serversApi.banMember(serverId, userId, banType, expiresAt);
+      set(state => ({
+        members: state.members.filter(m => m.user_id !== userId),
+        isLoading: false,
+      }));
+    } catch (error) {
+      set({ error: t('Use_server_store.Error_banning_member'), isLoading: false });
       throw error;
     }
   },

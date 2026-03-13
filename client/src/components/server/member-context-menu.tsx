@@ -53,7 +53,11 @@ export default function MemberContextMenu({
     return null;
   }
 
-  const handleKick = () => {
+  const kickMember = useServerStore(state => state.kickMember);
+  const banMember = useServerStore(state => state.banMember);
+
+  const handleKick = async () => {
+    await kickMember(serverId, targetMemberId);
     onClose();
   };
 
@@ -103,7 +107,13 @@ export default function MemberContextMenu({
           setShowTempBan(false);
           onClose();
         }}
-        onConfirm={duration => {
+        onConfirm={async duration => {
+          const durationMap: Record<string, number> = {
+            '1h': 1, '10h': 10, '24h': 24, '48h': 48, '1w': 168,
+          };
+          const hours = durationMap[duration] ?? 24;
+          const expiresAt = new Date(Date.now() + hours * 3600 * 1000).toISOString();
+          await banMember(serverId, targetMemberId, 'Temporary', expiresAt);
           setShowTempBan(false);
           onClose();
         }}
@@ -114,7 +124,8 @@ export default function MemberContextMenu({
           setShowPermBan(false);
           onClose();
         }}
-        onConfirm={() => {
+        onConfirm={async () => {
+          await banMember(serverId, targetMemberId, 'Permanent');
           setShowPermBan(false);
           onClose();
         }}
