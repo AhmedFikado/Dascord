@@ -5,39 +5,39 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 #[openapi(
     paths(
         // Auth
-        crate::api::handlers::auth_handler::signup,
-        crate::api::handlers::auth_handler::login,
-        crate::api::handlers::auth_handler::logout,
-        crate::api::handlers::auth_handler::get_me,
+        crate::application::controller::auth_controller::signup,
+        crate::application::controller::auth_controller::login,
+        crate::application::controller::auth_controller::logout,
+        crate::application::controller::auth_controller::get_me,
 
         // Users
-        crate::api::handlers::user_handler::get_me,
-        crate::api::handlers::user_handler::update_status,
-        crate::api::handlers::user_handler::update_user,
+        crate::application::controller::user_controller::get_me,
+        crate::application::controller::user_controller::update_status,
+        crate::application::controller::user_controller::update_user,
 
         // Servers
-        crate::api::handlers::server_handler::create_server,
-        crate::api::handlers::server_handler::get_user_servers,
-        crate::api::handlers::server_handler::get_server_info,
-        crate::api::handlers::server_handler::update_server,
-        crate::api::handlers::server_handler::delete_server,
-        crate::api::handlers::server_handler::join_server,
-        crate::api::handlers::server_handler::leave_server,
-        crate::api::handlers::server_handler::list_members,
-        crate::api::handlers::server_handler::update_member_role,
-        crate::api::handlers::server_handler::get_channels,
-        crate::api::handlers::server_handler::create_channel,
+        crate::application::controller::server_controller::create_server,
+        crate::application::controller::server_controller::get_user_servers,
+        crate::application::controller::server_controller::get_server_info,
+        crate::application::controller::server_controller::update_server,
+        crate::application::controller::server_controller::delete_server,
+        crate::application::controller::server_controller::join_server,
+        crate::application::controller::server_controller::leave_server,
+        crate::application::controller::server_controller::list_members,
+        crate::application::controller::server_controller::update_member_role,
+        crate::application::controller::server_controller::get_channels,
+        crate::application::controller::server_controller::create_channel,
 
         // Channels
-        crate::api::handlers::channel_handler::get_channel_info,
-        crate::api::handlers::channel_handler::update_channel,
-        crate::api::handlers::channel_handler::delete_channel,
+        crate::application::controller::channel_controller::get_channel_info,
+        crate::application::controller::channel_controller::update_channel,
+        crate::application::controller::channel_controller::delete_channel,
 
         // Messages
-        crate::api::handlers::message_handler::send_message,
-        crate::api::handlers::message_handler::get_message_history,
-        crate::api::handlers::message_handler::delete_message,
-        crate::api::handlers::message_handler::update_message,
+        crate::application::controller::message_controller::send_message,
+        crate::application::controller::message_controller::get_message_history,
+        crate::application::controller::message_controller::delete_message,
+        crate::application::controller::message_controller::update_message,
     ),
     components(
         schemas(

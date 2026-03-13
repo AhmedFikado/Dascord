@@ -681,7 +681,7 @@ mod tests {
             name: "Test Server".to_string(),
         };
 
-        let result = ServerHandler::create_server(State(handler), headers, Json(request)).await;
+        let result = create_server(State(handler), headers, Json(request)).await;
         assert!(result.is_ok());
     }
 
@@ -709,7 +709,7 @@ mod tests {
             format!("Bearer {}", token).parse().unwrap(),
         );
 
-        let result = ServerHandler::get_user_servers(State(handler), headers).await;
+        let result = get_user_servers(State(handler), headers).await;
         assert!(result.is_ok());
     }
 
@@ -756,7 +756,7 @@ mod tests {
             invitation_code: "CODE123".to_string(),
         };
 
-        let result = ServerHandler::join_server(State(handler), headers, Json(request)).await;
+        let result = join_server(State(handler), headers, Json(request)).await;
         assert!(result.is_ok());
     }
 
@@ -787,7 +787,7 @@ mod tests {
         };
 
         let result =
-            ServerHandler::create_channel(State(handler), Path(server.id), headers, Json(request))
+            create_channel(State(handler), Path(server.id), headers, Json(request))
                 .await;
         assert!(result.is_ok());
     }
@@ -805,7 +805,7 @@ mod tests {
         MockUserRepository::new(),));
         let headers = HeaderMap::new();
 
-        let result = ServerHandler::get_user_servers(State(handler), headers).await;
+        let result = get_user_servers(State(handler), headers).await;
         assert!(result.is_err());
     }
 
@@ -832,7 +832,7 @@ mod tests {
             format!("Bearer {}", token).parse().unwrap(),
         );
 
-        let result = ServerHandler::get_server_info(State(handler), Path(server.id), headers).await;
+        let result = get_server_info(State(handler), Path(server.id), headers).await;
         assert!(result.is_ok());
     }
 
@@ -859,7 +859,7 @@ mod tests {
 
         let payload = serde_json::json!({"name": "New Name"});
         let result =
-            ServerHandler::update_server(State(handler), Path(server.id), headers, Json(payload)).await;
+            update_server(State(handler), Path(server.id), headers, Json(payload)).await;
         assert!(result.is_ok());
     }
 
@@ -884,7 +884,7 @@ mod tests {
             format!("Bearer {}", token).parse().unwrap(),
         );
 
-        let result = ServerHandler::delete_server(State(handler), Path(server.id), headers).await;
+        let result = delete_server(State(handler), Path(server.id), headers).await;
         assert!(result.is_ok());
     }
 
@@ -912,7 +912,7 @@ mod tests {
             format!("Bearer {}", token).parse().unwrap(),
         );
 
-        let result = ServerHandler::leave_server(State(handler), Path(server.id), headers).await;
+        let result = leave_server(State(handler), Path(server.id), headers).await;
         assert!(result.is_ok());
     }
 
@@ -955,7 +955,7 @@ mod tests {
             format!("Bearer {}", token).parse().unwrap(),
         );
 
-        let result = ServerHandler::list_members(State(handler), Path(server.id), headers).await;
+        let result = list_members(State(handler), Path(server.id), headers).await;
         assert!(result.is_ok());
     }
 
@@ -984,7 +984,7 @@ mod tests {
         );
 
         let payload = serde_json::json!({"role": "ADMIN"});
-        let result = ServerHandler::update_member_role(
+        let result = update_member_role(
             State(handler),
             Path((server.id, user_id)),
             headers,
@@ -1017,7 +1017,7 @@ mod tests {
             format!("Bearer {}", token).parse().unwrap(),
         );
 
-        let result = ServerHandler::get_channels(State(handler), Path(server.id), headers).await;
+        let result = get_channels(State(handler), Path(server.id), headers).await;
         assert!(result.is_ok());
     }
 
@@ -1090,7 +1090,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
 
-        let result = ServerHandler::get_user_servers(State(handler), headers).await;
+        let result = get_user_servers(State(handler), headers).await;
         assert!(result.is_err());
     }
 }

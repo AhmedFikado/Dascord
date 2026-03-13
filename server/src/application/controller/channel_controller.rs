@@ -1,4 +1,4 @@
-use crate::application::use_cases::channel::*;
+use crate::domain::services::channel::*;
 use crate::infrastructure::repositories::{ChannelRepository, ServerRepository};
 use crate::infrastructure::security::JWTService;
 use crate::utils::error::AppError;
@@ -186,7 +186,7 @@ mod tests {
         );
 
         let result =
-            ChannelHandler::get_channel_info(State(handler), Path(channel.id), headers).await;
+            get_channel_info(State(handler), Path(channel.id), headers).await;
         assert!(result.is_ok());
     }
 
@@ -205,7 +205,7 @@ mod tests {
         let headers = HeaderMap::new();
 
         let result =
-            ChannelHandler::get_channel_info(State(handler), Path(channel_id), headers).await;
+            get_channel_info(State(handler), Path(channel_id), headers).await;
         assert!(result.is_err());
     }
 
@@ -235,7 +235,7 @@ mod tests {
 
         let payload = serde_json::json!({"name": "New Name"});
 
-        let result = ChannelHandler::update_channel(
+        let result = update_channel(
             State(handler),
             Path(channel.id),
             headers,
@@ -270,7 +270,7 @@ mod tests {
         );
 
         let result =
-            ChannelHandler::delete_channel(State(handler), Path(channel.id), headers).await;
+            delete_channel(State(handler), Path(channel.id), headers).await;
         assert!(result.is_ok());
     }
 }

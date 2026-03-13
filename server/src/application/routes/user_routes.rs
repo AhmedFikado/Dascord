@@ -1,5 +1,5 @@
-use crate::api::handlers::user_handler::{get_me, update_status, update_user};
-use crate::api::handlers::UserHandler;
+use crate::application::controller::user_controller::{get_me, update_status, update_user};
+use crate::application::controller::UserHandler;
 use crate::infrastructure::repositories::{ServerRepository, UserRepository};
 use axum::{routing::{get, put}, Router};
 use std::sync::Arc;
@@ -22,7 +22,7 @@ mod tests {
     use crate::infrastructure::repositories::mocks::mock_server_repository::MockServerRepository;
     use crate::infrastructure::repositories::mocks::mock_user_repository::MockUserRepository;
     use crate::infrastructure::security::JWTService;
-    use crate::infrastructure::services::UserService;
+    use crate::domain::services::user::UserService;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use tower::util::ServiceExt;

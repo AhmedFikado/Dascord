@@ -1,4 +1,4 @@
-use crate::api::handlers::message_handler::{MessageHandler, send_welcome_message, get_message_history, send_message, delete_message, update_message};
+use crate::application::controller::message_controller::{MessageHandler, send_welcome_message, get_message_history, send_message, delete_message, update_message};
 use crate::infrastructure::repositories::{
     ChannelRepository, MessageRepository, ServerRepository, UserRepository,
 };
@@ -51,27 +51,27 @@ mod tests {
 
     #[test]
     fn test_message_routes_creation() {
-        use crate::api::handlers::message_handler::MessageHandler;
+        use crate::application::controller::message_controller::MessageHandler;
         let mock_message_repo = MockMessageRepository::new();
         let mock_channel_repo = MockChannelRepository::new();
         let mock_server_repo = MockServerRepository::new();
         let mock_user_repo = MockUserRepository::new();
         let jwt_service = JWTService::new("test_secret".to_string());
         let handler = Arc::new(MessageHandler::new(jwt_service, mock_message_repo, mock_channel_repo, mock_server_repo, mock_user_repo));
-        let _router = message_routes(handler);
+        let _router = message_routes::<MockMessageRepository, MockChannelRepository, MockServerRepository, MockUserRepository>(handler);
         assert!(true);
     }
 
     #[test]
     fn test_message_routes_has_correct_paths() {
-        use crate::api::handlers::message_handler::MessageHandler;
+        use crate::application::controller::message_controller::MessageHandler;
         let mock_message_repo = MockMessageRepository::new();
         let mock_channel_repo = MockChannelRepository::new();
         let mock_server_repo = MockServerRepository::new();
         let mock_user_repo = MockUserRepository::new();
         let jwt_service = JWTService::new("test_secret".to_string());
         let handler = Arc::new(MessageHandler::new(jwt_service, mock_message_repo, mock_channel_repo, mock_server_repo, mock_user_repo));
-        let _router = message_routes(handler);
+        let _router = message_routes::<MockMessageRepository, MockChannelRepository, MockServerRepository, MockUserRepository>(handler);
         assert!(true);
     }
 }

@@ -1,7 +1,7 @@
 use crate::application::dto::auth::{SignupRequest, SignupResponse};
 use crate::infrastructure::repositories::UserRepository;
 use crate::infrastructure::security::jwt::JWTService;
-use crate::infrastructure::services::UserService;
+use crate::domain::services::user::UserService;
 use crate::utils::error::{AppError, AppResult};
 use validator::Validate;
 

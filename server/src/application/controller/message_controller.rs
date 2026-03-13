@@ -1,4 +1,4 @@
-use crate::application::use_cases::message::*;
+use crate::domain::services::message::*;
 use crate::infrastructure::repositories::{
     ChannelRepository, MessageRepository, ServerRepository, UserRepository,
 };
@@ -377,7 +377,7 @@ mod tests {
         let payload = serde_json::json!({"content": "Hello World"});
 
         let result =
-            MessageHandler::send_message(State(handler), Path(channel.id), headers, Json(payload))
+            send_message(State(handler), Path(channel.id), headers, Json(payload))
                 .await;
         assert!(result.is_ok());
     }
@@ -402,7 +402,7 @@ mod tests {
         let headers = HeaderMap::new();
         let payload = serde_json::json!({"content": "Hello"});
 
-        let result = MessageHandler::send_message(State(handler), Path(channel_id), headers, Json(payload)).await;
+        let result = send_message(State(handler), Path(channel_id), headers, Json(payload)).await;
         assert!(result.is_err());
     }
 
@@ -429,7 +429,7 @@ mod tests {
         headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
         let payload = serde_json::json!({});
 
-        let result = MessageHandler::send_message(State(handler), Path(channel_id), headers, Json(payload)).await;
+        let result = send_message(State(handler), Path(channel_id), headers, Json(payload)).await;
         assert!(result.is_err());
     }
 
@@ -462,7 +462,7 @@ mod tests {
         );
 
         let result =
-            MessageHandler::get_message_history(State(handler), Path(channel.id), headers).await;
+            get_message_history(State(handler), Path(channel.id), headers).await;
         assert!(result.is_ok());
     }
 
@@ -484,7 +484,7 @@ mod tests {
         ));
 
         let headers = HeaderMap::new();
-        let result = MessageHandler::get_message_history(State(handler), Path(channel_id), headers).await;
+        let result = get_message_history(State(handler), Path(channel_id), headers).await;
         assert!(result.is_err());
     }
 
@@ -524,7 +524,7 @@ mod tests {
         );
 
         let result =
-            MessageHandler::delete_message(State(handler), Path("msg_1".to_string()), headers)
+            delete_message(State(handler), Path("msg_1".to_string()), headers)
                 .await;
         assert!(result.is_ok());
     }
@@ -567,7 +567,7 @@ mod tests {
         let payload = serde_json::json!({"content": "Updated message"});
 
         let result =
-            MessageHandler::update_message(State(handler), Path("msg_1".to_string()), headers, Json(payload))
+            update_message(State(handler), Path("msg_1".to_string()), headers, Json(payload))
                 .await;
         assert!(result.is_ok());
     }
@@ -590,7 +590,7 @@ mod tests {
 
         let headers = HeaderMap::new();
         let payload = serde_json::json!({"content": "Updated"});
-        let result = MessageHandler::update_message(State(handler), Path("msg_1".to_string()), headers, Json(payload)).await;
+        let result = update_message(State(handler), Path("msg_1".to_string()), headers, Json(payload)).await;
         assert!(result.is_err());
     }
 
@@ -616,7 +616,7 @@ mod tests {
         headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
         let payload = serde_json::json!({});
 
-        let result = MessageHandler::update_message(State(handler), Path("msg_1".to_string()), headers, Json(payload)).await;
+        let result = update_message(State(handler), Path("msg_1".to_string()), headers, Json(payload)).await;
         assert!(result.is_err());
     }
 
@@ -641,7 +641,7 @@ mod tests {
         headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
         let payload = serde_json::json!({"content": "Hello"});
 
-        let result = MessageHandler::send_message(State(handler), Path(channel_id), headers, Json(payload)).await;
+        let result = send_message(State(handler), Path(channel_id), headers, Json(payload)).await;
         assert!(result.is_err());
     }
 
@@ -662,7 +662,7 @@ mod tests {
         ));
 
         let headers = HeaderMap::new();
-        let result = MessageHandler::delete_message(State(handler), Path("msg_1".to_string()), headers).await;
+        let result = delete_message(State(handler), Path("msg_1".to_string()), headers).await;
         assert!(result.is_err());
     }
 
@@ -701,7 +701,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
 
-        let result = MessageHandler::send_welcome_message(State(handler), Path(channel.id), headers).await;
+        let result = send_welcome_message(State(handler), Path(channel.id), headers).await;
         assert!(result.is_ok());
     }
 
@@ -741,7 +741,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
 
-        let result = MessageHandler::send_welcome_message(State(handler), Path(channel.id), headers).await;
+        let result = send_welcome_message(State(handler), Path(channel.id), headers).await;
         assert!(result.is_ok());
     }
 
@@ -763,7 +763,7 @@ mod tests {
         ));
 
         let headers = HeaderMap::new();
-        let result = MessageHandler::send_welcome_message(State(handler), Path(channel_id), headers).await;
+        let result = send_welcome_message(State(handler), Path(channel_id), headers).await;
         assert!(result.is_err());
     }
 
@@ -790,7 +790,7 @@ mod tests {
         headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
         let payload = serde_json::json!({"content": "Hello"});
 
-        let result = MessageHandler::send_message(State(handler), Path(channel_id), headers, Json(payload)).await;
+        let result = send_message(State(handler), Path(channel_id), headers, Json(payload)).await;
         assert!(result.is_err());
     }
 
@@ -816,7 +816,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
 
-        let result = MessageHandler::send_welcome_message(State(handler), Path(channel_id), headers).await;
+        let result = send_welcome_message(State(handler), Path(channel_id), headers).await;
         assert!(result.is_err());
     }
 }

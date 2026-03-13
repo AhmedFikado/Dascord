@@ -1,4 +1,4 @@
-use crate::api::handlers::channel_handler::{ChannelHandler, get_channel_info, update_channel, delete_channel};
+use crate::application::controller::channel_controller::{ChannelHandler, get_channel_info, update_channel, delete_channel};
 use crate::infrastructure::repositories::{ChannelRepository, ServerRepository};
 use axum::{
     routing::{delete as axum_delete, get, put},
@@ -27,23 +27,23 @@ mod tests {
 
     #[test]
     fn test_channel_routes_creation() {
-        use crate::api::handlers::channel_handler::ChannelHandler;
+        use crate::application::controller::channel_controller::ChannelHandler;
         let mock_channel_repo = MockChannelRepository::new();
         let mock_server_repo = MockServerRepository::new();
         let jwt_service = JWTService::new("test_secret".to_string());
         let handler = Arc::new(ChannelHandler::new(jwt_service, mock_channel_repo, mock_server_repo));
-        let _router = channel_routes(handler);
+        let _router = channel_routes::<MockChannelRepository, MockServerRepository>(handler);
         assert!(true);
     }
 
     #[test]
     fn test_channel_routes_has_correct_paths() {
-        use crate::api::handlers::channel_handler::ChannelHandler;
+        use crate::application::controller::channel_controller::ChannelHandler;
         let mock_channel_repo = MockChannelRepository::new();
         let mock_server_repo = MockServerRepository::new();
         let jwt_service = JWTService::new("test_secret".to_string());
         let handler = Arc::new(ChannelHandler::new(jwt_service, mock_channel_repo, mock_server_repo));
-        let _router = channel_routes(handler);
+        let _router = channel_routes::<MockChannelRepository, MockServerRepository>(handler);
         assert!(true);
     }
 }

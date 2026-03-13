@@ -1,5 +1,5 @@
 use crate::application::dto::auth::{LoginRequest, SignupRequest};
-use crate::application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase};
+use crate::domain::services::auth::{LoginUseCase, LogoutUseCase, SignupUseCase};
 use crate::infrastructure::repositories::UserRepository;
 use crate::infrastructure::security::JWTService;
 use crate::utils::error::AppError;
@@ -147,7 +147,7 @@ mod tests {
     use crate::domain::entities::User;
     use crate::infrastructure::repositories::mocks::mock_user_repository::MockUserRepository;
     use crate::infrastructure::security::PasswordService;
-    use crate::infrastructure::services::UserService;
+    use crate::domain::services::user::UserService;
     use uuid::Uuid;
 
     #[test]
@@ -393,7 +393,7 @@ mod tests {
         let handler = Arc::new(AuthHandler::new(signup_uc, login_uc, logout_uc, jwt_service));
         let headers = HeaderMap::new();
 
-        let result = AuthHandler::logout(State(handler), headers).await;
+        let result = logout(State(handler), headers).await;
         assert!(result.is_err());
     }
 
@@ -410,7 +410,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
 
-        let result = AuthHandler::logout(State(handler), headers).await;
+        let result = logout(State(handler), headers).await;
         assert!(result.is_err());
     }
 
@@ -440,7 +440,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
 
-        let result = AuthHandler::get_me(State(handler), headers).await;
+        let result = get_me(State(handler), headers).await;
         assert!(result.is_ok());
     }
 
@@ -456,7 +456,7 @@ mod tests {
         let handler = Arc::new(AuthHandler::new(signup_uc, login_uc, logout_uc, jwt_service));
         let headers = HeaderMap::new();
 
-        let result = AuthHandler::get_me(State(handler), headers).await;
+        let result = get_me(State(handler), headers).await;
         assert!(result.is_err());
     }
 
@@ -473,7 +473,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
 
-        let result = AuthHandler::get_me(State(handler), headers).await;
+        let result = get_me(State(handler), headers).await;
         assert!(result.is_err());
     }
 }

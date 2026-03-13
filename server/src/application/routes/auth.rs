@@ -1,4 +1,4 @@
-use crate::api::handlers::auth_handler::AuthHandler;
+use crate::application::controller::auth_controller::AuthHandler;
 use crate::infrastructure::repositories::UserRepository;
 use axum::{
     routing::{get, post},
@@ -9,10 +9,10 @@ use std::sync::Arc;
 /// Configure les routes d'authentification
 pub fn auth_routes<R: UserRepository + 'static>(handler: Arc<AuthHandler<R>>) -> Router {
     Router::new()
-        .route("/signup", post(crate::api::handlers::auth_handler::signup::<R>))
-        .route("/login", post(crate::api::handlers::auth_handler::login::<R>))
-        .route("/logout", post(crate::api::handlers::auth_handler::logout::<R>))
-        .route("/me", get(crate::api::handlers::auth_handler::get_me::<R>))
+        .route("/signup", post(crate::application::controller::auth_controller::signup::<R>))
+        .route("/login", post(crate::application::controller::auth_controller::login::<R>))
+        .route("/logout", post(crate::application::controller::auth_controller::logout::<R>))
+        .route("/me", get(crate::application::controller::auth_controller::get_me::<R>))
         .with_state(handler)
 }
 
@@ -22,10 +22,10 @@ pub fn auth_routes<R: UserRepository + 'static>(handler: Arc<AuthHandler<R>>) ->
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase};
+    use crate::domain::services::auth::{LoginUseCase, LogoutUseCase, SignupUseCase};
     use crate::infrastructure::repositories::mocks::mock_user_repository::MockUserRepository;
     use crate::infrastructure::security::JWTService;
-    use crate::infrastructure::services::UserService;
+    use crate::domain::services::user::UserService;
     use axum::body::Body;
     use axum::http::{Request, StatusCode};
     use tower::util::ServiceExt;

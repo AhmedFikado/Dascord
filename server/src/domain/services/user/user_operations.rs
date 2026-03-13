@@ -2,7 +2,7 @@ use crate::application::dto::user_dto::UserDto;
 use crate::domain::entities::User;
 use crate::domain::value_objects::user_status::UserStatus;
 use crate::infrastructure::repositories::UserRepository;
-use crate::infrastructure::services::UserService;
+use crate::domain::services::user::UserService;
 use crate::infrastructure::websocket::ConnectionManager;
 use crate::utils::error::{AppError, AppResult};
 use std::sync::Arc;

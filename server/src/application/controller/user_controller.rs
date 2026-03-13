@@ -1,8 +1,7 @@
-use crate::application::use_cases::user::*;
+use crate::domain::services::user::{GetUserInfoUseCase, UpdateUserStatusUseCase, UpdateUserInfoUseCase, UserService};
 use crate::domain::entities::User;
 use crate::infrastructure::repositories::{ServerRepository, UserRepository};
 use crate::infrastructure::security::JWTService;
-use crate::infrastructure::services::UserService;
 use crate::infrastructure::websocket::{ConnectionManager, ServerMessage};
 use crate::utils::error::AppError;
 use axum::{
@@ -229,7 +228,7 @@ mod tests {
         let handler = Arc::new(TestHandler::new(user_service, jwt_service));
 
         let headers = HeaderMap::new();
-        let result = UserHandler::get_me(State(handler), headers).await;
+        let result = get_me(State(handler), headers).await;
 
         assert!(result.is_err());
     }
@@ -243,7 +242,7 @@ mod tests {
 
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
-        let result = UserHandler::get_me(State(handler), headers).await;
+        let result = get_me(State(handler), headers).await;
 
         assert!(result.is_err());
     }
@@ -274,7 +273,7 @@ mod tests {
             format!("Bearer {}", token).parse().unwrap(),
         );
 
-        let result = UserHandler::get_me(State(handler), headers).await;
+        let result = get_me(State(handler), headers).await;
         assert!(result.is_ok());
     }
 
@@ -287,7 +286,7 @@ mod tests {
 
         let headers = HeaderMap::new();
         let payload = serde_json::json!({"status": "ONLINE"});
-        let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
+        let result = update_status(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_err());
     }
@@ -302,7 +301,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
         let payload = serde_json::json!({"status": "ONLINE"});
-        let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
+        let result = update_status(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_err());
     }
@@ -334,7 +333,7 @@ mod tests {
         );
 
         let payload = serde_json::json!({});
-        let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
+        let result = update_status(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_err());
     }
@@ -366,7 +365,7 @@ mod tests {
         );
 
         let payload = serde_json::json!({"status": "ONLINE"});
-        let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
+        let result = update_status(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_ok());
     }
@@ -398,7 +397,7 @@ mod tests {
         );
 
         let payload = serde_json::json!({"status": "INVALID"});
-        let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
+        let result = update_status(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_err());
     }
@@ -433,7 +432,7 @@ mod tests {
         );
 
         let payload = serde_json::json!({"status": "ONLINE"});
-        let result = UserHandler::update_status(State(handler), headers, Json(payload)).await;
+        let result = update_status(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_ok());
     }
@@ -447,7 +446,7 @@ mod tests {
 
         let headers = HeaderMap::new();
         let payload = serde_json::json!({"username": "newname", "email": "new@example.com"});
-        let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
+        let result = update_user(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_err());
     }
@@ -462,7 +461,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", "Bearer invalid_token".parse().unwrap());
         let payload = serde_json::json!({"username": "newname", "email": "new@example.com"});
-        let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
+        let result = update_user(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_err());
     }
@@ -494,7 +493,7 @@ mod tests {
         );
 
         let payload = serde_json::json!({"email": "new@example.com"});
-        let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
+        let result = update_user(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_err());
     }
@@ -526,7 +525,7 @@ mod tests {
         );
 
         let payload = serde_json::json!({"username": "newname"});
-        let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
+        let result = update_user(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_err());
     }
@@ -558,7 +557,7 @@ mod tests {
         );
 
         let payload = serde_json::json!({"username": "newname", "email": "new@example.com"});
-        let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
+        let result = update_user(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_ok());
     }
@@ -578,7 +577,7 @@ mod tests {
         );
 
         let payload = serde_json::json!({"username": "ghost", "email": "ghost@example.com"});
-        let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
+        let result = update_user(State(handler), headers, Json(payload)).await;
 
         assert!(result.is_err());
     }

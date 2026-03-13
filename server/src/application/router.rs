@@ -1,15 +1,15 @@
-use crate::api::handlers::{
+use crate::application::controller::{
     AuthHandler, ChannelHandler, MessageHandler, ServerHandler, UserHandler,
 };
-use crate::api::openapi::ApiDoc;
-use crate::api::routes::{auth_routes, channel_routes, message_routes, server_routes, user_routes};
-use crate::application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase};
+use crate::application::openapi::ApiDoc;
+use crate::application::routes::{auth_routes, channel_routes, message_routes, server_routes, user_routes};
+use crate::domain::services::auth::{LoginUseCase, LogoutUseCase, SignupUseCase};
 use crate::infrastructure::repositories::{
     MongoMessageRepository, PostgresChannelRepository, PostgresServerRepository,
     PostgresUserRepository,
 };
 use crate::infrastructure::security::JWTService;
-use crate::infrastructure::services::UserService;
+use crate::domain::services::user::UserService;
 use crate::infrastructure::websocket::ConnectionManager;
 use axum::Router;
 use mongodb::Client as MongoClient;

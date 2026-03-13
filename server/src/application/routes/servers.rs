@@ -1,4 +1,4 @@
-use crate::api::handlers::server_handler::{
+use crate::application::controller::server_controller::{
     create_server, get_user_servers, get_server_info, update_server, delete_server,
     join_server, leave_server, list_members, update_member_role, kick_member, ban_member,
     get_channels, create_channel, ServerHandler,
@@ -41,25 +41,25 @@ mod tests {
 
     #[test]
     fn test_server_routes_creation() {
-        use crate::api::handlers::server_handler::ServerHandler;
+        use crate::application::controller::server_controller::ServerHandler;
         let mock_server_repo = MockServerRepository::new();
         let mock_channel_repo = MockChannelRepository::new();
         let mock_user_repo = MockUserRepository::new();
         let jwt_service = JWTService::new("test_secret".to_string());
         let handler = Arc::new(ServerHandler::new(jwt_service, mock_server_repo, mock_channel_repo, mock_user_repo));
-        let _router = server_routes(handler);
+        let _router = server_routes::<MockServerRepository, MockChannelRepository, MockUserRepository>(handler);
         assert!(true);
     }
 
     #[test]
     fn test_server_routes_has_all_endpoints() {
-        use crate::api::handlers::server_handler::ServerHandler;
+        use crate::application::controller::server_controller::ServerHandler;
         let mock_server_repo = MockServerRepository::new();
         let mock_channel_repo = MockChannelRepository::new();
         let mock_user_repo = MockUserRepository::new();
         let jwt_service = JWTService::new("test_secret".to_string());
         let handler = Arc::new(ServerHandler::new(jwt_service, mock_server_repo, mock_channel_repo, mock_user_repo));
-        let _router = server_routes(handler);
+        let _router = server_routes::<MockServerRepository, MockChannelRepository, MockUserRepository>(handler);
         assert!(true);
     }
 }
