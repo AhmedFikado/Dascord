@@ -12,6 +12,7 @@ import { useCurrentUser } from "@/app/lib/hooks/use-current-user";
 import { Input } from "@/components/ui/input";
 import { Save } from "lucide-react";
 import { Role } from "@/types/models/role";
+import { useTranslation } from 'react-i18next';
 
 interface ChannelItemProps {
     channel: Channel;
@@ -36,6 +37,7 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
     const isActive = currentChannelId === channel.id;
     const removeChannel = useChannelStore((state) => state.removeChannel);
     const updateChannel = useChannelStore((state) => state.updateChannel);
+    const { t } = useTranslation();
 
 
     const deleteChannel = async () => {
@@ -103,10 +105,10 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
             <Dialog
                 isOpen={isDialogOpen}
                 onClose={() => setIsDialogOpen(false)}
-                title="Supprimer un channel"
+                title={t('Channel_item.Delete_channel')}
             >
                 <Input
-                    label="Nom du channel"
+                    label={t('Channel_item.Name_channel')}
                     type="text"
                     required
                     id="channel-name"
@@ -124,7 +126,7 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
                                 variant="secondary"
                                 onClick={handleReset}
                             >
-                                Réinitialiser
+                                {t('Channel_item.Reset')}
                             </Button>
                             <Button
                                 variant="primary"
@@ -133,7 +135,7 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
                                 className="flex items-center gap-2"
                             >
                                 <Save size={16} />
-                                Enregistrer
+                                {t('Channel_item.Register')}
                             </Button>
                         </div>
                     </div>
@@ -149,7 +151,7 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
                         style={{ alignSelf: 'center' }}
                         type="submit"
                     >
-                        Supprimer le channel
+                        {t('Channel_item.Delete')}
                     </Button>
                 </div>
             </Dialog>

@@ -99,6 +99,7 @@ mod tests {
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
             status: "ONLINE".to_string(),
+            language: "en".to_string(),
             created_at: chrono::Utc::now(),
         };
 
@@ -124,6 +125,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };

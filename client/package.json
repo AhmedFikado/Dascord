@@ -14,10 +14,12 @@
     "@mui/material": "^7.3.7",
     "@mui/material-nextjs": "^7.3.7",
     "axios": "^1.13.4",
+    "i18next": "^25.8.18",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-i18next": "^16.5.8",
     "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },

@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 
 export interface Option {
     label: string;
@@ -26,13 +27,15 @@ export const Dropdown: React.FC<DropdownProps> = ({
     options,
     value,
     onChange,
-    placeholder = 'Sélectionner...',
+    placeholder,
     error,
     helperText,
     disabled = false,
     className = '',
     width = '100%',
 }) => {
+    const { t } = useTranslation();
+    const defaultPlaceholder = placeholder || t('Dropdown.select_placeholder');
     const [isOpen, setIsOpen] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 });
     const containerRef = useRef<HTMLDivElement>(null);
@@ -104,7 +107,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                     `}
                 >
                     <span className={`block truncate ${!selectedOption ? 'text-gray-200' : ''}`}>
-                        {selectedOption ? selectedOption.label : placeholder}
+                        {selectedOption ? selectedOption.label : defaultPlaceholder}
                     </span>
 
                     <span className="pointer-events-none flex items-center pl-2">
@@ -161,7 +164,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
                                 </div>
                             ))
                         ) : (
-                            <div className="px-3 py-2 text-sm text-gray-200">Aucune option</div>
+                            <div className="px-3 py-2 text-sm text-gray-200">{t('Dropdown.no_option')}</div>
                         )}
                     </div>,
                     document.body

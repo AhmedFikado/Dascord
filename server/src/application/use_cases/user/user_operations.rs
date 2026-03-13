@@ -28,6 +28,7 @@ impl<R: UserRepository> GetUserInfoUseCase<R> {
             id: user.id.to_string(),
             username: user.username,
             email: user.email,
+            language: user.language,
             status: user.status,
         })
     }
@@ -67,6 +68,7 @@ impl<R: UserRepository> UpdateUserStatusUseCase<R> {
             username: user.username,
             email: user.email,
             status: user.status,
+            language: user.language,
         })
     }
 }
@@ -92,6 +94,7 @@ impl<R: UserRepository> UpdateUserInfoUseCase<R> {
             id: updated.id.to_string(),
             username: updated.username,
             email: updated.email,
+            language: updated.language,
             status: updated.status,
         })
     }
@@ -116,6 +119,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -151,6 +155,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -174,6 +179,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -205,6 +211,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -228,6 +235,7 @@ mod tests {
             username: "oldname".to_string(),
             email: "old@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -241,6 +249,7 @@ mod tests {
             username: "newname".to_string(),
             email: "new@example.com".to_string(),
             password_hash: String::new(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -265,6 +274,7 @@ mod tests {
             username: "ghost".to_string(),
             email: "ghost@example.com".to_string(),
             password_hash: String::new(),
+            language: "en".to_string(),
             status: String::new(),
             created_at: chrono::Utc::now(),
         };
@@ -283,6 +293,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };

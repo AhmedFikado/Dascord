@@ -4,6 +4,7 @@ import { useWebSocketContext } from '@/components/shared/websocket-provider';
 import { useWebSocketStore } from '@/store/websocket';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import TypingIndicator from './typing-indicator';
+import { useTranslation } from 'react-i18next';
 
 interface MessageInputProps {
   channelId: string;
@@ -23,6 +24,7 @@ export default function MessageInput({ channelId, channelName }: MessageInputPro
   const [message, setMessage] = useState('');
   const isTypingRef = useRef(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const { t } = useTranslation();
 
   const { sendChannelMessage, sendTyping } = useWebSocketContext();
   const typingUsers =
@@ -105,7 +107,7 @@ export default function MessageInput({ channelId, channelName }: MessageInputPro
             value={message}
             onChange={handleChange}
             onKeyDown={handleKeyDown}
-            placeholder={`Envoyez un message${channelName ? ` dans #${channelName}` : ''}`}
+            placeholder={t('Message_input.Type_your_message_here...')}
             className="w-full bg-gray-400 py-3 pl-2 text-white placeholder-gray-50 focus:outline-none"
           />
         </div>

@@ -12,6 +12,7 @@ import { useServerStore } from "@/app/lib/stores/use-server-store";
 import { useSnackbar } from "@/components/shared/error-message";
 import { useRouter } from 'next/navigation';
 import { Role } from '@/types/models/role';
+import { useTranslation } from 'react-i18next';
 
 const InvitationDialog = dynamic(
     () => import('./invitation-dialog'),
@@ -20,6 +21,7 @@ const InvitationDialog = dynamic(
 
 export default function ServerHeaderSide({ server }: { server: Server }) {
 
+    const { t } = useTranslation();
     const [isOpenMenu, setIsOpenMenu] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const { userId } = useCurrentUser();
@@ -31,7 +33,7 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
 
     const currentMember = members.find(m => m.user_id === userId);
     const isOwner = currentMember?.role === Role.OWNER;
-    const canManageServer = currentMember ? 
+    const canManageServer = currentMember ?
         (currentMember.role === Role.OWNER || currentMember.role === Role.ADMIN) : false;
 
     const handleServerSettings = () => {
@@ -43,10 +45,10 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
         setIsOpenMenu(false);
         try {
             await leaveServer(server.id);
-            showSnackbar({ message: "Vous avez quitté le serveur avec succès.", severity: "success" });
+            showSnackbar({ message: t('Server_header_side.leave_success'), severity: "success" });
             router.push('/servers');
         } catch (error) {
-            showSnackbar({ message: "Erreur lors de la quitter le serveur.", severity: "error" });
+            showSnackbar({ message: t('Server_header_side.leave_error'), severity: "error" });
         }
     }
 
@@ -57,10 +59,10 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
     const handleDeleteServer = async () => {
         try {
             await deleteServer(server.id);
-            showSnackbar({ message: "Vous avez supprimé votre serveur avec succès.", severity: "success" });
+            showSnackbar({ message: t('Server_header_side.delete_success'), severity: "success" });
             router.push('/servers');
         } catch (error) {
-            showSnackbar({ message: "Erreur lors de la suppression du serveur.", severity: "error" });
+            showSnackbar({ message: t('Server_header_side.delete_error'), severity: "error" });
         }
     }
 
@@ -100,7 +102,7 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
                                 width={"225px"}
                             >
                                 <Settings size={18} className="text-gray-light mr-3" />
-                                <span className="text-white text-sm">Paramètres du serveur</span>
+                                <span className="text-white text-sm">{t('Server_header_side.server_settings')}</span>
                             </Button>
                         )}
 
@@ -114,7 +116,7 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
                                 width={"225px"}
                             >
                                 <LogOut size={18} className="text-red mr-3" />
-                                <span className="text-red text-sm font-semibold">Quitter le serveur</span>
+                                <span className="text-red text-sm font-semibold">{t('Server_header_side.leave_server')}</span>
                             </Button>
                         )}
 
@@ -125,7 +127,7 @@ export default function ServerHeaderSide({ server }: { server: Server }) {
             <Dialog
                 isOpen={isSettingsOpen}
                 onClose={() => setIsSettingsOpen(false)}
-                title="Paramètres du serveur"
+                title={t('Server_header_side.server_settings')}
                 size="xl"
             >
                 <ServerSettings

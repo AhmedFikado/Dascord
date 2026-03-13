@@ -38,8 +38,9 @@ impl<R: UserRepository, SR: ServerRepository> UserHandler<R, SR> {
 
     pub fn with_ws_manager(mut self, ws_manager: Arc<ConnectionManager>) -> Self {
         self.update_status_uc = Arc::new(
-            Arc::try_unwrap(self.update_status_uc).unwrap_or_else(|arc| (*arc).clone())
-                .with_ws_manager(ws_manager.clone())
+            Arc::try_unwrap(self.update_status_uc)
+                .unwrap_or_else(|arc| (*arc).clone())
+                .with_ws_manager(ws_manager.clone()),
         );
         self.ws_manager = Some(ws_manager);
         self
@@ -152,6 +153,9 @@ pub async fn update_user<R: UserRepository, SR: ServerRepository>(
     let user_id = Uuid::parse_str(&claims.sub_id)
         .map_err(|_| AppError::Unauthorized("Invalid user ID in token".to_string()))?;
 
+    // Récupérer l'utilisateur actuel pour préserver le language s'il n'est pas fourni
+    let current_user = handler.get_user_info_uc.execute(user_id).await?;
+
     let username = payload
         .get("username")
         .and_then(|v| v.as_str())
@@ -164,25 +168,35 @@ pub async fn update_user<R: UserRepository, SR: ServerRepository>(
         .ok_or_else(|| AppError::ValidationError("Missing email field".to_string()))?
         .to_string();
 
+    let language = payload
+        .get("language")
+        .and_then(|v| v.as_str())
+        .unwrap_or(&current_user.language)
+        .to_string();
+
     let user = User {
         id: user_id,
         username,
         email,
         password_hash: String::new(),
+        language,
         status: String::new(),
         created_at: chrono::Utc::now(),
     };
 
     let updated_user = handler.update_user_uc.execute(user).await?;
+
     if let (Some(ws_manager), Some(server_repo)) = (&handler.ws_manager, &handler.server_repo) {
         match server_repo.find_by_user(user_id).await {
             Ok(servers) => {
                 for server in servers {
-                    ws_manager.broadcast_to_all(ServerMessage::ServerMemberUpdated {
-                        server_id: server.id.to_string(),
-                        user_id: user_id.to_string(),
-                        username: updated_user.username.clone(),
-                    }).await;
+                    ws_manager
+                        .broadcast_to_all(ServerMessage::ServerMemberUpdated {
+                            server_id: server.id.to_string(),
+                            user_id: user_id.to_string(),
+                            username: updated_user.username.clone(),
+                        })
+                        .await;
                 }
             }
             Err(e) => {
@@ -190,6 +204,7 @@ pub async fn update_user<R: UserRepository, SR: ServerRepository>(
             }
         }
     }
+
     Ok((StatusCode::OK, Json(updated_user)))
 }
 
@@ -242,6 +257,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -300,6 +316,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -331,6 +348,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -362,6 +380,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -393,6 +412,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -401,7 +421,9 @@ mod tests {
         let user_service = UserService::new(mock_repo);
         let jwt_service = JWTService::new("test_secret".to_string());
         let ws_manager = Arc::new(ConnectionManager::new());
-        let handler = Arc::new(TestHandler::new(user_service, jwt_service.clone()).with_ws_manager(ws_manager));
+        let handler = Arc::new(
+            TestHandler::new(user_service, jwt_service.clone()).with_ws_manager(ws_manager),
+        );
 
         let token = jwt_service.create_token(user_id).unwrap();
         let mut headers = HeaderMap::new();
@@ -454,6 +476,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -465,7 +488,10 @@ mod tests {
 
         let token = jwt_service.create_token(user_id).unwrap();
         let mut headers = HeaderMap::new();
-        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
 
         let payload = serde_json::json!({"email": "new@example.com"});
         let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
@@ -482,6 +508,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -493,7 +520,10 @@ mod tests {
 
         let token = jwt_service.create_token(user_id).unwrap();
         let mut headers = HeaderMap::new();
-        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
 
         let payload = serde_json::json!({"username": "newname"});
         let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
@@ -510,6 +540,7 @@ mod tests {
             username: "oldname".to_string(),
             email: "old@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -521,7 +552,10 @@ mod tests {
 
         let token = jwt_service.create_token(user_id).unwrap();
         let mut headers = HeaderMap::new();
-        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
 
         let payload = serde_json::json!({"username": "newname", "email": "new@example.com"});
         let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;
@@ -538,7 +572,10 @@ mod tests {
 
         let token = jwt_service.create_token(Uuid::new_v4()).unwrap();
         let mut headers = HeaderMap::new();
-        headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
+        headers.insert(
+            "Authorization",
+            format!("Bearer {}", token).parse().unwrap(),
+        );
 
         let payload = serde_json::json!({"username": "ghost", "email": "ghost@example.com"});
         let result = UserHandler::update_user(State(handler), headers, Json(payload)).await;

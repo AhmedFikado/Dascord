@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import Link from 'next/link';
+import { useTranslation } from 'react-i18next';
 
 export default function Error({
     error,
@@ -14,6 +15,8 @@ export default function Error({
     useEffect(() => {
         console.error(error);
     }, [error]);
+
+    const { t } = useTranslation();
 
     return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 text-center">
@@ -36,11 +39,11 @@ export default function Error({
                 </div>
 
                 <h2 className="text-2xl font-bold text-gray-800 mb-2">
-                    Oups ! Une erreur est survenue.
+                    {t('Error.Oops_An_error_has_occurred')}
                 </h2>
 
                 <p className="text-gray-600 mb-6">
-                    Nous sommes désolés, mais quelque chose s'est mal passé lors du chargement de cette page.
+                    {t('Error.We_are_sorry_but_something_went_wrong_while_loading_this_page')}
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -48,14 +51,14 @@ export default function Error({
                         onClick={() => reset()}
                         className="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition duration-200"
                     >
-                        Réessayer
+                        {t('Error.Retry')}
                     </button>
 
                     <Link
                         href="/"
                         className="px-6 py-2 bg-gray-200 text-gray-800 font-semibold rounded-md hover:bg-gray-300 transition duration-200"
                     >
-                        Retour à l'accueil
+                        {t('Error.Back_to_home_page')}
                     </Link>
                 </div>
             </div>

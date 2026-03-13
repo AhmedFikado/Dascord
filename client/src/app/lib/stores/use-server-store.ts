@@ -6,6 +6,8 @@ import { channelsApi } from '../api/channels';
 import { messagesApi } from '../api/messages';
 import { serversApi } from '../api/servers';
 import { useMessageStore } from './use-messages-store';
+import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
 
 interface ServerState {
   servers: Server[];
@@ -27,6 +29,8 @@ interface ServerState {
   reset: () => void;
 }
 
+const t = i18n.t.bind(i18n);
+
 export const useServerStore = create<ServerState>(set => ({
   servers: [],
   currentServer: null,
@@ -40,7 +44,7 @@ export const useServerStore = create<ServerState>(set => ({
       const servers = await serversApi.getAll();
       set({ servers, isLoading: false });
     } catch (error) {
-      set({ error: 'Erreur lors du chargement des serveurs', isLoading: false });
+      set({ error: t('Use_server_store.Error_loading_servers'), isLoading: false });
     }
   },
 
@@ -58,7 +62,7 @@ export const useServerStore = create<ServerState>(set => ({
       }));
       return newServer;
     } catch (error) {
-      set({ error: 'Erreur lors de la création du serveur', isLoading: false });
+      set({ error: t('Use_server_store.Error_create_server'), isLoading: false });
       throw error;
     }
   },
@@ -72,7 +76,7 @@ export const useServerStore = create<ServerState>(set => ({
         isLoading: false,
       }));
     } catch (error) {
-      set({ error: 'Erreur lors de la suppression du serveur', isLoading: false });
+      set({ error: t('Use_server_store.Error_deleting_server'), isLoading: false });
       throw error;
     }
   },
@@ -97,7 +101,7 @@ export const useServerStore = create<ServerState>(set => ({
 
       set({ servers, isLoading: false });
     } catch (error) {
-      set({ error: 'Erreur lors de la connexion au serveur', isLoading: false });
+      set({ error: t('Use_server_store.Error_joining_server'), isLoading: false });
       throw error;
     }
   },
@@ -109,7 +113,7 @@ export const useServerStore = create<ServerState>(set => ({
       const servers = await serversApi.getAll();
       set({ servers, isLoading: false });
     } catch (error) {
-      set({ error: 'Erreur lors du départ du serveur', isLoading: false });
+      set({ error: t('Use_server_store.Error_leaving_server'), isLoading: false });
       throw error;
     }
   },
@@ -124,7 +128,7 @@ export const useServerStore = create<ServerState>(set => ({
       }));
       return updatedServer;
     } catch (error) {
-      set({ error: 'Erreur lors de la mise à jour du serveur', isLoading: false });
+      set({ error: t('Use_server_store.Error_updating_server'), isLoading: false });
       throw error;
     }
   },
@@ -135,7 +139,7 @@ export const useServerStore = create<ServerState>(set => ({
       const members = await serversApi.getMembers(serverId);
       set({ members, isLoading: false });
     } catch (error) {
-      set({ error: 'Erreur lors de la récupération des membres', isLoading: false });
+      set({ error: t('Use_server_store.Error_loading_members'), isLoading: false });
     }
   },
 
@@ -145,7 +149,7 @@ export const useServerStore = create<ServerState>(set => ({
       await serversApi.updateRoleMember(serverId, userId, role);
       set({ isLoading: false });
     } catch (error) {
-      set({ error: 'Erreur lors de la mise à jour du rôle du membre', isLoading: false });
+      set({ error: t('Use_server_store.Error_updating_member_role'), isLoading: false });
       throw error;
     }
   },

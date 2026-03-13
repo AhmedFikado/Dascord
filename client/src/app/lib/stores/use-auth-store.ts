@@ -6,6 +6,10 @@ import type { LoginFormData, SignupFormData } from '@/app/lib/api/validations/au
 import { useServerStore } from './use-server-store';
 import { useChannelStore } from './use-channel-store';
 import { useMessageStore } from './use-messages-store';
+import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
+
+const t = i18n.t.bind(i18n);
 
 interface AuthState {
     user: User | null;
@@ -50,17 +54,19 @@ export const useAuthStore = create<AuthStore>((set) => ({
                     username: userInfo.username,
                     email: userInfo.email,
                     status: userInfo.status as any,
+                    language: userInfo.language,
                     created_at: new Date(userInfo.created_at),
                 },
                 userId: userInfo.id,
                 isAuthenticated: true,
                 isLoading: false,
             });
+            i18n.changeLanguage(userInfo.language);
         } catch (error: any) {
             const errorMessage = error.response?.data?.message
                 || error.response?.data?.error
                 || error.message
-                || 'Erreur lors de la connexion';
+                || t('Use_auth_store.Error_during_connection');
             set({
                 error: errorMessage,
                 isLoading: false,
@@ -82,17 +88,19 @@ export const useAuthStore = create<AuthStore>((set) => ({
                     username: userInfo.username,
                     email: userInfo.email,
                     status: userInfo.status as any,
+                    language: userInfo.language,
                     created_at: new Date(userInfo.created_at),
                 },
                 userId: userInfo.id,
                 isAuthenticated: true,
                 isLoading: false,
             });
+            i18n.changeLanguage(userInfo.language);
         } catch (error: any) {
             const errorMessage = error.response?.data?.message
                 || error.response?.data?.error
                 || error.message
-                || 'Erreur lors de l\'inscription';
+                || t('Use_auth_store.Error_during_registration');
             set({
                 error: errorMessage,
                 isLoading: false,
@@ -113,7 +121,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
             useServerStore.getState().reset();
             useChannelStore.getState().reset();
             useMessageStore.getState().reset();
-            
+
             set({
                 user: null,
                 userId: null,

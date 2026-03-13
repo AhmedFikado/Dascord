@@ -6,8 +6,10 @@ import { useState } from "react";
 import { Plus, ChevronRight } from "lucide-react";
 import CreateServerDialog from "../server/create-server-dialog";
 import JoinServerDialog from "../server/join-server-dialog";
+import { useTranslation } from 'react-i18next';
 
 export default function JoinCreateServer() {
+    const { t } = useTranslation();
     const [isMainDialogOpen, setIsMainDialogOpen] = useState(false);
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
@@ -42,12 +44,12 @@ export default function JoinCreateServer() {
             <Dialog
                 isOpen={isMainDialogOpen}
                 onClose={() => setIsMainDialogOpen(false)}
-                title="Crée ton serveur"
+                title={t('Join_create_server_dialog.create_your_server')}
                 size="md"
             >
                 <div className="flex flex-col gap-4">
                     <p className="text-center text-gray-light text-sm mb-4">
-                        Ton serveur est l'endroit où tu retrouves tes amis. Crée le tien et lance une discussion.
+                        {t('Join_create_server_dialog.server_description')}
                     </p>
 
                     <button
@@ -58,7 +60,7 @@ export default function JoinCreateServer() {
                             <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
                                 <Plus className="text-[#5865F2]" size={28} />
                             </div>
-                            <span className="text-white font-semibold">Créer le mien</span>
+                            <span className="text-white font-semibold">{t('Join_create_server_dialog.create_mine')}</span>
                         </div>
                         <ChevronRight className="text-gray-light group-hover:text-white transition-colors" size={24} />
                     </button>
@@ -69,7 +71,7 @@ export default function JoinCreateServer() {
                         </div>
                         <div className="relative flex justify-center">
                             <span className="bg-gray-300 px-4 text-white font-bold text-sm">
-                                Tu as déjà une invitation ?
+                                {t('Join_create_server_dialog.already_have_invitation')}
                             </span>
                         </div>
                     </div>
@@ -79,7 +81,7 @@ export default function JoinCreateServer() {
                         variant="secondary"
                         className="w-full"
                     >
-                        Rejoindre un serveur
+                        {t('Join_create_server_dialog.join_server')}
                     </Button>
                 </div>
             </Dialog>

@@ -7,12 +7,15 @@ import MessageList from '@/components/chat/message-list';
 import ServerHeader from '@/components/server/server-header';
 import { MessageSquareDashed } from 'lucide-react';
 import { use } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function ChannelPage({
   params,
 }: {
   params: Promise<{ serverId: string; channelId: string }>;
-}) {
+  }) {
+  const { t } = useTranslation();
+
   const { serverId, channelId } = use(params);
 
   const { channels, isLoading: channelsLoading } = useChannels(serverId);
@@ -25,7 +28,7 @@ export default function ChannelPage({
     return (
       <div className="flex-1 flex flex-col items-center justify-center bg-background h-full">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        <p className="mt-4 text-gray-light text-sm">Chargement du serveur...</p>
+        <p className="mt-4 text-gray-light text-sm">{t('Channel_Id_page.Loading_server...')}</p>
       </div>
     );
   }
@@ -36,7 +39,7 @@ export default function ChannelPage({
         <div className="bg-background p-4 rounded-full mb-2">
           <MessageSquareDashed className="w-12 h-12 text-gray-light" />
         </div>
-        <h3 className="text-xl font-semibold text-gray-light mb-2">Aucun salon sélectionné</h3>
+        <h3 className="text-xl font-semibold text-gray-light mb-2">{t('Channel_Id_page.No_salons_selected')}</h3>
       </div>
     );
   }
