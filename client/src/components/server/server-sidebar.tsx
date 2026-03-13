@@ -9,6 +9,7 @@ import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { useChannels } from '@/app/lib/hooks/use-channels';
 import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
 import { Role } from '@/types/models/role';
+import { useTranslation } from 'react-i18next';
 
 interface ServerSidebarProps {
     serverId: string;
@@ -16,13 +17,14 @@ interface ServerSidebarProps {
 
 export default function ServerSidebar({ serverId }: ServerSidebarProps) {
 
+    const { t } = useTranslation();
     const { userId } = useCurrentUser();
     const { servers, members } = useServerStore();
     const { channels, isLoading } = useChannels(serverId);
 
     const server = servers.find(s => s.id === serverId);
     const currentMember = members.find(m => m.user_id === userId);
-    const canManageChannels = currentMember ? 
+    const canManageChannels = currentMember ?
         (currentMember.role === Role.OWNER || currentMember.role === Role.ADMIN) : false;
 
     return (
@@ -33,7 +35,7 @@ export default function ServerSidebar({ serverId }: ServerSidebarProps) {
             <div className="flex-1 overflow-y-auto">
                 {canManageChannels && (
                     <div className="px-3 mb-3 py-3 flex items-center justify-between border-b border-gray-200 text-gray-light">
-                        Créer un channel
+                        {t('Server_sidebar.create_channel')}
                         <CreateChannelDialog serverId={serverId} />
                     </div>
                 )}

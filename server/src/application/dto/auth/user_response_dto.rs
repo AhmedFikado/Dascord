@@ -1,12 +1,14 @@
 use crate::domain::entities::User;
 use serde::Serialize;
+use utoipa::ToSchema;
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct UserResponse {
     pub id: String,
     pub username: String,
     pub email: String,
     pub status: String,
+    pub language: String,
 }
 
 impl From<User> for UserResponse {
@@ -16,6 +18,7 @@ impl From<User> for UserResponse {
             username: user.username,
             email: user.email,
             status: user.status,
+            language: user.language,
         }
     }
 }
@@ -36,6 +39,7 @@ mod tests {
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
             password_hash: "hashed_password".to_string(),
+            language: "fr".to_string(),
         };
 
         let user_response = UserResponse::from(user);
@@ -44,6 +48,7 @@ mod tests {
         assert_eq!(user_response.username, "Test User");
         assert_eq!(user_response.email, "test@example.com");
         assert_eq!(user_response.status, "ONLINE");
+        assert_eq!(user_response.language, "fr");
     }
 
     #[test]
@@ -53,6 +58,7 @@ mod tests {
             username: "test".to_string(),
             email: "test@test.com".to_string(),
             status: "ONLINE".to_string(),
+            language: "fr".to_string(),
         };
         let json = serde_json::to_string(&response).unwrap();
         assert!(json.contains("test"));

@@ -1,0 +1,201 @@
+{
+    "Sign_Up": {
+        "title": "Sign Up",
+        "username": "Username",
+        "email": "Email",
+        "password": "Password",
+        "language": "Language",
+        "submit": "Create Account",
+        "login_link": "Already have an account? ",
+        "login": "Log in",
+        "inscription": "Sign Up"
+    },
+    "Channel_Id_page": {
+        "Loading server...": "Loading server...",
+        "No salons selected": "No salons selected"
+    },
+    "Settings_server_page": {
+        "Server_settings": "Server settings"
+    },
+    "Server_page": {
+        "Nothing_server_selected": "No channels available in this server."
+    },
+    "Use_auth_store": {
+        "Error_during_connection": "Error during connection",
+        "Error_during_registration": "Error during registration"
+    },
+    "Use_channel_store": {
+        "Error_loading_channels": "Error loading channels",
+        "Error_adding_channel": "Error adding channel",
+        "Error_deleting_channel": "Error deleting channel",
+        "Error_updating_channel": "Error updating channel"
+    },
+    "Use_message_store": {
+        "Error_loading_messages": "Error loading messages",
+        "Error_sending_message": "Error sending message",
+        "Error_deleting_message": "Error deleting message",
+        "Error_updating_message": "Error updating message",
+        "You_do_not_have_permission_to_delete_this_message.": "You do not have permission to delete this message",
+        "You_do_not_have_permission_to_update_this_message.": "You do not have permission to update this message"
+    },
+    "Use_server_store": {
+        "Error_loading_servers": "Error loading servers",
+        "Error_create_server": "Error creating server",
+        "Error_deleting_server": "Error deleting server",
+        "Error_updating_server": "Error updating server",
+        "Error_connecting_to_the_server": "Error connecting to the server",
+        "Error_leaving_server": "Error leaving server",
+        "Error_loading_members": "Error loading members",
+        "Error_updating_member_role": "Error updating member role"
+    },
+    "Error": {
+        "Oops_An_error_has_occurred": "Oops! An error has occurred",
+        "We_are_sorry_but_something_went_wrong_while_loading_this_page": "We are sorry, but something went wrong while loading this page",
+        "Retry": "Retry",
+        "Back_to_home_page": "Back to home page"
+    },
+    "Not_found": {
+        "Page_not_found": "Page not found",
+        "The_page_you_are_looking_for_does_not_exist_or_has_been_moved": "The page you are looking for does not exist or has been moved",
+        "Go_back_to_home_page": "Go back to home page"
+    },
+    "Channel_item": {
+        "Delete_channel": "Delete channel",
+        "Name_channel": "Channel name",
+        "Reset": "Reset",
+        "Register": "Register"
+    },
+    "Create_channel_dialog": {
+        "Create_server": "Create server",
+        "Name_channel": "Channel name",
+        "Creation": "Creation...",
+        "Create_channel": "Create channel"
+    },
+    "Message_input": {
+        "Type_your_message_here...": "Type your message here..."
+    },
+    "Message_item": {
+        "modified": "modified"
+    },
+    "Typing_indicator": {
+        "is_typing...": "is typing..."
+    },
+    "open_navigation": "Open Navigation",
+    "Nothing_server_selected": "No server selected",
+    "Select_a_server_from_the_sidebar_to_get_started": "Select a server from the sidebar to get started",
+    "Create_server_dialog": {
+        "create_server": "Create server",
+        "server_name": "Server name",
+        "server_name_placeholder": "e.g.: Coders' Hideout",
+        "back": "Back",
+        "creating": "Creating...",
+        "create_the_server": "Create the server"
+    },
+    "Invitation_dialog": {
+        "invitation_code": "Invitation code",
+        "code_copied": "Invitation code copied to clipboard!",
+        "copy_failed": "Failed to copy invitation code."
+    },
+    "Join_create_server_dialog": {
+        "create_your_server": "Create your server",
+        "server_description": "Your server is where you meet your friends. Create yours and start a discussion.",
+        "create_mine": "Create mine",
+        "already_have_invitation": "Already have an invitation?",
+        "join_server": "Join a server"
+    },
+    "Join_server_dialog": {
+        "join_server": "Join a server",
+        "invitation_code": "Invitation code",
+        "invitation_code_placeholder": "Enter the code here!",
+        "back": "Back",
+        "joining": "Going through customs...",
+        "join_the_server": "Join the server",
+        "join_success": "You have successfully joined the server!",
+        "join_failed": "Failed to join the server."
+    },
+    "Member_item": {
+        "transfer_ownership": "Transfer server ownership",
+        "transfer_confirm_question": "Are you sure you want to transfer server ownership to",
+        "transfer_confirm_message": "You will become ADMIN and",
+        "transfer_confirm_message_2": "will become the new owner (OWNER).",
+        "irreversible_action": "This action is irreversible!",
+        "cancel": "Cancel",
+        "confirm_transfer": "Confirm transfer"
+    },
+    "Member_list": {
+        "members": "Members"
+    },
+    "Server_header_side": {
+        "server_settings": "Server settings",
+        "leave_server": "Leave server",
+        "leave_success": "You have successfully left the server.",
+        "leave_error": "Error leaving the server.",
+        "delete_success": "You have successfully deleted your server.",
+        "delete_error": "Error deleting the server."
+    },
+    "Server_header": {
+        "open_navigation": "Open navigation",
+        "show_members": "Show members"
+    },
+    "Server_settings": {
+        "server_overview": "Server overview",
+        "server_name": "Server name",
+        "server_name_placeholder": "Enter server name",
+        "server_members": "Server members",
+        "search_member": "Search a member...",
+        "delete_server": "Delete server",
+        "delete_confirm_question": "Are you sure you want to delete this server?",
+        "delete_confirm_instruction": "Type",
+        "delete_confirm_instruction_2": "to confirm",
+        "cancel": "Cancel",
+        "delete_permanently": "Delete permanently",
+        "unsaved_changes": "Warning — you have unsaved changes!",
+        "reset": "Reset",
+        "save": "Save"
+    },
+    "Server_sidebar": {
+        "create_channel": "Create a channel"
+    },
+    "Error_message": {
+        "snackbar_disconnected": "Snackbar (disconnected):"
+    },
+    "Dropdown": {
+        "select_placeholder": "Select...",
+        "no_option": "No option"
+    },
+    "Status_selector": {
+        "online": "Online",
+        "offline": "Offline",
+        "set_status": "Set status"
+    },
+    "User_panel_bar": {
+        "online": "Online",
+        "offline": "Offline"
+    },
+    "User_panel": {
+        "user_settings": "User settings"
+    },
+    "User_setting": {
+        "fill_all_fields": "Please fill in all fields",
+        "profile_updated": "Profile updated",
+        "update_error": "Error updating",
+        "settings": "Settings",
+        "my_account": "My account",
+        "username": "Username",
+        "email": "Email",
+        "save": "Save",
+        "my_language": "My language",
+        "logout": "Log out"
+    },
+    "Websocket_status": {
+        "connected": "Connected",
+        "connecting": "Connecting...",
+        "reconnecting": "Reconnecting...",
+        "error": "Error",
+        "disconnected": "Disconnected",
+        "unknown": "Unknown"
+    },
+    "Settings": {
+        "language": "Language"
+    }
+}

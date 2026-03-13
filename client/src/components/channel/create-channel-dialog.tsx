@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Plus } from 'lucide-react';
 import { useState } from "react";
 import { useChannelStore } from "@/app/lib/stores/use-channel-store";
+import { useTranslation } from 'react-i18next';
 
 export default function CreateChannelDialog({ serverId }: { serverId: string }) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [channelName, setChannelName] = useState("");
+    const { t } = useTranslation();
 
     const addChannel = useChannelStore((state) => state.addChannel);
 
@@ -41,13 +43,13 @@ export default function CreateChannelDialog({ serverId }: { serverId: string }) 
             <Dialog
                 isOpen={isDialogOpen}
                 onClose={() => setIsDialogOpen(false)}
-                title="Créer un channel"
+                title={t('Create_channel_dialog.Create_channel')}
             >
                 <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                     <Input
-                        label="Nom du channel"
+                        label={t('Create_channel_dialog.Name_channel')}
                         type="text"
-                        placeholder="Nom du channel"
+                        placeholder={t('Create_channel_dialog.Name_channel')}
                         value={channelName}
                         onChange={(e) => setChannelName(e.target.value)}
                         disabled={isLoading}
@@ -60,7 +62,7 @@ export default function CreateChannelDialog({ serverId }: { serverId: string }) 
                         type="submit"
                         disabled={isLoading || !channelName}
                     >
-                        {isLoading ? "Création..." : "Créer le channel"}
+                        {isLoading ? t('Create_channel_dialog.Creation') : t('Create_channel_dialog.Create_channel')}
                     </Button>
 
                 </form>

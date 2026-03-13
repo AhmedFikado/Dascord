@@ -20,6 +20,7 @@ export const initializeSession = async (): Promise<boolean> => {
             username: response.username,
             email: response.email,
             status: response.status as any,
+            language: response.language,
             created_at: new Date(response.created_at),
         });
         useAuthStore.getState().setUserId(String(response.id));

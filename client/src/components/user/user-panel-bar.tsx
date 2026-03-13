@@ -4,6 +4,7 @@ import UserCard from '@/components/shared/user-card';
 import { Button } from "@/components/ui/button";
 import { CircleUser } from 'lucide-react';
 import { Status } from '@/types/models/status';
+import { useTranslation } from 'react-i18next';
 
 interface UserPanelBarProps {
     username: string;
@@ -12,10 +13,11 @@ interface UserPanelBarProps {
 }
 
 export default function UserPanelBar({ username, status, onClick }: UserPanelBarProps) {
+    const { t } = useTranslation();
     const getStatusLabel = (status: Status) => {
         switch (status) {
-            case Status.ONLINE: return 'En ligne';
-            case Status.OFFLINE: return 'Hors ligne';
+            case Status.ONLINE: return t('User_panel_bar.online');
+            case Status.OFFLINE: return t('User_panel_bar.offline');
         }
     };
 

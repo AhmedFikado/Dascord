@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { Channel } from '@/types/models/channel';
 import { channelsApi } from '../api/channels';
+import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
 
 interface ChannelState {
     channels: Channel[];
@@ -17,7 +19,10 @@ interface ChannelState {
     reset: () => void;
 }
 
+const t = i18n.t.bind(i18n);
+
 export const useChannelStore = create<ChannelState>((set) => ({
+    
     channels: [],
     currentChannel: null,
     isLoading: false,
@@ -43,7 +48,7 @@ export const useChannelStore = create<ChannelState>((set) => ({
                 isLoading: false
             }));
         } catch (error) {
-            set({ error: 'Erreur lors du chargement des channels', isLoading: false });
+            set({ error: t('Use_channel_store.Error_loading_channels'), isLoading: false });
         }
     },
 
@@ -67,7 +72,7 @@ export const useChannelStore = create<ChannelState>((set) => ({
             });
             return addChannel;
         } catch (error) {
-            set({ error: 'Erreur lors de l\'ajout du channel', isLoading: false });
+            set({ error: t('Use_channel_store.Error_adding_channel'), isLoading: false });
             throw error;
         }
     },
@@ -89,7 +94,7 @@ export const useChannelStore = create<ChannelState>((set) => ({
                 };
             });
         } catch (error) {
-            set({ error: 'Erreur lors de la suppression du channel', isLoading: false });
+            set({ error: t('Use_channel_store.Error_deleting_channel'), isLoading: false });
         }
     },
 
@@ -114,7 +119,7 @@ export const useChannelStore = create<ChannelState>((set) => ({
             });
             return updatedChannel;
         } catch (error) {
-            set({ error: 'Erreur lors de la mise à jour du channel', isLoading: false });
+            set({ error: t('Use_channel_store.Error_updating_channel'), isLoading: false });
             throw error;
         }
     },

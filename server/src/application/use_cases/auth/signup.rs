@@ -33,9 +33,9 @@ impl<R: UserRepository> SignupUseCase<R> {
 
         let user = self
             .user_service
-            .create_user(request.username, request.email, request.password)
+            .create_user(request.username, request.email, request.password, request.language)
             .await?;
-        
+
         let user = self.user_service.update_status(user.id, "ONLINE").await?;
         let token = self.jwt_service.create_token(user.id)?;
 
@@ -45,12 +45,12 @@ impl<R: UserRepository> SignupUseCase<R> {
                 username: user.username,
                 email: user.email,
                 status: user.status,
+                language: user.language,
             },
             token,
         })
     }
 }
-
 
 // --- UNIT TESTS ---
 
@@ -70,6 +70,7 @@ mod tests {
             username: "ab".to_string(),
             email: "test@example.com".to_string(),
             password: "password123".to_string(),
+            language: "en".to_string(),
         };
 
         let result = signup_uc.execute(request).await;

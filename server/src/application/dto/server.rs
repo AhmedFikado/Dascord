@@ -1,9 +1,10 @@
 use crate::domain::entities::Server;
 use crate::domain::value_objects::ServerRole;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use validator::Validate;
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct CreateServerRequest {
     #[validate(length(
         min = 1,
@@ -13,13 +14,13 @@ pub struct CreateServerRequest {
     pub name: String,
 }
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct JoinServerRequest {
     #[validate(length(min = 1, message = "Invitation code is required"))]
     pub invitation_code: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, ToSchema)]
 pub struct ServerResponse {
     pub id: String,
     pub name: String,

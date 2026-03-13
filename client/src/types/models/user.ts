@@ -3,7 +3,8 @@ export interface User {
     username: string,
     email: string,
     created_at: Date,
-    status: Status
+    status: Status,
+    language: string,
 }
 
 export enum Status {

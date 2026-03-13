@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Input } from '../ui/input';
 import { useSnackbar } from "@/components/shared/error-message";
 import { Server } from "@/types/models/Server";
+import { useTranslation } from 'react-i18next';
 
 interface InvitationDialogProps {
     server: Server;
@@ -13,15 +14,16 @@ interface InvitationDialogProps {
 
 export default function InvitationDialog({ server }: InvitationDialogProps) {
 
+    const { t } = useTranslation();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const { showSnackbar } = useSnackbar();
 
     const copyToClipboard = async (text: string) => {
         try {
             await navigator.clipboard.writeText(text);
-            showSnackbar({ message: "Code d'invitation copié dans le presse-papiers !", severity: "success" });
+            showSnackbar({ message: t('Invitation_dialog.code_copied'), severity: "success" });
         } catch (err) {
-            showSnackbar({ message: "Échec de la copie du code d'invitation.", severity: "error" });
+            showSnackbar({ message: t('Invitation_dialog.copy_failed'), severity: "error" });
         }
     };
 
@@ -40,7 +42,7 @@ export default function InvitationDialog({ server }: InvitationDialogProps) {
             <Dialog
                 isOpen={isDialogOpen}
                 onClose={() => setIsDialogOpen(false)}
-                title="Code d'invitation"
+                title={t('Invitation_dialog.invitation_code')}
 
             >
                 <Input

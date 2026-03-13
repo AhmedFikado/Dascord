@@ -1,0 +1,212 @@
+{
+    "Sign_Up": {
+        "title": "S'inscrire",
+        "username": "Nom d'utilisateur",
+        "email": "Email",
+        "password": "Mot de passe",
+        "language": "Langue",
+        "submit": "Créer un compte",
+        "login_link": "Vous avez déjà un compte ? ",
+        "login": "Se connecter",
+        "inscription": "Inscription"
+    },
+    "Auth_schema": {
+        "email_required": "L'email est requis",
+        "email_invalid": "Format d'email invalide",
+        "password_required": "Le mot de passe est requis",
+        "password_min_length": "Le mot de passe doit contenir au moins 8 caractères",
+        "username_min_length": "Le nom d'utilisateur doit contenir au moins 3 caractères",
+        "username_max_length": "Le nom d'utilisateur ne peut pas dépasser 50 caractères",
+        "language_required": "La langue est requise"
+    },
+    "Channel_Id_page": {
+        "Loading server...": "Chargement du serveur...",
+        "No salons selected": "Aucun salon sélectionné"
+    },
+    "Settings_server_page": {
+        "Server_settings": "Paramètres du serveur"
+    },
+    "Server_page": {
+        "Nothing_server_selected": "Aucun channel disponible dans ce serveur."
+    },
+    "Use_auth_store": {
+        "Error_during_connection": "Erreur lors de la connexion",
+        "Error_during_registration": "Erreur lors de l'inscription"
+    },
+    "Use_channel_store": {
+        "Error_loading_channels": "Erreur lors du chargement des salons",
+        "Error_adding_channel": "Erreur lors de l'ajout du salon",
+        "Error_deleting_channel": "Erreur lors de la suppression du salon",
+        "Error_updating_channel": "Erreur lors de la mise à jour du salon"
+    },
+    "Use_message_store": {
+        "Error_loading_messages": "Erreur lors du chargement des messages",
+        "Error_sending_message": "Erreur lors de l'envoi du message",
+        "Error_deleting_message": "Erreur lors de la suppression du message",
+        "Error_updating_message": "Erreur lors de la mise à jour du message",
+        "You_do_not_have_permission_to_delete_this_message.": "Vous n'avez pas la permission de supprimer ce message",
+        "You_do_not_have_permission_to_update_this_message.": "Vous n'avez pas la permission de modifier ce message"
+    },
+    "Use_server_store": {
+        "Error_loading_servers": "Erreur lors du chargement des serveurs",
+        "Error_create_server": "Erreur lors de la création du serveur",
+        "Error_deleting_server": "Erreur lors de la suppression du serveur",
+        "Error_updating_server": "Erreur lors de la mise à jour du serveur",
+        "Error_connecting_to_the_server": "Erreur lors de la connexion au serveur",
+        "Error_leaving_server": "Erreur lors du départ du serveur",
+        "Error_loading_members": "Erreur lors du chargement des membres",
+        "Error_updating_member_role": "Erreur lors de la mise à jour du rôle du membre"
+    },
+    "Error": {
+        "Oops_An_error_has_occurred": "Oups ! Une erreur s'est produite",
+        "We_are_sorry_but_something_went_wrong_while_loading_this_page": "Nous sommes désolés, mais quelque chose s'est mal passé lors du chargement de cette page",
+        "Retry": "Réessayer",
+        "Back_to_home_page": "Retour à la page d'accueil"
+    },
+    "Not_found": {
+        "Page_not_found": "Page non trouvée",
+        "The_page_you_are_looking_for_does_not_exist_or_has_been_moved": "La page que vous recherchez n'existe pas ou a été déplacée",
+        "Go_back_to_home_page": "Retour à la page d'accueil"
+    },
+    "Channel_item": {
+        "Delete_channel": "Supprimer le salon",
+        "Name_channel": "Nom du salon",
+        "Reset": "Réinitialiser",
+        "Register": "Enregistrer"
+    },
+    "Create_channel_dialog": {
+        "Create_server": "Créer un serveur",
+        "Name_channel": "Nom du salon",
+        "Creation": "Création...",
+        "Create_channel": "Créer le salon"
+    },
+    "Message_input": {
+        "Type_your_message_here...": "Tapez votre message ici..."
+    },
+    "Message_item": {
+        "modified": "modifié"
+    },
+    "Typing_indicator": {
+        "is_typing...": "est en train d'écrire..."
+    },
+    "open_navigation": "Ouvrir la navigation",
+    "Nothing_server_selected": "Aucun serveur sélectionné",
+    "Select_a_server_from_the_sidebar_to_get_started": "Sélectionnez un serveur dans la barre latérale pour commencer",
+    "Create_server_dialog": {
+        "create_server": "Créer un serveur",
+        "server_name": "Nom du serveur",
+        "server_name_placeholder": "ex : Le Repaire des Codeurs",
+        "back": "Retour",
+        "creating": "Création...",
+        "create_the_server": "Créer le serveur"
+    },
+    "Invitation_dialog": {
+        "invitation_code": "Code d'invitation",
+        "code_copied": "Code d'invitation copié dans le presse-papiers !",
+        "copy_failed": "Échec de la copie du code d'invitation."
+    },
+    "Join_create_server_dialog": {
+        "create_your_server": "Créez votre serveur",
+        "server_description": "Votre serveur est l'endroit où vous retrouvez vos amis. Créez le vôtre et lancez une discussion.",
+        "create_mine": "Créer le mien",
+        "already_have_invitation": "Vous avez déjà une invitation ?",
+        "join_server": "Rejoindre un serveur"
+    },
+    "Join_server_dialog": {
+        "join_server": "Rejoindre un serveur",
+        "invitation_code": "Code d'invitation",
+        "invitation_code_placeholder": "Entrez le code ici !",
+        "back": "Retour",
+        "joining": "Passage en douane...",
+        "join_the_server": "Rejoindre le serveur",
+        "join_success": "Vous avez rejoint le serveur avec succès !",
+        "join_failed": "Échec lors de la tentative de rejoindre le serveur."
+    },
+    "Member_item": {
+        "transfer_ownership": "Transférer la propriété du serveur",
+        "transfer_confirm_question": "Êtes-vous sûr de vouloir transférer la propriété du serveur à",
+        "transfer_confirm_message": "Vous deviendrez ADMIN et",
+        "transfer_confirm_message_2": "deviendra le nouveau propriétaire (OWNER).",
+        "irreversible_action": "Cette action est irréversible !",
+        "cancel": "Annuler",
+        "confirm_transfer": "Confirmer le transfert"
+    },
+    "Member_list": {
+        "members": "Membres"
+    },
+    "Server_header_side": {
+        "server_settings": "Paramètres du serveur",
+        "leave_server": "Quitter le serveur",
+        "leave_success": "Vous avez quitté le serveur avec succès.",
+        "leave_error": "Erreur lors du départ du serveur.",
+        "delete_success": "Vous avez supprimé votre serveur avec succès.",
+        "delete_error": "Erreur lors de la suppression du serveur."
+    },
+    "Server_header": {
+        "open_navigation": "Ouvrir la navigation",
+        "show_members": "Afficher les membres"
+    },
+    "Server_settings": {
+        "server_overview": "Aperçu du serveur",
+        "server_name": "Nom du serveur",
+        "server_name_placeholder": "Entrez le nom du serveur",
+        "server_members": "Membres du serveur",
+        "search_member": "Rechercher un membre...",
+        "delete_server": "Supprimer le serveur",
+        "delete_confirm_question": "Êtes-vous sûr de vouloir supprimer ce serveur ?",
+        "delete_confirm_instruction": "Tapez",
+        "delete_confirm_instruction_2": "pour confirmer",
+        "cancel": "Annuler",
+        "delete_permanently": "Supprimer définitivement",
+        "unsaved_changes": "Attention — vous avez des modifications non sauvegardées !",
+        "reset": "Réinitialiser",
+        "save": "Sauvegarder"
+    },
+    "Server_sidebar": {
+        "create_channel": "Créer un salon"
+    },
+    "Error_message": {
+        "snackbar_disconnected": "Snackbar (déconnecté) :"
+    },
+    "Dropdown": {
+        "select_placeholder": "Sélectionner...",
+        "no_option": "Aucune option"
+    },
+    "Status_selector": {
+        "online": "En ligne",
+        "offline": "Hors ligne",
+        "set_status": "Définir le statut"
+    },
+    "User_panel_bar": {
+        "online": "En ligne",
+        "offline": "Hors ligne"
+    },
+    "User_panel": {
+        "user_settings": "Paramètres utilisateur"
+    },
+    "User_setting": {
+        "fill_all_fields": "Veuillez remplir tous les champs",
+        "profile_updated": "Profil mis à jour",
+        "update_error": "Erreur lors de la mise à jour",
+        "settings": "Paramètres",
+        "my_account": "Mon compte",
+        "username": "Nom d'utilisateur",
+        "email": "Email",
+        "save": "Sauvegarder",
+        "my_language": "Ma langue",
+        "logout": "Se déconnecter"
+    },
+    "Websocket_status": {
+        "connected": "Connecté",
+        "connecting": "Connexion...",
+        "reconnecting": "Reconnexion...",
+        "error": "Erreur",
+        "disconnected": "Déconnecté",
+        "unknown": "Inconnu"
+    },
+    "Settings": {
+        "language": "Langue"
+    },
+    "hello": "Bonjour",
+    "welcome": "Bienvenue"
+}

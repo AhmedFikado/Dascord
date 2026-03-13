@@ -1,7 +1,8 @@
 use serde::Deserialize;
+use utoipa::ToSchema;
 use validator::Validate;
 
-#[derive(Debug, Deserialize, Validate)]
+#[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct SignupRequest {
     #[validate(length(
         min = 3,
@@ -13,6 +14,12 @@ pub struct SignupRequest {
     pub email: String,
     #[validate(length(min = 8, message = "Password must be at least 8 characters"))]
     pub password: String,
+    #[validate(length(
+        min = 2,
+        max = 10,
+        message = "Language must be between 2 and 10 characters"
+    ))]
+    pub language: String,
 }
 
 
@@ -28,6 +35,7 @@ mod tests {
             username: "validuser".to_string(),
             email: "valid@example.com".to_string(),
             password: "validpassword".to_string(),
+            language: "en".to_string(),
         };
 
         assert!(request.validate().is_ok());
@@ -39,6 +47,7 @@ mod tests {
             username: "validuser".to_string(),
             email: "invalid-email".to_string(),
             password: "validpassword".to_string(),
+            language: "en".to_string(),
         };
 
         assert!(request.validate().is_err());
@@ -50,6 +59,7 @@ mod tests {
             username: "ab".to_string(),
             email: "valid@example.com".to_string(),
             password: "validpassword".to_string(),
+            language: "en".to_string(),
         };
 
         assert!(request.validate().is_err());
@@ -61,6 +71,7 @@ mod tests {
             username: "validuser".to_string(),
             email: "valid@example.com".to_string(),
             password: "2short".to_string(),
+            language: "en".to_string(),
         };
 
         assert!(request.validate().is_err());
@@ -72,6 +83,7 @@ mod tests {
             username: "a".repeat(51),
             email: "valid@example.com".to_string(),
             password: "validpassword".to_string(),
+            language: "en".to_string(),
         };
 
         assert!(request.validate().is_err());

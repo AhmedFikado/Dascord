@@ -6,6 +6,7 @@ import { Edit, Trash2, X, Check } from 'lucide-react';
 import { useState } from 'react';
 import { Message } from '../../types/models/message';
 import UserCard from '../shared/user-card';
+import { useTranslation } from 'react-i18next';
 
 interface MessageItemProps {
   message: Message;
@@ -20,6 +21,7 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [isActionsVisible, setIsActionsVisible] = useState(false);
+  const { t } = useTranslation();
 
   const currentMember = members.find(m => m.user_id === currentUserId);
   const isAdminOrOwner = currentMember
@@ -91,7 +93,7 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
           <span className="font-semibold text-white cursor-pointer">{message.username}</span>
           <span className="text-xs text-gray-50">{formatDate(message.created_at)}</span>
           {message.updated_at && message.updated_at !== message.created_at && (
-            <span className="text-xs text-gray-50 italic">(modifié)</span>
+            <span className="text-xs text-gray-50 italic">{t('Message_item.modified')}</span>
           )}
         </div>
         {isEditing ? (

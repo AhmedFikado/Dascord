@@ -9,10 +9,10 @@ use std::sync::Arc;
 /// Configure les routes d'authentification
 pub fn auth_routes<R: UserRepository + 'static>(handler: Arc<AuthHandler<R>>) -> Router {
     Router::new()
-        .route("/signup", post(AuthHandler::<R>::signup))
-        .route("/login", post(AuthHandler::<R>::login))
-        .route("/logout", post(AuthHandler::<R>::logout))
-        .route("/me", get(AuthHandler::<R>::get_me))
+        .route("/signup", post(crate::api::handlers::auth_handler::signup::<R>))
+        .route("/login", post(crate::api::handlers::auth_handler::login::<R>))
+        .route("/logout", post(crate::api::handlers::auth_handler::logout::<R>))
+        .route("/me", get(crate::api::handlers::auth_handler::get_me::<R>))
         .with_state(handler)
 }
 

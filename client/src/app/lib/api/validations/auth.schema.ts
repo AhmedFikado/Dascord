@@ -22,6 +22,9 @@ export const signupSchema = z.object({
     password: z
         .string()
         .min(8, 'Le mot de passe doit contenir au moins 8 caractères'),
+    language: z
+        .string()
+        .min(2, 'La langue est requise'),
 });
 
 export type LoginFormData = z.infer<typeof loginSchema>;

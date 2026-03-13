@@ -10,8 +10,10 @@ import { useAuthStore } from '@/app/lib/stores/use-auth-store';
 import { useRouter } from 'next/navigation';
 import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
 import { updateStatus } from '@/app/lib/api/users';
+import { useTranslation } from 'react-i18next';
 
 export default function UserPanel() {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -70,7 +72,7 @@ export default function UserPanel() {
                     <Dialog
                         isOpen={isSettingsOpen}
                         onClose={() => setIsSettingsOpen(false)}
-                        title="Paramètres utilisateur"
+                        title={t('User_panel.user_settings')}
                         size="xl"
                     >
                         <UserSetting user={user} />

@@ -2,6 +2,7 @@
 
 import { Circle } from 'lucide-react';
 import { Status } from '@/types/models/status';
+import { useTranslation } from 'react-i18next';
 
 interface StatusSelectorProps {
     currentStatus: Status;
@@ -9,15 +10,16 @@ interface StatusSelectorProps {
 }
 
 export default function StatusSelector({ currentStatus, onStatusChange }: StatusSelectorProps) {
+    const { t } = useTranslation();
     const statuses = [
-        { value: Status.ONLINE, label: 'En ligne', color: 'text-green' },
-        { value: Status.OFFLINE, label: 'Hors ligne', color: 'text-gray-50' },
+        { value: Status.ONLINE, label: t('Status_selector.online'), color: 'text-green' },
+        { value: Status.OFFLINE, label: t('Status_selector.offline'), color: 'text-gray-50' },
     ];
 
     return (
         <div className="p-2 border-b border-gray-200">
             <p className="text-xs text-gray-light px-2 mb-2 uppercase font-semibold">
-                Définir le statut
+                {t('Status_selector.set_status')}
             </p>
             {statuses.map(({ value, label, color }) => (
                 <button

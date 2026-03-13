@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useServerStore } from "@/app/lib/stores/use-server-store";
 import { useSnackbar } from "@/components/shared/error-message";
+import { useTranslation } from 'react-i18next';
 
 interface JoinServerDialogProps {
     isOpen?: boolean;
@@ -12,6 +13,7 @@ interface JoinServerDialogProps {
 }
 
 export default function JoinServerDialog({ isOpen, onClose, onBack }: JoinServerDialogProps) {
+    const { t } = useTranslation();
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [invitationCode, setInvitationCode] = useState("");
@@ -29,9 +31,9 @@ export default function JoinServerDialog({ isOpen, onClose, onBack }: JoinServer
         try {
             await joinServer(invitationCode);
             handleClose();
-            showSnackbar({ message: "Vous avez rejoint le serveur avec succès !", severity: "success" });
+            showSnackbar({ message: t('Join_server_dialog.join_success'), severity: "success" });
         } catch (error) {
-            showSnackbar({ message: "Échec de la connexion au serveur.", severity: "error" });
+            showSnackbar({ message: t('Join_server_dialog.join_failed'), severity: "error" });
         } finally {
             setIsLoading(false);
             setInvitationCode("");
@@ -45,20 +47,20 @@ export default function JoinServerDialog({ isOpen, onClose, onBack }: JoinServer
                     style={{ borderRadius: '10px', backgroundColor: '#5865F2', color: 'white', padding: 0 }}
                     onClick={() => setInternalIsOpen(true)}
                 >
-                    Rejoindre un serveur
+                    {t('Join_server_dialog.join_server')}
                 </Button>
             )}
 
             <Dialog
                 isOpen={dialogIsOpen}
                 onClose={handleClose}
-                title="Rejoindre un serveur"
+                title={t('Join_server_dialog.join_server')}
             >
                 <form onSubmit={handleSubmit} className="flex flex-col gap-8">
                     <Input
-                        label="Code d'invitation"
+                        label={t('Join_server_dialog.invitation_code')}
                         type="text"
-                        placeholder="Entrez le code ici !"
+                        placeholder={t('Join_server_dialog.invitation_code_placeholder')}
                         value={invitationCode}
                         onChange={(e) => setInvitationCode(e.target.value)}
                     />
@@ -69,7 +71,7 @@ export default function JoinServerDialog({ isOpen, onClose, onBack }: JoinServer
                             variant={"noBackground"}
                             width="80px"
                             onClick={handleBack}>
-                            Retour
+                            {t('Join_server_dialog.back')}
                         </Button>
 
                         <Button
@@ -77,7 +79,7 @@ export default function JoinServerDialog({ isOpen, onClose, onBack }: JoinServer
                             width="200px"
                             type="submit"
                         >
-                            {isLoading ? "Vous passez la douane ..." : "Rejoindre le serveur"}
+                            {isLoading ? t('Join_server_dialog.joining') : t('Join_server_dialog.join_the_server')}
                         </Button>
 
                     </div>

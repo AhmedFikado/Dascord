@@ -34,66 +34,107 @@ impl<R: UserRepository> AuthHandler<R> {
             jwt_service: Arc::new(jwt_service),
         }
     }
+}
 
-    /// POST /auth/signup - Créer un nouveau compte
-    pub async fn signup(
-        State(handler): State<Arc<AuthHandler<R>>>,
-        Json(req): Json<SignupRequest>,
-    ) -> Result<impl IntoResponse, AppError> {
-        let response = handler.signup_uc.execute(req).await?;
-        Ok((StatusCode::CREATED, Json(response)))
-    }
+/// - Créer un nouveau compte
+#[utoipa::path(
+    post,
+    path = "/auth/signup",
+    tag = "auth",
+    request_body = SignupRequest,
+    responses(
+        (status = 201, description = "Compte créé avec succès", body = SignupResponse),
+        (status = 400, description = "Erreur de validation"),
+        (status = 409, description = "Email ou username déjà utilisé")
+    )
+)]
+pub async fn signup<R: UserRepository>(
+    State(handler): State<Arc<AuthHandler<R>>>,
+    Json(req): Json<SignupRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let response = handler.signup_uc.execute(req).await?;
+    Ok((StatusCode::CREATED, Json(response)))
+}
 
-    /// POST /auth/login - Se connecter
-    pub async fn login(
-        State(handler): State<Arc<AuthHandler<R>>>,
-        Json(req): Json<LoginRequest>,
-    ) -> Result<impl IntoResponse, AppError> {
-        let response = handler.login_uc.execute(req).await?;
-        Ok((StatusCode::OK, Json(response)))
-    }
+/// - Se connecter
+#[utoipa::path(
+    post,
+    path = "/auth/login",
+    tag = "auth",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Connexion réussie", body = LoginResponse),
+        (status = 401, description = "Identifiants invalides")
+    )
+)]
+pub async fn login<R: UserRepository>(
+    State(handler): State<Arc<AuthHandler<R>>>,
+    Json(req): Json<LoginRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let response = handler.login_uc.execute(req).await?;
+    Ok((StatusCode::OK, Json(response)))
+}
 
-    /// POST /auth/logout - Se déconnecter
-    pub async fn logout(
-        State(handler): State<Arc<AuthHandler<R>>>,
-        headers: HeaderMap,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
+/// - Se déconnecter
+#[utoipa::path(
+    post,
+    path = "/auth/logout",
+    tag = "auth",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Déconnexion réussie", body = LogoutResponse),
+        (status = 401, description = "Non authentifié")
+    )
+)]
+pub async fn logout<R: UserRepository>(
+    State(handler): State<Arc<AuthHandler<R>>>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
 
-        let response = handler.logout_uc.execute(token.to_string()).await?;
-        Ok((StatusCode::OK, Json(response)))
-    }
+    let response = handler.logout_uc.execute(token.to_string()).await?;
+    Ok((StatusCode::OK, Json(response)))
+}
 
-    /// GET /auth/me - Obtenir les infos de l'utilisateur connecté
-    pub async fn get_me(
-        State(handler): State<Arc<AuthHandler<R>>>,
-        headers: HeaderMap,
-    ) -> Result<impl IntoResponse, AppError> {
-        let token = headers
-            .get("Authorization")
-            .and_then(|v| v.to_str().ok())
-            .and_then(|v| v.strip_prefix("Bearer "))
-            .ok_or_else(|| {
-                AppError::Unauthorized("Missing or invalid Authorization header".to_string())
-            })?;
+/// - Obtenir les infos de l'utilisateur connecté
+#[utoipa::path(
+    get,
+    path = "/auth/me",
+    tag = "auth",
+    security(("bearer_auth" = [])),
+    responses(
+        (status = 200, description = "Informations utilisateur"),
+        (status = 401, description = "Non authentifié")
+    )
+)]
+pub async fn get_me<R: UserRepository>(
+    State(handler): State<Arc<AuthHandler<R>>>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
 
-        let claims = handler.jwt_service.verify_token(token)?;
+    let claims = handler.jwt_service.verify_token(token)?;
 
-        Ok((
-            StatusCode::OK,
-            Json(serde_json::json!({
-                "user_id": claims.sub_id,
-                "exp": claims.exp,
-                "iat": claims.iat
-            })),
-        ))
-    }
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "user_id": claims.sub_id,
+            "exp": claims.exp,
+            "iat": claims.iat
+        })),
+    ))
 }
 
 
@@ -143,6 +184,7 @@ mod tests {
             username: "newuser".to_string(),
             email: "new@example.com".to_string(),
             password: "password123".to_string(),
+            language: "en".to_string(),
         };
 
         let result = signup_uc.execute(request).await;
@@ -162,6 +204,7 @@ mod tests {
             username: "existing".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -175,6 +218,7 @@ mod tests {
             username: "newuser".to_string(),
             email: "test@example.com".to_string(),
             password: "password123".to_string(),
+            language: "en".to_string(),
         };
 
         let result = signup_uc.execute(request).await;
@@ -189,6 +233,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "existing@example.com".to_string(),
             password_hash: password_service.hash("password").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -202,6 +247,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "new@example.com".to_string(),
             password: "password123".to_string(),
+            language: "en".to_string(),
         };
 
         let result = signup_uc.execute(request).await;
@@ -216,6 +262,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password123").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -247,6 +294,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password123").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -290,6 +338,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password123").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -316,6 +365,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password123").unwrap(),
+            language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
         };
@@ -373,6 +423,7 @@ mod tests {
             username: "testuser".to_string(),
             email: "test@example.com".to_string(),
             password_hash: password_service.hash("password123").unwrap(),
+            language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
         };

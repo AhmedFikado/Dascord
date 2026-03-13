@@ -34,6 +34,7 @@ docker-compose up -d --build
 L'application sera accessible sur:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8080
+- Swagger UI: http://localhost:8080/swagger-ui
 - WebSocket: ws://localhost:8080/ws
 
 ## 🔧 Configuration
@@ -116,6 +117,10 @@ T-JSF-600-BDX/
 - ✅ Notifications de statut
 
 ## API Endpoints
+
+### Documentation interactive
+
+Accédez à la documentation Swagger UI complète sur: **http://localhost:8080/swagger-ui**
 
 ### Authentification
 - `POST /auth/signup` - Créer un compte

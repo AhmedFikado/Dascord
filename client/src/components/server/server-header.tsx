@@ -2,8 +2,10 @@
 
 import { Menu, Users } from 'lucide-react';
 import { useMobileNav } from '@/app/(dashboard)/layout';
+import { useTranslation } from 'react-i18next';
 
 export default function ServerHeader({ channelName }: { channelName: string }) {
+    const { t } = useTranslation();
     const { openNav, openMembers } = useMobileNav();
 
     return (
@@ -11,7 +13,7 @@ export default function ServerHeader({ channelName }: { channelName: string }) {
             <button
                 className="md:hidden mr-3 p-1 flex-shrink-0"
                 onClick={openNav}
-                aria-label="Ouvrir la navigation"
+                aria-label={t('Server_header.open_navigation')}
             >
                 <Menu size={20} className="text-white" />
             </button>
@@ -21,7 +23,7 @@ export default function ServerHeader({ channelName }: { channelName: string }) {
             <button
                 className="lg:hidden ml-3 p-1 flex-shrink-0"
                 onClick={openMembers}
-                aria-label="Afficher les membres"
+                aria-label={t('Server_header.show_members')}
             >
                 <Users size={20} className="text-white" />
             </button>

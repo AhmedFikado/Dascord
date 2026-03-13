@@ -37,11 +37,13 @@ impl<R: UserRepository> LoginUseCase<R> {
             .authenticate(&request.email, &request.password)
             .await?;
         let user = self.user_service.update_status(user.id, "ONLINE").await?;
-        
+
         if let Some(ws_manager) = &self.ws_manager {
-            ws_manager.broadcast_status_change(user.id, "ONLINE".to_string()).await;
+            ws_manager
+                .broadcast_status_change(user.id, "ONLINE".to_string())
+                .await;
         }
-        
+
         let token = self.jwt_service.create_token(user.id)?;
 
         let message = format!("Vous êtes bien connecté avec {}", user.username);
@@ -53,12 +55,12 @@ impl<R: UserRepository> LoginUseCase<R> {
                 username: user.username,
                 email: user.email,
                 status: user.status,
+                language: user.language,
             },
             token,
         })
     }
 }
-
 
 // --- UNIT TESTS ---
 
