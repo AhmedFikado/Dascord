@@ -37,6 +37,14 @@ pub fn message_routes<
             "/messages/:id",
             put(update_message::<MR, CR, SR, UR>),
         )
+        // .route(
+        //     "/channels/:channel_id/messages/private",
+        //     get(get_private_message_history::<MR, CR, SR, UR>),
+        // )
+        // .route(
+        //     "/channels/:channel_id/messages/private",
+        //     post(send_private_message::<MR, CR, SR, UR>),
+        // )
         .with_state(handler)
 }
 

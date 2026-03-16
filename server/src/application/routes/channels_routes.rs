@@ -1,7 +1,7 @@
 use crate::application::controller::channel_controller::{ChannelHandler, get_channel_info, update_channel, delete_channel};
 use crate::infrastructure::repositories::{ChannelRepository, ServerRepository};
 use axum::{
-    routing::{delete as axum_delete, get, put},
+    routing::{delete as axum_delete, get, put, post},
     Router,
 };
 use std::sync::Arc;
@@ -13,6 +13,9 @@ pub fn channel_routes<CR: ChannelRepository + 'static, SR: ServerRepository + 's
         .route("/:id", get(get_channel_info::<CR, SR>))
         .route("/:id", put(update_channel::<CR, SR>))
         .route("/:id", axum_delete(delete_channel::<CR, SR>))
+        // .route("/private", post(create_private_channel::<CR, SR>))
+        // .route("/private", get(get_list_private_channels::<CR, SR>))
+        // .route("/:id/private", get(get_private_channel::<CR, SR>))
         .with_state(handler)
 }
 
