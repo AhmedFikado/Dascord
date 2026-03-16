@@ -1,4 +1,4 @@
-use crate::application::dto::server::{CreateServerRequest, ServerResponse};
+use crate::application::dto::server_dto::{CreateServerRequest, ServerResponse};
 use crate::domain::entities::Server;
 use crate::infrastructure::repositories::server_repository::ServerRepository;
 use crate::utils::error::{AppError, AppResult};

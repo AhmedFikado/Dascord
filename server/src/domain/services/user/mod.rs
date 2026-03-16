@@ -1,5 +1,5 @@
-pub mod user_operations;
-pub mod user_service;
+pub mod user_call_services;
+pub mod user_services;
 
-pub use user_operations::*;
-pub use user_service::*;
+pub use user_call_services::*;
+pub use user_services::*;

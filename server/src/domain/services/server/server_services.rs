@@ -1,4 +1,4 @@
-use crate::application::dto::server::ServerResponse;
+use crate::application::dto::server_dto::ServerResponse;
 use crate::infrastructure::repositories::server_repository::ServerRepository;
 use crate::utils::error::{AppError, AppResult};
 use uuid::Uuid;

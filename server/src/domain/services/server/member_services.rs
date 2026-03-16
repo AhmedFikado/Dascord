@@ -183,6 +183,7 @@ impl<R: ServerRepository> KickMemberUseCase<R> {
         }
 }
 
+
 // --- UNIT TESTS ---
 
 #[cfg(test)]

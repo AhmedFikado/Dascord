@@ -1,4 +1,4 @@
-use crate::application::dto::channel::{ChannelResponse, CreateChannelRequest};
+use crate::application::dto::channel_dto::{ChannelResponse, CreateChannelRequest};
 use crate::domain::entities::Channel;
 use crate::infrastructure::repositories::{
     channel_repository::ChannelRepository, server_repository::ServerRepository,
@@ -149,7 +149,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_channel_success_as_owner() {
-        use crate::application::dto::channel::CreateChannelRequest;
+        use crate::application::dto::channel_dto::CreateChannelRequest;
         use crate::domain::entities::Server;
         use crate::infrastructure::repositories::mocks::{
             mock_channel_repository::MockChannelRepository,
@@ -176,7 +176,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_channel_success_as_admin() {
-        use crate::application::dto::channel::CreateChannelRequest;
+        use crate::application::dto::channel_dto::CreateChannelRequest;
         use crate::domain::entities::Server;
         use crate::domain::value_objects::ServerRole;
         use crate::infrastructure::repositories::mocks::{
@@ -207,7 +207,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_channel_insufficient_permissions() {
-        use crate::application::dto::channel::CreateChannelRequest;
+        use crate::application::dto::channel_dto::CreateChannelRequest;
         use crate::domain::entities::Server;
         use crate::domain::value_objects::ServerRole;
         use crate::infrastructure::repositories::mocks::{
@@ -236,7 +236,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_channel_server_not_found() {
-        use crate::application::dto::channel::CreateChannelRequest;
+        use crate::application::dto::channel_dto::CreateChannelRequest;
         use crate::infrastructure::repositories::mocks::{
             mock_channel_repository::MockChannelRepository,
             mock_server_repository::MockServerRepository,
@@ -260,7 +260,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_create_channel_validation_error() {
-        use crate::application::dto::channel::CreateChannelRequest;
+        use crate::application::dto::channel_dto::CreateChannelRequest;
         use crate::domain::entities::Server;
         use crate::infrastructure::repositories::mocks::{
             mock_channel_repository::MockChannelRepository,

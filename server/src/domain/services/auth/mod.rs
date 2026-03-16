@@ -1,7 +1,7 @@
-pub mod login;
-pub mod logout;
-pub mod signup;
+pub mod login_services;
+pub mod logout_service;
+pub mod signup_services;
 
-pub use login::LoginUseCase;
-pub use logout::LogoutUseCase;
-pub use signup::SignupUseCase;
+pub use login_services::LoginUseCase;
+pub use logout_service::LogoutUseCase;
+pub use signup_services::SignupUseCase;

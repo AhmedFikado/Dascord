@@ -55,7 +55,7 @@ mod tests {
                     .method("POST")
                     .header("content-type", "application/json")
                     .body(Body::from(
-                        r#"{"username":"test","email":"test@test.com","password":"password123"}"#,
+                        r#"{"username":"test","email":"test@test.com","password":"password123", "language": "en" }"#,
                     ))
                     .unwrap(),
             )

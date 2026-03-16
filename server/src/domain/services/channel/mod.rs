@@ -1,3 +1,3 @@
-pub mod channel_operations;
+pub mod channel_services;
 
-pub use channel_operations::*;
+pub use channel_services::*;

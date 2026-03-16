@@ -1,4 +1,4 @@
-use crate::application::dto::channel::ChannelResponse;
+use crate::application::dto::channel_dto::ChannelResponse;
 use crate::infrastructure::repositories::{ChannelRepository, ServerRepository};
 use crate::utils::error::{AppError, AppResult};
 use uuid::Uuid;
