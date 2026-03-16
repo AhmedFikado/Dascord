@@ -1,4 +1,4 @@
-use crate::application::dto::server::{MemberResponse, UserInfo};
+use crate::application::dto::server_dto::{MemberResponse, UserInfo};
 use crate::domain::entities::BanType;
 use crate::domain::value_objects::ServerRole;
 use crate::infrastructure::repositories::server_repository::ServerRepository;

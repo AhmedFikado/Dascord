@@ -1044,7 +1044,7 @@ mod tests {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
 
-        let result = ServerHandler::kick_member(State(handler), Path((server.id, member_id)), headers).await;
+        let result = kick_member(State(handler), Path((server.id, member_id)), headers).await;
         assert!(result.is_ok());
     }
 
@@ -1072,7 +1072,7 @@ mod tests {
         headers.insert("Authorization", format!("Bearer {}", token).parse().unwrap());
 
         let payload = serde_json::json!({"ban_type": "Permanent"});
-        let result = ServerHandler::ban_member(State(handler), Path((server.id, member_id)), headers, Json(payload)).await;
+        let result = ban_member(State(handler), Path((server.id, member_id)), headers, Json(payload)).await;
         assert!(result.is_ok());
     }
 
