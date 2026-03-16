@@ -127,6 +127,11 @@ impl<R: ServerRepository> JoinServerUseCase<R> {
             return Err(AppError::Conflict("Already a member".to_string()));
         }
 
+        let is_banned = self.server_repo.is_banned(server.id, user_id).await?;
+        if is_banned {
+            return Err(AppError::Forbidden("You are banned from this server".to_string()));
+        }
+
         self.server_repo.add_member(server.id, user_id).await?;
         
         // Retourner le server_id pour la diffusion WebSocket

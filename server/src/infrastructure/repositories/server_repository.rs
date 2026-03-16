@@ -1,6 +1,7 @@
 use crate::domain::entities::Server;
 use crate::domain::value_objects::ServerRole;
 use crate::utils::error::{AppError, AppResult};
+use crate::domain::entities::BanType;
 use async_trait::async_trait;
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
@@ -21,6 +22,8 @@ pub trait ServerRepository: Send + Sync + Clone {
     async fn get_members(&self, server_id: Uuid) -> AppResult<Vec<(Uuid, Uuid, ServerRole, chrono::DateTime<chrono::Utc>)>>;
     async fn get_member_role(&self, server_id: Uuid, user_id: Uuid) -> AppResult<Option<ServerRole>>;
     async fn update_member_role(&self, server_id: Uuid, user_id: Uuid, role: ServerRole) -> AppResult<()>;
+    async fn is_banned(&self, server_id: Uuid, user_id: Uuid) -> AppResult<bool>;
+    async fn ban_member(&self, server_id: Uuid, user_id: Uuid, banned_by: Uuid, ban_type: BanType, expires_at: Option<chrono::DateTime<chrono::Utc>>) -> AppResult<()>;
 }
 
 #[derive(Clone)]
@@ -236,5 +239,35 @@ impl ServerRepository for PostgresServerRepository {
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
         Ok(())
+    }
+
+    async fn is_banned(&self, server_id: Uuid, user_id: Uuid) -> AppResult<bool> {
+        let result = sqlx::query(
+            "SELECT EXISTS(SELECT 1 FROM bans WHERE user_id = $1 AND server_id = $2 AND (expires_at IS NULL OR expires_at > NOW()))"
+        )
+        .bind(user_id)
+        .bind(server_id)
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        Ok(result.get::<bool, _>(0))
+    }
+
+
+     async fn ban_member(&self, server_id: Uuid, user_id: Uuid, banned_by: Uuid, ban_type: BanType, expires_at: Option<chrono::DateTime<chrono::Utc>>) -> AppResult<()> {
+        sqlx::query(
+            "INSERT INTO bans (server_id, user_id, banned_by, ban_type, expires_at) VALUES ($1, $2, $3, $4, $5)"
+        )
+        .bind(server_id)
+        .bind(user_id)
+        .bind(banned_by)
+        .bind(ban_type)
+        .bind(expires_at)
+        .execute(&self.pool)
+        .await
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        self.remove_member(server_id, user_id).await
     }
 }

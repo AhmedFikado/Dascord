@@ -111,6 +111,18 @@ pub enum ServerMessage {
         user_id: String,
         new_role: String,
     },
+
+    /// Un membre a été expulsé du serveur
+    MemberKicked {
+        server_id: String,
+        user_id: String,
+    },
+
+    /// Un membre a été banni du serveur
+    MemberBanned {
+        server_id: String,
+        user_id: String,
+    },
 }
 
 /// Structure pour les données d'un message dans l'historique

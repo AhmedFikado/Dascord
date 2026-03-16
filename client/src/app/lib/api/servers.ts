@@ -56,5 +56,17 @@ export const serversApi = {
     updateRoleMember: async (serverId: string, userId: string, role: Role): Promise<void> => {
         await apiClient.put(`/servers/${serverId}/members/${userId}`, { role });
     },
-    
+
+    // DELETE /servers/{id}/members/:userId/kick
+    kickMember: async (serverId: string, userId: string): Promise<void> => {
+        await apiClient.delete(`/servers/${serverId}/members/${userId}/kick`);
+    },
+
+    // POST /servers/{id}/members/:userId/ban
+    banMember: async (serverId: string, userId: string, banType: 'Permanent' | 'Temporary', expiresAt?: string): Promise<void> => {
+        await apiClient.post(`/servers/${serverId}/members/${userId}/ban`, {
+            ban_type: banType,
+            expires_at: expiresAt ?? null,
+        });
+    },
 };

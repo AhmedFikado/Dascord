@@ -1,6 +1,7 @@
 import { getMe } from '../users';
 import { hasToken, removeToken } from './token';
 import { useAuthStore } from '../../stores/use-auth-store';
+import i18n from '@/i18n';
 
 /**
  * Initialise la session utilisateur au chargement de l'app
@@ -24,6 +25,10 @@ export const initializeSession = async (): Promise<boolean> => {
             created_at: new Date(response.created_at),
         });
         useAuthStore.getState().setUserId(String(response.id));
+
+        if (response.language) {
+            i18n.changeLanguage(response.language);
+        }
 
         return true;
     } catch (error) {

@@ -7,6 +7,7 @@ import { Dropdown } from '@/components/ui/dropdown';
 import { Member } from '@/types/models/member';
 import { Role } from '@/types/models/role';
 import { useState } from 'react';
+import MemberContextMenu from './member-context-menu';
 import { useTranslation } from 'react-i18next';
 
 interface MemberitemProps {
@@ -58,9 +59,7 @@ export default function MemberItem({ member, isRole = false, serverId }: Memberi
   });
 
   const canModifyRole = () => {
-    // L'owner ne peut pas modifier son propre rôle
     if (currentUserRole === Role.OWNER) {
-      // Si c'est lui-même, il ne peut pas modifier
       if (member.user_id === userId) {
         return false;
       }
@@ -74,9 +73,28 @@ export default function MemberItem({ member, isRole = false, serverId }: Memberi
 
   const showDropdown = isRole && canModifyRole();
 
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+  const canShowContextMenu = () => {
+    if (member.user_id === userId) return false;
+
+    if (currentUserRole === Role.ADMIN && member.role === Role.OWNER) return false;
+
+    return true;
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!canShowContextMenu()) return;
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  };
+
   return (
     <>
-      <div className="flex mx-2 rounded hover:bg-hoverSide cursor-pointer group transition-colors justify-between items-center">
+      <div
+        className="flex mx-2 rounded hover:bg-hoverSide cursor-pointer group transition-colors justify-between items-center"
+        onContextMenu={handleContextMenu}
+      >
         <div className="flex items-center gap-3 px-2 py-1.5">
           <UserCard username={member.user.username} size={32} status={member.user.status} />
           <span className="text-sm font-medium text-gray-light group-hover:text-white transition-colors truncate">
@@ -129,6 +147,15 @@ export default function MemberItem({ member, isRole = false, serverId }: Memberi
           </div>
         </div>
       </Dialog>
+      {contextMenu && serverId && (
+        <MemberContextMenu
+          targetMemberId={member.user_id}
+          serverId={serverId}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </>
   );
 }
