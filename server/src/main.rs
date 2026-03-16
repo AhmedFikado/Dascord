@@ -1,11 +1,11 @@
 use server::{
-    api::router,
-    application::use_cases::auth::{LoginUseCase, LogoutUseCase, SignupUseCase},
+    application::router,
+    domain::services::auth::{LoginUseCase, LogoutUseCase, SignupUseCase},
     config::{AppConfig, DatabaseConfig},
     infrastructure::database::{init_databases, MongoDBMessageRepository},
     infrastructure::repositories::PostgresUserRepository,
     infrastructure::security::JWTService,
-    infrastructure::services::UserService,
+    domain::services::user::UserService,
     infrastructure::websocket::{create_ws_router, ConnectionManager, WebSocketState},
 };
 use std::sync::Arc;
