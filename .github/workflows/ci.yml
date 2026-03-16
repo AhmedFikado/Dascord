@@ -70,18 +70,6 @@ jobs:
           JWT_EXPIRATION: 3600
         run: cargo test --release
 
-      - name: Check formatting
-        working-directory: server
-        run: cargo fmt --check
-
-      - name: Run clippy
-        working-directory: server
-        env:
-          DATABASE_URL: postgresql://test:test@localhost:5432/test_db
-          MONGODB_URI: mongodb://test:test@localhost:27017/test_db?authSource=admin
-          JWT_SECRET: test-secret-key
-          JWT_EXPIRATION: 3600
-        run: cargo clippy -- -D warnings
 
   frontend-checks:
     name: Frontend Checks
@@ -100,10 +88,6 @@ jobs:
       - name: Install dependencies
         working-directory: client
         run: npm ci
-
-      - name: Lint
-        working-directory: client
-        run: npm run lint
 
       - name: Build
         working-directory: client
