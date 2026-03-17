@@ -1,0 +1,16 @@
+services:
+  backend:
+    restart: always
+    environment:
+      - RUST_LOG=info
+
+  frontend:
+    restart: always
+    environment:
+      - NODE_ENV=production
+
+  postgres:
+    restart: always
+
+  mongodb:
+    restart: always
