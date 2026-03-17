@@ -3,7 +3,8 @@ use crate::application::dto::server_dto::JoinServerRequest;
 use crate::domain::services::server::*;
 use crate::domain::entities::BanType;
 use crate::domain::value_objects::ServerRole;
-use crate::infrastructure::repositories::{ChannelRepository, ServerRepository, UserRepository};
+use crate::infrastructure::repositories::{ServerRepository, UserRepository};
+use crate::infrastructure::repositories::channel::ChannelRepository;
 use crate::infrastructure::security::JWTService;
 use crate::infrastructure::websocket::ConnectionManager;
 use crate::utils::error::AppError;
@@ -617,7 +618,7 @@ pub async fn create_channel<SR: ServerRepository, CR: ChannelRepository, UR: Use
     State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
     Path(id): Path<Uuid>,
     headers: HeaderMap,
-    Json(request): Json<crate::application::dto::channel_dto::CreateChannelRequest>,
+    Json(request): Json<crate::application::dto::channel::CreateChannelRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let token = headers
         .get("Authorization")
@@ -644,7 +645,7 @@ pub async fn create_channel<SR: ServerRepository, CR: ChannelRepository, UR: Use
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::application::dto::channel_dto::CreateChannelRequest;
+    use crate::application::dto::channel::CreateChannelRequest;
     use crate::application::dto::server_dto::{CreateServerRequest, JoinServerRequest};
     use crate::domain::entities::Server;
     use crate::domain::value_objects::ServerRole;

@@ -1,4 +1,4 @@
-use crate::domain::entities::Channel;
+use crate::domain::entities::channel::Channel;
 use crate::utils::error::{AppError, AppResult};
 use async_trait::async_trait;
 use sqlx::PgPool;

@@ -1,7 +1,8 @@
 use crate::domain::services::message::*;
 use crate::infrastructure::repositories::{
-    ChannelRepository, MessageRepository, ServerRepository, UserRepository,
+    MessageRepository, ServerRepository, UserRepository,
 };
+use crate::infrastructure::repositories::channel::ChannelRepository;
 use crate::infrastructure::security::JWTService;
 use crate::infrastructure::websocket::ConnectionManager;
 use crate::utils::error::AppError;
@@ -326,7 +327,8 @@ pub async fn send_welcome_message<MR: MessageRepository, CR: ChannelRepository, 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entities::{Channel, User};
+    use crate::domain::entities::User;
+    use crate::domain::entities::channel::Channel;
     use crate::domain::value_objects::ServerRole;
     use crate::infrastructure::repositories::mocks::{
         mock_channel_repository::MockChannelRepository,

@@ -1,7 +1,8 @@
 use crate::application::controller::message_controller::{MessageHandler, send_welcome_message, get_message_history, send_message, delete_message, update_message};
 use crate::infrastructure::repositories::{
-    ChannelRepository, MessageRepository, ServerRepository, UserRepository,
+    MessageRepository, ServerRepository, UserRepository,
 };
+use crate::infrastructure::repositories::channel::ChannelRepository;
 use axum::{
     routing::{delete, get, post, put},
     Router,

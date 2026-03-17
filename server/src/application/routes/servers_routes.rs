@@ -3,7 +3,8 @@ use crate::application::controller::server_controller::{
     join_server, leave_server, list_members, update_member_role, kick_member, ban_member,
     get_channels, create_channel, ServerHandler,
 };
-use crate::infrastructure::repositories::{ChannelRepository, ServerRepository, UserRepository};
+use crate::infrastructure::repositories::{ServerRepository, UserRepository};
+use crate::infrastructure::repositories::channel::ChannelRepository;
 use axum::{
     routing::{delete, get, post, put},
     Router,

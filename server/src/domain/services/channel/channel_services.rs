@@ -1,5 +1,6 @@
-use crate::application::dto::channel_dto::ChannelResponse;
-use crate::infrastructure::repositories::{ChannelRepository, ServerRepository};
+use crate::application::dto::channel::ChannelResponse;
+use crate::infrastructure::repositories::ServerRepository;
+use crate::infrastructure::repositories::channel::ChannelRepository;
 use crate::utils::error::{AppError, AppResult};
 use uuid::Uuid;
 
@@ -122,7 +123,7 @@ impl<CR: ChannelRepository, SR: ServerRepository> DeleteChannelUseCase<CR, SR> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entities::Channel;
+    use crate::domain::entities::channel::Channel;
     use crate::domain::value_objects::ServerRole;
     use crate::infrastructure::repositories::mocks::{
         mock_channel_repository::MockChannelRepository,

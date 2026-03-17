@@ -29,9 +29,9 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
         crate::application::controller::server_controller::create_channel,
 
         // Channels
-        crate::application::controller::channel_controller::get_channel_info,
-        crate::application::controller::channel_controller::update_channel,
-        crate::application::controller::channel_controller::delete_channel,
+        crate::application::controller::channel::channel_controller::get_channel_info,
+        crate::application::controller::channel::channel_controller::update_channel,
+        crate::application::controller::channel::channel_controller::delete_channel,
 
         // Messages
         crate::application::controller::message_controller::send_message,
@@ -50,8 +50,10 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
             crate::application::dto::server_dto::CreateServerRequest,
             crate::application::dto::server_dto::ServerResponse,
             crate::application::dto::server_dto::JoinServerRequest,
-            crate::application::dto::channel_dto::CreateChannelRequest,
-            crate::application::dto::channel_dto::ChannelResponse,
+            crate::application::dto::channel::CreateChannelRequest,
+            crate::application::dto::channel::ChannelResponse,
+            crate::application::dto::channel::CreatePrivateChannelRequest,
+            crate::application::dto::channel::PrivateChannelResponse,
             crate::application::dto::message_dto::MessageDto,
             crate::application::dto::message_dto::CreateMessageDto,
             crate::application::dto::user_dto::UserDto,

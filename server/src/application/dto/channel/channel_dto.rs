@@ -1,4 +1,4 @@
-use crate::domain::entities::Channel;
+use crate::domain::entities::channel::Channel;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use validator::Validate;
