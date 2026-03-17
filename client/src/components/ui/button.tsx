@@ -29,7 +29,7 @@ export const Button: React.FC<ButtonProps> = ({
         danger: 'bg-red hover:bg-red/80 text-white',
         outline: 'bg-transparent border border-blurple text-blurple hover:bg-blurple/10',
         noBackground: 'bg-transparent hover:bg-gray-200',
-        nothing: 'bg-transparent'
+        nothing: ''
     };
 
     return (

@@ -5,6 +5,7 @@ import { useWebSocketStore } from '@/store/websocket';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import TypingIndicator from './typing-indicator';
 import { useTranslation } from 'react-i18next';
+import GifButton from './gif-button';
 
 interface MessageInputProps {
   channelId: string;
@@ -100,7 +101,7 @@ export default function MessageInput({ channelId, channelName }: MessageInputPro
         </div>
       )}
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="relative">
         <div className="flex items-center bg-gray-400 rounded-xl px-4">
           <input
             type="text"
@@ -110,6 +111,7 @@ export default function MessageInput({ channelId, channelName }: MessageInputPro
             placeholder={t('Message_input.Type_your_message_here...')}
             className="w-full bg-gray-400 py-3 pl-2 text-white placeholder-gray-50 focus:outline-none"
           />
+          <GifButton channelId={channelId} />
         </div>
       </form>
     </div>

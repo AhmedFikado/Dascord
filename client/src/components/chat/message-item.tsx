@@ -62,6 +62,10 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
     }
   };
 
+  const isGifUrl = (text: string) => {
+    return text.trim().includes('giphy.com/media');
+  };
+
   return (
     <div className={`relative flex gap-4 px-4 py-2 lg:hover:bg-gray-400/50 group ${isActionsVisible ? 'bg-gray-400/50 lg:bg-transparent' : ''}`}
       onClick={() => setIsActionsVisible(v => !v)}>
@@ -123,11 +127,18 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
           </div>
         ) : (
           <div
-            className={`leading-relaxed break-words ${
-              isSystemMessage ? 'text-gray-light italic' : 'text-white'
+            className={`leading-relaxed break-words ${isSystemMessage ? 'text-gray-light italic' : 'text-white'
               }`}
           >
-            {message.content}
+            {isGifUrl(message.content) ? (
+              <img
+                src={message.content}
+                alt="GIF"
+                className="xs:max-[100px] sm:max-w-sm rounded-md mt-2 object-contain bg-gray-300"
+              />
+            ) : (
+              message.content
+            )}
           </div>
         )}
       </div>
