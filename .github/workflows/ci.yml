@@ -70,7 +70,6 @@ jobs:
           JWT_EXPIRATION: 3600
         run: cargo test --release
 
-
   frontend-checks:
     name: Frontend Checks
     runs-on: ubuntu-latest
@@ -95,3 +94,39 @@ jobs:
           NEXT_PUBLIC_API_URL: http://localhost:8080
           NEXT_PUBLIC_WS_URL: localhost:8080
         run: npm run build
+
+  # Décommenter quand le serveur OVH est configuré
+  # Prérequis dans GitHub Secrets:
+  #   - OVH_HOST: IP du serveur
+  #   - OVH_USER: utilisateur SSH (ex: ubuntu)
+  #   - OVH_SSH_KEY: clé privée SSH
+  #   - ENV_FILE: contenu du .env de production
+
+  # deploy:
+  #   name: Deploy to OVH
+  #   runs-on: ubuntu-latest
+  #   needs: [backend-tests, frontend-checks]
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     - name: Copy files to server
+  #       uses: appleboy/scp-action@v0.1.7
+  #       with:
+  #         host: ${{ secrets.OVH_HOST }}
+  #         username: ${{ secrets.OVH_USER }}
+  #         key: ${{ secrets.OVH_SSH_KEY }}
+  #         source: "docker-compose.yml,docker-compose.prod.yml,server/,client/,init-scripts/"
+  #         target: /opt/app
+  #
+  #     - name: Deploy via SSH
+  #       uses: appleboy/ssh-action@v1.0.3
+  #       with:
+  #         host: ${{ secrets.OVH_HOST }}
+  #         username: ${{ secrets.OVH_USER }}
+  #         key: ${{ secrets.OVH_SSH_KEY }}
+  #         script: |
+  #           cd /opt/app
+  #           docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+  #           docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+  #           docker system prune -f
