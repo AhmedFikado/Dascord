@@ -48,6 +48,9 @@ impl<PCR: PrivateChannelRepository, UR: UserRepository> PrivateChannelService<PC
     }
 }
 
+
+// --- UNIT TESTS ---
+
 #[cfg(test)]
 mod tests {
     use super::*;

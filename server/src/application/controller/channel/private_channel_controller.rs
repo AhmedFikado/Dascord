@@ -123,6 +123,9 @@ pub async fn get_list_private_channels<PCR: PrivateChannelRepository, UR: UserRe
     }
 }
 
+
+// --- UNIT TESTS ---
+
 #[cfg(test)]
 mod tests {
     use super::*;
