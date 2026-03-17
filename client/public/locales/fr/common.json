@@ -175,11 +175,16 @@
     "Status_selector": {
         "online": "En ligne",
         "offline": "Hors ligne",
+        "inactive": "Inactif",
+        "do_not_disturb": "Ne pas déranger",
         "set_status": "Définir le statut"
     },
     "User_panel_bar": {
         "online": "En ligne",
-        "offline": "Hors ligne"
+        "offline": "Hors ligne",
+        "inactive": "Inactif",
+        "do_not_disturb": "Ne pas déranger"
+
     },
     "User_panel": {
         "user_settings": "Paramètres utilisateur"

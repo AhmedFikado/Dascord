@@ -5,6 +5,9 @@ use serde::{Deserialize, Serialize};
 pub enum UserStatus {
     Online,
     Offline,
+    Inactive,
+    #[serde(rename = "DO NOT DISTURB")]
+    DoNotDisturb,
 }
 
 
@@ -18,6 +21,8 @@ mod tests {
     fn test_user_status_equality() {
         assert_eq!(UserStatus::Online, UserStatus::Online);
         assert_eq!(UserStatus::Offline, UserStatus::Offline);
+        assert_eq!(UserStatus::Inactive, UserStatus::Inactive);
+        assert_eq!(UserStatus::DoNotDisturb, UserStatus::DoNotDisturb);
         assert_ne!(UserStatus::Online, UserStatus::Offline);
     }
 

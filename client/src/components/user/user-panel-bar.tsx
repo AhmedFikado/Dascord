@@ -18,6 +18,8 @@ export default function UserPanelBar({ username, status, onClick }: UserPanelBar
         switch (status) {
             case Status.ONLINE: return t('User_panel_bar.online');
             case Status.OFFLINE: return t('User_panel_bar.offline');
+            case Status.INACTIVE: return t('User_panel_bar.inactive');
+            case Status.DONOTDISTURB: return t('User_panel_bar.do_not_disturb');
         }
     };
 
@@ -32,10 +34,17 @@ export default function UserPanelBar({ username, status, onClick }: UserPanelBar
                     <span className="font-semibold text-white">{username}</span>
                     <div className='flex'>
                         <p className="text-xs text-gray-light">
-                            {(status === Status.ONLINE) ? (
+                            {status === Status.ONLINE && (
                                 <span className="ml-1 h-2 w-2 bg-green-500 rounded-full inline-block"></span>
-                            ) : (
+                            )}
+                            {status === Status.OFFLINE && (
                                 <span className="ml-1 h-2 w-2 bg-gray-500 rounded-full inline-block"></span>
+                            )}
+                            {status === Status.INACTIVE && (
+                                <span className="ml-1 h-2 w-2 bg-orange-400 rounded-full inline-block"></span>
+                            )}
+                            {status === Status.DONOTDISTURB && (
+                                <span className="ml-1 h-2 w-2 bg-red-400 rounded-full inline-block"></span>
                             )}
                         </p>
                         <p className="text-xs text-gray-light ml-1">
