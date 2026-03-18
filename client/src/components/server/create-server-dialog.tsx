@@ -6,6 +6,7 @@ import { serversApi } from "@/app/lib/api/servers";
 import { useServerStore } from "@/app/lib/stores/use-server-store";
 import { useChannelStore } from "@/app/lib/stores/use-channel-store";
 import { useTranslation } from 'react-i18next';
+import { useRouter } from 'next/navigation';
 
 interface CreateServerDialogProps {
     isOpen?: boolean;
@@ -18,6 +19,7 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
     const [internalIsOpen, setInternalIsOpen] = useState(false);
     const [serverName, setServerName] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
 
     const addServer = useServerStore((state) => state.addServer);
     const addChannel = useChannelStore((state) => state.addChannel);
@@ -33,6 +35,7 @@ export default function CreateServerDialog({ isOpen, onClose, onBack }: CreateSe
         setIsLoading(true);
         try {
             const newServer = await serversApi.create(serverName);
+            router.push(`/servers/${newServer.id}`);
             addServer(newServer);
             const welcomeChannel = await addChannel(newServer.id, "Invites");
             setServerName("");
