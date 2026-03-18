@@ -1,5 +1,4 @@
 import { Member } from "@/types/models/member";
-import { User, Status } from "../../types/models/user";
 import MemberItem from "./member-item";
 import { useTranslation } from 'react-i18next';
 
