@@ -2,6 +2,7 @@
 
 import { useWebSocketContext } from '@/components/shared/websocket-provider';
 import { useWebSocketStore } from '@/store/websocket';
+import { MessageData } from '@/types/websocket';
 import { Message } from '@/types/models/message';
 import { useEffect, useRef } from 'react';
 import MessageItem from './message-item';
@@ -13,16 +14,7 @@ interface MessageListProps {
   onUpdateMessage: (id: string, content: string) => void;
 }
 
-interface WsMessage {
-  message_id: string;
-  channel_id: string;
-  user_id: string;
-  username: string;
-  content: string;
-  created_at: string;
-}
-
-const EMPTY_ARRAY: WsMessage[] = [];
+const EMPTY_ARRAY: MessageData[] = [];
 
 export default function MessageList({ channelId, messages, onDeleteMessage, onUpdateMessage }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -45,7 +37,17 @@ export default function MessageList({ channelId, messages, onDeleteMessage, onUp
   }, [channelId, joinChannel, leaveChannel]);
 
   // Fusionner les messages HTTP et WebSocket (éviter les doublons par ID)
-  const allMessages = [...messages];
+  // Les données WS (réactions, contenu édité) ont priorité sur les données HTTP
+  const wsMessagesMap = new Map(wsMessages.map(m => [m.message_id, m]));
+  const allMessages = messages.map(m => {
+    const wsMsg = wsMessagesMap.get(m.id || '');
+    if (!wsMsg) return m;
+    return {
+      ...m,
+      content: wsMsg.content ?? m.content,
+      reactions: wsMsg.reactions ?? m.reactions,
+    };
+  });
   wsMessages.forEach(wsMsg => {
     if (!allMessages.find(m => m.id === wsMsg.message_id)) {
       allMessages.push({
@@ -55,6 +57,7 @@ export default function MessageList({ channelId, messages, onDeleteMessage, onUp
         username: wsMsg.username,
         content: wsMsg.content,
         created_at: wsMsg.created_at,
+        reactions: wsMsg.reactions,
       });
     }
   });
