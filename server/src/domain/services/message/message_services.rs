@@ -59,6 +59,7 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository>
             user_id: created.user_id,
             username: created.username,
             content: created.content,
+            reactions: created.reactions,
             created_at: created.created_at.to_rfc3339(),
         })
     }
@@ -107,6 +108,7 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository>
             user_id: m.user_id,
             username: m.username,
             content: m.content,
+            reactions: m.reactions,
             created_at: m.created_at.to_rfc3339(),
         }).collect())
     }
@@ -218,11 +220,92 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> UpdateM
             user_id: updated_message.user_id,
             username: updated_message.username,
             content: updated_message.content,
+            reactions: updated_message.reactions,
             created_at: updated_message.created_at.to_rfc3339(),
         })
     }
 }
 
+
+pub struct AddReactionUseCase<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> {
+    message_repo: MR,
+    channel_repo: CR,
+    server_repo: SR,
+}
+
+impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> AddReactionUseCase<MR, CR, SR> {
+    pub fn new(message_repo: MR, channel_repo: CR, server_repo: SR) -> Self {
+        Self { message_repo, server_repo, channel_repo }
+    }
+
+    pub async fn execute(&self, message_id: String, user_id: Uuid, reaction: String) -> AppResult<MessageDto> {
+        let message = self.message_repo.find_by_id(&message_id).await?
+            .ok_or_else(|| AppError::NotFound("Message not found".to_string()))?;
+
+        let channel_id = Uuid::parse_str(&message.channel_id)
+            .map_err(|_| AppError::InternalServerError("Invalid channel ID".to_string()))?;
+
+        let channel = self.channel_repo.find_by_id(channel_id).await?
+            .ok_or_else(|| AppError::NotFound("Channel not found".to_string()))?;
+
+        let is_member = self.server_repo.is_member(channel.server_id, user_id).await?;
+        if !is_member {
+            return Err(AppError::Unauthorized("Not a member of this server".to_string()));
+        }
+
+        let updated = self.message_repo.add_reaction(&message_id, reaction, user_id.to_string()).await?;
+
+        Ok(MessageDto {
+            id: updated.id.map(|id| id.to_string()),
+            channel_id: updated.channel_id,
+            user_id: updated.user_id,
+            username: updated.username,
+            content: updated.content,
+            reactions: updated.reactions,
+            created_at: updated.created_at.to_rfc3339(),
+        })
+    }
+}
+
+pub struct RemoveReactionUseCase<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> {
+    message_repo: MR,
+    channel_repo: CR,
+    server_repo: SR,
+}
+
+impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> RemoveReactionUseCase<MR, CR, SR> {
+    pub fn new(message_repo: MR, channel_repo: CR, server_repo: SR) -> Self {
+        Self { message_repo, server_repo, channel_repo }
+    }
+
+    pub async fn execute(&self, message_id: String, user_id: Uuid, reaction: String) -> AppResult<MessageDto> {
+        let message = self.message_repo.find_by_id(&message_id).await?
+            .ok_or_else(|| AppError::NotFound("Message not found".to_string()))?;
+
+        let channel_id = Uuid::parse_str(&message.channel_id)
+            .map_err(|_| AppError::InternalServerError("Invalid channel ID".to_string()))?;
+
+        let channel = self.channel_repo.find_by_id(channel_id).await?
+            .ok_or_else(|| AppError::NotFound("Channel not found".to_string()))?;
+
+        let is_member = self.server_repo.is_member(channel.server_id, user_id).await?;
+        if !is_member {
+            return Err(AppError::Unauthorized("Not a member of this server".to_string()));
+        }
+
+        let updated = self.message_repo.remove_reaction(&message_id, reaction, user_id.to_string()).await?;
+
+        Ok(MessageDto {
+            id: updated.id.map(|id| id.to_string()),
+            channel_id: updated.channel_id,
+            user_id: updated.user_id,
+            username: updated.username,
+            content: updated.content,
+            reactions: updated.reactions,
+            created_at: updated.created_at.to_rfc3339(),
+        })
+    }
+}
 
 // --- UNIT TESTS ---
 
@@ -519,6 +602,82 @@ mod tests {
             AppError::Forbidden(_) => (),
             _ => panic!("Expected Forbidden error"),
         }
+    }
+
+    #[tokio::test]
+    async fn test_add_reaction_success() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+        let message = Message::new(
+            channel.id.to_string(),
+            user_id.to_string(),
+            "TestUser".to_string(),
+            "Hello".to_string(),
+        );
+
+        let mock_message_repo = MockMessageRepository::new().with_message(message);
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
+
+        let use_case = AddReactionUseCase::new(mock_message_repo, mock_server_repo, mock_channel_repo);
+        let result = use_case.execute("msg_1".to_string(), user_id, "👍".to_string()).await;
+
+        assert!(result.is_ok());
+        let updated = result.unwrap();
+        assert!(updated.reactions.contains_key("👍"));
+        assert!(updated.reactions["👍"].contains(&user_id.to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_add_reaction_not_member() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+        let message = Message::new(
+            channel.id.to_string(),
+            user_id.to_string(),
+            "TestUser".to_string(),
+            "Hello".to_string(),
+        );
+
+        let mock_message_repo = MockMessageRepository::new().with_message(message);
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new(); // pas de membre
+
+        let use_case = AddReactionUseCase::new(mock_message_repo, mock_server_repo, mock_channel_repo);
+        let result = use_case.execute("msg_1".to_string(), user_id, "👍".to_string()).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_remove_reaction_success() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+        let message = Message::new(
+            channel.id.to_string(),
+            user_id.to_string(),
+            "TestUser".to_string(),
+            "Hello".to_string(),
+        );
+
+        let mock_message_repo = MockMessageRepository::new().with_message(message);
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
+
+        // D'abord ajouter une réaction
+        let add_use_case = AddReactionUseCase::new(mock_message_repo.clone(), mock_server_repo.clone(), mock_channel_repo.clone());
+        add_use_case.execute("msg_1".to_string(), user_id, "👍".to_string()).await.unwrap();
+
+        // Puis la retirer
+        let remove_use_case = RemoveReactionUseCase::new(mock_message_repo, mock_server_repo, mock_channel_repo);
+        let result = remove_use_case.execute("msg_1".to_string(), user_id, "👍".to_string()).await;
+
+        assert!(result.is_ok());
+        let updated = result.unwrap();
+        assert!(!updated.reactions.contains_key("👍"));
     }
 
     #[tokio::test]
