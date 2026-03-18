@@ -75,4 +75,29 @@ impl MessageRepository for MockMessageRepository {
             Err(crate::utils::error::AppError::NotFound("Message not found".to_string()))
         }
     }
-}
+
+    async fn add_reaction(&self, message_id: &str, reaction: String, user_id: String) -> AppResult<Message> {
+        let mut messages = self.messages.lock().unwrap();
+        if let Some(message) = messages.get_mut(message_id) {
+            message.reactions.entry(reaction).or_default().push(user_id);
+            Ok(message.clone())
+        } else {
+            Err(crate::utils::error::AppError::NotFound("Message not found".to_string()))
+        }
+    }
+
+    async fn remove_reaction(&self, message_id: &str, reaction: String, user_id: String) -> AppResult<Message> {
+        let mut messages = self.messages.lock().unwrap();
+        if let Some(message) = messages.get_mut(message_id) {
+            if let Some(users) = message.reactions.get_mut(&reaction) {
+                users.retain(|u| u != &user_id);
+                if users.is_empty() {
+                    message.reactions.remove(&reaction);
+                }
+            }
+            Ok(message.clone())
+        } else {
+            Err(crate::utils::error::AppError::NotFound("Message not found".to_string()))
+        }
+}}
+
