@@ -620,7 +620,7 @@ mod tests {
         let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
         let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
 
-        let use_case = AddReactionUseCase::new(mock_message_repo, mock_server_repo, mock_channel_repo);
+        let use_case = AddReactionUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
         let result = use_case.execute("msg_1".to_string(), user_id, "👍".to_string()).await;
 
         assert!(result.is_ok());
@@ -645,7 +645,7 @@ mod tests {
         let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
         let mock_server_repo = MockServerRepository::new(); // pas de membre
 
-        let use_case = AddReactionUseCase::new(mock_message_repo, mock_server_repo, mock_channel_repo);
+        let use_case = AddReactionUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
         let result = use_case.execute("msg_1".to_string(), user_id, "👍".to_string()).await;
 
         assert!(result.is_err());
@@ -668,11 +668,11 @@ mod tests {
         let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
 
         // D'abord ajouter une réaction
-        let add_use_case = AddReactionUseCase::new(mock_message_repo.clone(), mock_server_repo.clone(), mock_channel_repo.clone());
+        let add_use_case = AddReactionUseCase::new(mock_message_repo.clone(), mock_channel_repo.clone(), mock_server_repo.clone());
         add_use_case.execute("msg_1".to_string(), user_id, "👍".to_string()).await.unwrap();
 
         // Puis la retirer
-        let remove_use_case = RemoveReactionUseCase::new(mock_message_repo, mock_server_repo, mock_channel_repo);
+        let remove_use_case = RemoveReactionUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
         let result = remove_use_case.execute("msg_1".to_string(), user_id, "👍".to_string()).await;
 
         assert!(result.is_ok());
