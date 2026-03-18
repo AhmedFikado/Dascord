@@ -26,4 +26,14 @@ export const messagesApi = {
   update: async (messageId: string, content: string): Promise<Message> => {
     return await apiClient.put<Message>(`/messages/${messageId}`, { content });
   },
+
+  // POST /messages/{id}/reactions
+  addReaction: async (messageId: string, reaction: string): Promise<void> => {
+    await apiClient.post(`/messages/${messageId}/reactions`, { reaction });
+  },
+
+  // DELETE /messages/{id}/reactions
+  removeReaction: async (messageId: string, emoji: string): Promise<void> => {
+    await apiClient.delete(`/messages/${messageId}/reactions/${encodeURIComponent(emoji)}`);
+  },
 };
