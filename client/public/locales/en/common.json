@@ -166,11 +166,15 @@
     "Status_selector": {
         "online": "Online",
         "offline": "Offline",
+        "inactive": "Inactive",
+        "do_not_disturb": "Do Not Disturb",
         "set_status": "Set status"
     },
     "User_panel_bar": {
         "online": "Online",
-        "offline": "Offline"
+        "offline": "Offline",
+        "inactive": "Inactive",
+        "do_not_disturb": "Do Not Disturb"
     },
     "User_panel": {
         "user_settings": "User settings"

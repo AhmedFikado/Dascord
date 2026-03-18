@@ -1,4 +1,4 @@
-import { Status } from "@/types/models/user";
+import { Status } from "@/types/models/status";
 
 interface UserCardProps {
     username?: string;
@@ -14,7 +14,7 @@ export default function UserCard({ username, size = 40, status }: UserCardProps)
 
     const getColorFromUsername = (username?: string) => {
         if (!username) return '#5865F2';
-        
+
         const colors = [
             '#5865F2', // bleue
             '#47c16e', // vert
@@ -27,14 +27,14 @@ export default function UserCard({ username, size = 40, status }: UserCardProps)
             '#870606', // rouge foncé
             '#1ABC9C', // turquoise
         ];
-        
+
         if (username === 'Système') return '#3e3e3f';
 
         let hash = 0;
         for (let i = 0; i < username.length; i++) {
             hash = username.charCodeAt(i) + ((hash * 31) - hash);
         }
-        
+
         return colors[Math.abs(hash) % colors.length];
     };
 
@@ -46,16 +46,18 @@ export default function UserCard({ username, size = 40, status }: UserCardProps)
                 return <div className={baseClass}><div className="w-full h-full rounded-full bg-green"></div></div>;
             case Status.OFFLINE:
                 return <div className={baseClass}><div className="w-full h-full rounded-full bg-gray-50"></div></div>;
-            default:
-                return <div className={baseClass}><div className="w-full h-full rounded-full bg-gray-50"></div></div>;
+            case Status.INACTIVE:
+                return <div className={baseClass}><div className="w-full h-full rounded-full bg-orange-400"></div></div>;
+            case Status.DONOTDISTURB:
+                return <div className={baseClass}><div className="w-full h-full rounded-full bg-red-400"></div></div>;
         }
     };
 
     return (
         <div className="relative flex-shrink-0">
-            <div 
+            <div
                 className="rounded-full flex items-center justify-center text-white font-semibold"
-                style={{ 
+                style={{
                     backgroundColor: getColorFromUsername(username),
                     width: `${size}px`,
                     height: `${size}px`,

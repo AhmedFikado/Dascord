@@ -2,7 +2,7 @@ import { useAuthStore } from '@/app/lib/stores/use-auth-store';
 import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { Member } from '@/types/models/member';
 import { Role } from '@/types/models/role';
-import { Status } from '@/types/models/user';
+import { Status } from '@/types/models/status';
 import { MessageData, ServerMessage, WebSocketStatus } from '@/types/websocket';
 import { create } from 'zustand';
 

@@ -14,6 +14,8 @@ export default function StatusSelector({ currentStatus, onStatusChange }: Status
     const statuses = [
         { value: Status.ONLINE, label: t('Status_selector.online'), color: 'text-green' },
         { value: Status.OFFLINE, label: t('Status_selector.offline'), color: 'text-gray-50' },
+        { value: Status.INACTIVE, label: t('Status_selector.inactive'), color: 'text-orange-400' },
+        { value: Status.DONOTDISTURB, label: t('Status_selector.do_not_disturb'), color: 'text-red-400' },
     ];
 
     return (
