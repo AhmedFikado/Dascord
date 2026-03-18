@@ -1,6 +1,7 @@
-use crate::application::dto::message_dto::MessageDto;
-use crate::domain::entities::Message;
-use crate::infrastructure::repositories::{MessageRepository, ServerRepository};
+use crate::application::dto::message::MessageDto;
+use crate::domain::entities::message::Message;
+use crate::infrastructure::repositories::ServerRepository;
+use crate::infrastructure::repositories::message::MessageRepository;
 use crate::infrastructure::repositories::channel::ChannelRepository;
 use crate::utils::error::{AppError, AppResult};
 use uuid::Uuid;
@@ -230,7 +231,6 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository> UpdateM
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entities::Message;
     use crate::domain::entities::channel::Channel;
     use crate::domain::value_objects::ServerRole;
     use crate::infrastructure::repositories::mocks::{

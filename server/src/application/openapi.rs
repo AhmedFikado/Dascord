@@ -32,12 +32,20 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
         crate::application::controller::channel::channel_controller::get_channel_info,
         crate::application::controller::channel::channel_controller::update_channel,
         crate::application::controller::channel::channel_controller::delete_channel,
+        crate::application::controller::channel::private_channel_controller::create_private_channel,
+        crate::application::controller::channel::private_channel_controller::get_list_private_channels,
+        crate::application::controller::channel::private_channel_controller::get_private_channel,
 
         // Messages
-        crate::application::controller::message_controller::send_message,
-        crate::application::controller::message_controller::get_message_history,
-        crate::application::controller::message_controller::delete_message,
-        crate::application::controller::message_controller::update_message,
+        crate::application::controller::message::message_controller::send_message,
+        crate::application::controller::message::message_controller::get_message_history,
+        crate::application::controller::message::message_controller::delete_message,
+        crate::application::controller::message::message_controller::update_message,
+        crate::application::controller::message::message_controller::send_welcome_message,
+        crate::application::controller::message::private_message_controller::get_private_message_history,
+        crate::application::controller::message::private_message_controller::send_private_message,
+        crate::application::controller::message::private_message_controller::delete_private_message,
+        crate::application::controller::message::private_message_controller::update_private_message,
     ),
     components(
         schemas(
@@ -54,8 +62,8 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
             crate::application::dto::channel::ChannelResponse,
             crate::application::dto::channel::CreatePrivateChannelRequest,
             crate::application::dto::channel::PrivateChannelResponse,
-            crate::application::dto::message_dto::MessageDto,
-            crate::application::dto::message_dto::CreateMessageDto,
+            crate::application::dto::message::MessageDto,
+            crate::application::dto::message::CreateMessageDto,
             crate::application::dto::user_dto::UserDto,
             crate::domain::value_objects::ServerRole,
         )

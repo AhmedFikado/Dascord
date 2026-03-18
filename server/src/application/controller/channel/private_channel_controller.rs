@@ -27,6 +27,7 @@ impl<PCR: PrivateChannelRepository, UR: UserRepository> PrivateChannelController
 #[utoipa::path(
     post,
     path = "/channels/private",
+    tag = "channels",
     request_body = CreatePrivateChannelRequest,
     responses(
         (status = 201, description = "Canal privé créé avec succès", body = PrivateChannelResponse),
@@ -66,6 +67,7 @@ pub async fn create_private_channel<PCR: PrivateChannelRepository, UR: UserRepos
 #[utoipa::path(
     get,
     path = "/channels/private/{id}",
+    tag = "channels",
     params(
         ("id" = Uuid, Path, description = "ID du canal privé")
     ),
@@ -96,6 +98,7 @@ pub async fn get_private_channel<PCR: PrivateChannelRepository, UR: UserReposito
 #[utoipa::path(
     get,
     path = "/channels/private/user/{user_id}",
+    tag = "channels",
     params(
         ("user_id" = Uuid, Path, description = "ID de l'utilisateur")
     ),

@@ -1,5 +1,5 @@
-use crate::domain::entities::Message;
-use crate::infrastructure::repositories::MessageRepository;
+use crate::domain::entities::message::Message;
+use crate::infrastructure::repositories::message::MessageRepository;
 use crate::utils::error::{AppResult};
 use async_trait::async_trait;
 use std::collections::HashMap;
