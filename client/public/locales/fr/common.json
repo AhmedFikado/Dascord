@@ -132,7 +132,9 @@
         "confirm_transfer": "Confirmer le transfert"
     },
     "Member_list": {
-        "members": "Membres"
+        "members": "Membres",
+        "Owner": "Propriétaire",
+        "Admin": "Administrateur"
     },
     "Server_header_side": {
         "server_settings": "Paramètres du serveur",
@@ -184,7 +186,6 @@
         "offline": "Hors ligne",
         "inactive": "Inactif",
         "do_not_disturb": "Ne pas déranger"
-
     },
     "User_panel": {
         "user_settings": "Paramètres utilisateur"
