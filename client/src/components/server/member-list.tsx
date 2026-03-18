@@ -15,6 +15,9 @@ export default function MemberList({ searchQuery = '', isRole = false, listMembe
     const filterUsers = listMembers.filter(member =>
         member?.user?.username?.toLowerCase().includes(searchQuery.toLowerCase())
     );
+    const usersOwner = listMembers.filter(member => member?.role?.includes('OWNER'));
+    const usersAdmin = listMembers.filter(member => member?.role?.includes('ADMIN'));
+    const usersMember = listMembers.filter(member => member?.role?.includes('MEMBER'));
 
 
     return (
@@ -28,9 +31,23 @@ export default function MemberList({ searchQuery = '', isRole = false, listMembe
                     <MemberItem key={member.user.id} member={member} isRole={true} serverId={serverId} />
                 ))
             ) : (
-                filterUsers.map((member) => (
-                    <MemberItem key={member.user.id} member={member} serverId={serverId} />
-                ))
+                <>
+                    <div className="ml-6">
+                        <h4 className="py-2 text-[10px] font-semibold text-gray-50 uppercase">Owner</h4>
+                        {usersOwner.map((member) => (
+                            <MemberItem key={member.user.id} member={member} serverId={serverId} />
+                        ))}
+                            
+                        <h4 className="py-2 mt-2 text-[10px] font-semibold text-gray-50 uppercase">Admin</h4>
+                        {usersAdmin.map((member) => (
+                            <MemberItem key={member.user.id} member={member} serverId={serverId} />
+                        ))}
+                            <h4 className="py-2 mt-2 text-[10px] font-semibold text-gray-50 uppercase">Member</h4>
+                        {usersMember.map((member) => (
+                            <MemberItem key={member.user.id} member={member} serverId={serverId} />
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     );

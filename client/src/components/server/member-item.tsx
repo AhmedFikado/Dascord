@@ -92,7 +92,7 @@ export default function MemberItem({ member, isRole = false, serverId }: Memberi
   return (
     <>
       <div
-        className="flex mx-2 rounded hover:bg-hoverSide cursor-pointer group transition-colors justify-between items-center"
+        className="flex rounded hover:bg-hoverSide cursor-pointer group transition-colors justify-between items-center"
         onContextMenu={handleContextMenu}
       >
         <div className="flex items-center gap-3 px-2 py-1.5">
