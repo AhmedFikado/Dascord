@@ -1,8 +1,8 @@
 import { useWebSocketStore } from '@/store/websocket';
 import { Message } from '@/types/models/message';
+import i18n from 'i18next';
 import { create } from 'zustand';
 import { messagesApi } from '../api/messages';
-import i18n from 'i18next';
 
 interface MessageState {
   messages: Message[];
@@ -14,6 +14,8 @@ interface MessageState {
   sendMessage: (channelId: string, content: string) => Promise<void>;
   deleteMessage: (channelId: string, messageId: string) => Promise<void>;
   updateMessage: (channelId: string, messageId: string, content: string) => Promise<void>;
+  addReaction: (messageId: string, emoji: string, userId: string) => Promise<void>;
+  removeReaction: (messageId: string, emoji: string, userId: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -85,7 +87,8 @@ export const useMessageStore = create<MessageState>(set => ({
     } catch (error: any) {
       console.error(t('Use_message_store.Error_deleting_message'), error);
       const errorMessage =
-        error?.response?.data?.error || t('Use_message_store.You_do_not_have_permission_to_delete_this_message');
+        error?.response?.data?.error ||
+        t('Use_message_store.You_do_not_have_permission_to_delete_this_message');
       set({ error: errorMessage });
       throw error;
     }
@@ -95,7 +98,7 @@ export const useMessageStore = create<MessageState>(set => ({
     try {
       const updatedMessage = await messagesApi.update(messageId, content);
       set(state => ({
-        messages: state.messages.map(m => m.id === messageId ? updatedMessage : m),
+        messages: state.messages.map(m => (m.id === messageId ? updatedMessage : m)),
         messagesByChannel: {
           ...state.messagesByChannel,
           [channelId]: (state.messagesByChannel[channelId] || []).map(m =>
@@ -109,9 +112,45 @@ export const useMessageStore = create<MessageState>(set => ({
     } catch (error: any) {
       console.error(t('Use_message_store.Error_updating_message'), error);
       const errorMessage =
-        error?.response?.data?.error || t('Use_message_store.You_do_not_have_permission_to_update_this_message');
+        error?.response?.data?.error ||
+        t('Use_message_store.You_do_not_have_permission_to_update_this_message');
       set({ error: errorMessage });
       throw error;
+    }
+  },
+
+  addReaction: async (messageId: string, reaction: string, userId: string) => {
+    try {
+      await messagesApi.addReaction(messageId, reaction);
+      set(state => ({
+        messages: state.messages.map(m => {
+          if (m.id !== messageId) return m;
+          const reactions = { ...(m.reactions || {}) };
+          const users = reactions[reaction] ? [...reactions[reaction]] : [];
+          if (!users.includes(userId)) reactions[reaction] = [...users, userId];
+          return { ...m, reactions };
+        }),
+      }));
+    } catch (error) {
+      console.error(t('Use_message_store.Error_adding_reaction'), error);
+    }
+  },
+
+  removeReaction: async (messageId: string, reaction: string, userId: string) => {
+    try {
+      await messagesApi.removeReaction(messageId, reaction);
+      set(state => ({
+        messages: state.messages.map(m => {
+          if (m.id !== messageId) return m;
+          const reactions = { ...(m.reactions || {}) };
+          const users = (reactions[reaction] || []).filter((id: string) => id !== userId);
+          if (users.length === 0) delete reactions[reaction];
+          else reactions[reaction] = users;
+          return { ...m, reactions };
+        }),
+      }));
+    } catch (error) {
+      console.error(t('Use_message_store.Error_removing_reaction'), error);
     }
   },
 

@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -8,6 +9,7 @@ pub struct Message {
     pub user_id: String,
     pub username: String,
     pub content: String,
+    pub reactions: HashMap<String, Vec<String>>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -19,6 +21,7 @@ impl Message {
             user_id,
             username,
             content,
+            reactions: HashMap::new(),
             created_at: chrono::Utc::now(),
         }
     }
@@ -37,7 +40,6 @@ mod tests {
         let user_id = "user123".to_string();
         let username = "Test User".to_string();
         let content = "Hello, World!".to_string();
-
         let message = Message::new(
             channel_id.clone(),
             user_id.clone(),
@@ -57,7 +59,7 @@ mod tests {
             "user".to_string(),
             "username".to_string(),
             "content".to_string(),
-        );
+            );
         assert!(message.id.is_none());
     }
 }

@@ -32,6 +32,7 @@ interface WebSocketState {
   addMessage: (channelId: string, message: MessageData) => void;
   removeMessage: (channelId: string, messageId: string) => void;
   updateMessage: (channelId: string, messageId: string, content: string) => void;
+  updateReaction: (channelId: string, messageId: string, emoji: string, userId: string, add: boolean) => void;
   setMessages: (channelId: string, messages: MessageData[]) => void;
   setTyping: (channelId: string, userId: string, username: string, isTyping: boolean) => void;
   // Gestion des utilisateurs dans les channels
@@ -208,6 +209,26 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         }
         break;
 
+      case 'ReactionAdded':
+        get().updateReaction(
+          message.payload.channel_id,
+          message.payload.message_id,
+          message.payload.reaction,
+          message.payload.user_id,
+          true
+        );
+        break;
+
+      case 'ReactionRemoved':
+        get().updateReaction(
+          message.payload.channel_id,
+          message.payload.message_id,
+          message.payload.reaction,
+          message.payload.user_id,
+          false
+        );
+        break;
+
       case 'Error':
         console.error('WebSocket error:', message.payload);
         set({ error: message.payload.message });
@@ -236,6 +257,25 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           [channelId]: filtered,
         },
       };
+    }),
+
+  // Mettre à jour les réactions d'un message
+  updateReaction: (channelId: string, messageId: string, emoji: string, userId: string, add: boolean) =>
+    set((state: WebSocketState) => {
+      const currentMessages = state.messagesByChannel[channelId] || [];
+      const updated = currentMessages.map(m => {
+        if (m.message_id !== messageId) return m;
+        const reactions = { ...(m.reactions || {}) };
+        const users = reactions[emoji] ? [...reactions[emoji]] : [];
+        if (add) {
+          if (!users.includes(userId)) reactions[emoji] = [...users, userId];
+        } else {
+          reactions[emoji] = users.filter(id => id !== userId);
+          if (reactions[emoji].length === 0) delete reactions[emoji];
+        }
+        return { ...m, reactions };
+      });
+      return { messagesByChannel: { ...state.messagesByChannel, [channelId]: updated } };
     }),
 
   // Mettre à jour un message dans un channel

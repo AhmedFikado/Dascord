@@ -1,12 +1,14 @@
 import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
+import { useMessageStore } from '@/app/lib/stores/use-messages-store';
 import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { Button } from '@/components/ui/button';
 import { Role } from '@/types/models/role';
-import { Edit, Trash2, X, Check } from 'lucide-react';
-import { useState } from 'react';
+import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
+import { Check, Edit, SmilePlus, Trash2, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Message } from '../../types/models/message';
 import UserCard from '../shared/user-card';
-import { useTranslation } from 'react-i18next';
 
 interface MessageItemProps {
   message: Message;
@@ -21,7 +23,36 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [isActionsVisible, setIsActionsVisible] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const { addReaction, removeReaction } = useMessageStore();
   const { t } = useTranslation();
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(e.target as Node)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    if (!currentUserId) return;
+    addReaction(message.id!, emojiData.emoji, currentUserId);
+    setShowEmojiPicker(false);
+  };
+
+  const handleToggleReaction = (emoji: string) => {
+    if (!currentUserId || !message.id) return;
+    const users = message.reactions?.[emoji] || [];
+    if (users.includes(currentUserId)) {
+      removeReaction(message.id, emoji, currentUserId);
+    } else {
+      addReaction(message.id, emoji, currentUserId);
+    }
+  };
 
   const currentMember = members.find(m => m.user_id === currentUserId);
   const isAdminOrOwner = currentMember
@@ -67,10 +98,14 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
   };
 
   return (
-    <div className={`relative flex gap-4 px-4 py-2 lg:hover:bg-gray-400/50 group ${isActionsVisible ? 'bg-gray-400/50 lg:bg-transparent' : ''}`}
-      onClick={() => setIsActionsVisible(v => !v)}>
+    <div
+      className={`relative flex gap-4 px-4 py-2 lg:hover:bg-gray-400/50 group ${isActionsVisible ? 'bg-gray-400/50 lg:bg-transparent' : ''}`}
+      onClick={() => setIsActionsVisible(v => !v)}
+    >
       {canDeleteMessage && !isEditing && (
-        <div className={`absolute -top-4 right-4 ${isActionsVisible ? 'flex lg:hidden' : 'hidden'} lg:group-hover:flex bg-gray-300 border border-gray-200 rounded-lg shadow-lg`}>
+        <div
+          className={`absolute -top-4 right-4 ${isActionsVisible ? 'flex lg:hidden' : 'hidden'} lg:group-hover:flex bg-gray-300 border border-gray-200 rounded-lg shadow-lg`}
+        >
           {isOwnerMessage && (
             <Button
               className="p-2 hover:bg-hoverSide rounded-l-lg transition-colors"
@@ -105,7 +140,7 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
             <input
               type="text"
               value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
+              onChange={e => setEditContent(e.target.value)}
               onKeyDown={handleKeyDown}
               className="flex-1 px-3 py-2 bg-gray-300 text-white rounded-md border border-gray-200 focus:outline-none focus:border-purple"
               autoFocus
@@ -127,8 +162,9 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
           </div>
         ) : (
           <div
-            className={`leading-relaxed break-words ${isSystemMessage ? 'text-gray-light italic' : 'text-white'
-              }`}
+            className={`leading-relaxed break-words ${
+              isSystemMessage ? 'text-gray-light italic' : 'text-white'
+            }`}
           >
             {isGifUrl(message.content) ? (
               <img
@@ -139,6 +175,45 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
             ) : (
               message.content
             )}
+          </div>
+        )}
+
+        {!isSystemMessage && (
+          <div className="flex flex-wrap items-center gap-1 mt-1">
+            {Object.entries(message.reactions || {}).map(([emoji, users]) => (
+              <button
+                key={emoji}
+                onClick={e => {
+                  e.stopPropagation();
+                  handleToggleReaction(emoji);
+                }}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors ${
+                  currentUserId && users.includes(currentUserId)
+                    ? 'bg-purple/30 border-purple text-white'
+                    : 'bg-gray-300 border-gray-200 text-gray-light hover:border-purple'
+                }`}
+              >
+                <span>{emoji}</span>
+                <span>{users.length}</span>
+              </button>
+            ))}
+
+            <div className="relative" ref={emojiPickerRef}>
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  setShowEmojiPicker(v => !v);
+                }}
+                className="flex items-center p-1 rounded-full text-gray-light hover:text-white hover:bg-gray-300 transition-colors opacity-0 group-hover:opacity-100"
+              >
+                <SmilePlus size={16} />
+              </button>
+              {showEmojiPicker && (
+                <div className="absolute bottom-8 left-0 z-50">
+                  <EmojiPicker onEmojiClick={handleEmojiClick} />
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

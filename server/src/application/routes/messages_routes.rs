@@ -1,4 +1,4 @@
-use crate::application::controller::message_controller::{MessageHandler, send_welcome_message, get_message_history, send_message, delete_message, update_message};
+use crate::application::controller::message_controller::{MessageHandler, send_welcome_message, get_message_history, send_message, delete_message, update_message, add_reaction, remove_reaction};
 use crate::infrastructure::repositories::{
     ChannelRepository, MessageRepository, ServerRepository, UserRepository,
 };
@@ -6,6 +6,7 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
+
 use std::sync::Arc;
 
 pub fn message_routes<
@@ -36,6 +37,14 @@ pub fn message_routes<
         .route(
             "/messages/:id",
             put(update_message::<MR, CR, SR, UR>),
+        )
+        .route(
+            "/messages/:id/reactions",
+            post(add_reaction::<MR, CR, SR, UR>),
+        )
+        .route(
+            "/messages/:id/reactions/:reaction",
+            delete(remove_reaction::<MR, CR, SR, UR>),
         )
         .with_state(handler)
 }
