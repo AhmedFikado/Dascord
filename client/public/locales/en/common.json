@@ -123,7 +123,9 @@
         "confirm_transfer": "Confirm transfer"
     },
     "Member_list": {
-        "members": "Members"
+        "members": "Members",
+        "Owner": "Owner",
+        "Admin": "Admin"
     },
     "Server_header_side": {
         "server_settings": "Server settings",
