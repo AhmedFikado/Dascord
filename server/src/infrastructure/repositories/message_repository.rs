@@ -164,14 +164,26 @@ impl MessageRepository for MongoMessageRepository {
             .map_err(|_| AppError::ValidationError("Invalid message ID".to_string()))?;
 
         let filter = doc! { "_id": object_id };
-        let update = doc! {
+        let pull_update = doc! {
             "$pull": {
-                format!("reactions.{}", reaction): user_id
+                format!("reactions.{}", reaction): &user_id
             }
         };
 
         collection
-            .update_one(filter.clone(), update)
+            .update_one(filter.clone(), pull_update)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        let unset_filter = doc! {
+            "_id": object_id,
+            format!("reactions.{}", reaction): { "$size": 0 }
+        };
+        let unset_update = doc! {
+            "$unset": { format!("reactions.{}", reaction): "" }
+        };
+        collection
+            .update_one(unset_filter, unset_update)
             .await
             .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
