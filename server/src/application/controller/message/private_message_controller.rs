@@ -98,6 +98,21 @@ pub async fn send_private_message<MR: MessageRepository, PCR: PrivateChannelRepo
     .services
     .send_message(channel_id, user_id, user.username, content).await?;
 
+    // Diffuser le nouveau message à tous les clients du channel via WebSocket
+    if let Some(ws_manager) = &controller.ws_manager {
+        ws_manager.broadcast_to_channel(
+            &channel_id.to_string(),
+            crate::infrastructure::websocket::ServerMessage::NewMessage {
+                channel_id: channel_id.to_string(),
+                message_id: message.id.clone().unwrap_or_default(),
+                user_id: message.user_id.clone(),
+                username: message.username.clone(),
+                content: message.content.clone(),
+                created_at: chrono::Utc::now(),
+            },
+        ).await;
+    }
+
     Ok((StatusCode::CREATED, Json(message)))
 }
 

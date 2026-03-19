@@ -70,7 +70,7 @@ pub fn create_router(
         jwt_service.clone(),
         private_channel_repo.clone(),
         user_repo2.clone(),
-    ));
+    ).with_ws_manager(ws_manager.clone()));
     let message_handler = Arc::new(
         MessageHandler::new(
             jwt_service.clone(),

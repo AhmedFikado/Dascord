@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find 'c:\\\\Users\\\\lexos\\\\OneDrive\\\\Bureau\\\\Epitech 2025\\\\Projet_Discord\\\\repo-projet\\\\T-JSF-600-BDX\\\\client\\\\src\\\\app\\\\\\(dashboard\\)\\\\dms' -type f)",
+      "Bash(find 'c:\\\\Users\\\\lexos\\\\OneDrive\\\\Bureau\\\\Epitech 2025\\\\Projet_Discord\\\\repo-projet\\\\T-JSF-600-BDX\\\\client\\\\src\\\\app\\\\\\(dashboard\\)' -type f)"
+    ]
+  }
+}

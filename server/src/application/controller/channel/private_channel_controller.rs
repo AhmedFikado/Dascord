@@ -10,16 +10,23 @@ use crate::domain::services::channel::PrivateChannelService;
 use crate::infrastructure::repositories::channel::PrivateChannelRepository;
 use crate::infrastructure::repositories::UserRepository;
 use crate::infrastructure::security::JWTService;
+use crate::infrastructure::websocket::ConnectionManager;
 
 pub struct PrivateChannelController<PCR: PrivateChannelRepository, UR: UserRepository> {
     jwt_service: JWTService,
     service: PrivateChannelService<PCR, UR>,
+    ws_manager: Option<Arc<ConnectionManager>>,
 }
 
 impl<PCR: PrivateChannelRepository, UR: UserRepository> PrivateChannelController<PCR, UR> {
     pub fn new(jwt_service: JWTService, private_channel_repository: PCR, user_repository: UR) -> Self {
         let service = PrivateChannelService::new(private_channel_repository, user_repository);
-        Self { jwt_service, service }
+        Self { jwt_service, service, ws_manager: None }
+    }
+
+    pub fn with_ws_manager(mut self, ws_manager: Arc<ConnectionManager>) -> Self {
+        self.ws_manager = Some(ws_manager);
+        self
     }
 }
 
@@ -56,6 +63,16 @@ pub async fn create_private_channel<PCR: PrivateChannelRepository, UR: UserRepos
     
     match handler.service.create_private_channel(payload.user1, payload.user2).await {
         Ok(channel) => {
+            // Notifier les deux utilisateurs via WebSocket
+            if let Some(ws_manager) = &handler.ws_manager {
+                ws_manager.broadcast_to_all(
+                    crate::infrastructure::websocket::ServerMessage::PrivateChannelCreated {
+                        channel_id: channel.id.to_string(),
+                        user1_id: channel.user1.to_string(),
+                        user2_id: channel.user2.to_string(),
+                    },
+                ).await;
+            }
             let response = PrivateChannelResponse::from(channel);
             Ok((StatusCode::CREATED, Json(response)))
         }
@@ -97,13 +114,11 @@ pub async fn get_private_channel<PCR: PrivateChannelRepository, UR: UserReposito
 /// Récupérer tous les canaux privés d'un utilisateur
 #[utoipa::path(
     get,
-    path = "/channels/private/user/{user_id}",
+    path = "/channels/private",
     tag = "channels",
-    params(
-        ("user_id" = Uuid, Path, description = "ID de l'utilisateur")
-    ),
     responses(
         (status = 200, description = "Liste des canaux privés", body = Vec<PrivateChannelResponse>),
+        (status = 401, description = "Non authentifié"),
         (status = 500, description = "Erreur interne du serveur"),
     ),
     security(
@@ -112,13 +127,25 @@ pub async fn get_private_channel<PCR: PrivateChannelRepository, UR: UserReposito
 )]
 pub async fn get_list_private_channels<PCR: PrivateChannelRepository, UR: UserRepository>(
     State(handler): State<Arc<PrivateChannelController<PCR, UR>>>,
-    Path(user_id): Path<Uuid>,
+    headers: HeaderMap,
 ) -> Result<Json<Vec<PrivateChannelResponse>>, (StatusCode, String)> {
-    match handler.service.get_user_private_channels(user_id).await {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Missing or invalid Authorization header".to_string()))?;
+
+    let claims = handler.jwt_service.verify_token(token)
+        .map_err(|e| (StatusCode::UNAUTHORIZED, e.to_string()))?;
+    
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid user ID".to_string()))?;
+
+    match handler.service.get_user_private_channels_with_recipient(user_id).await {
         Ok(channels) => {
             let response = channels
                 .into_iter()
-                .map(|channel| PrivateChannelResponse::from(channel))
+                .map(|(channel, recipient)| PrivateChannelResponse::with_recipient(channel, recipient))
                 .collect();
             Ok(Json(response))
         }
@@ -356,10 +383,18 @@ mod tests {
         let user_repo = MockUserRepository { users: vec![user1, user2, user3] };
         let jwt_service = JWTService::new("test_secret".to_string());
 
-        let controller = PrivateChannelController::new(jwt_service, repo, user_repo);
+        let controller = PrivateChannelController::new(jwt_service.clone(), repo, user_repo);
         let state = State(Arc::new(controller));
 
-        let result = get_list_private_channels(state, Path(user1)).await;
+        // Create valid JWT token
+        let token = jwt_service.create_token(user1).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            axum::http::header::AUTHORIZATION,
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let result = get_list_private_channels(state, headers).await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert_eq!(response.len(), 2);
@@ -373,10 +408,18 @@ mod tests {
         let user_repo = MockUserRepository { users: vec![user1] };
         let jwt_service = JWTService::new("test_secret".to_string());
 
-        let controller = PrivateChannelController::new(jwt_service, repo, user_repo);
+        let controller = PrivateChannelController::new(jwt_service.clone(), repo, user_repo);
         let state = State(Arc::new(controller));
 
-        let result = get_list_private_channels(state, Path(user1)).await;
+        // Create valid JWT token
+        let token = jwt_service.create_token(user1).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            axum::http::header::AUTHORIZATION,
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
+        let result = get_list_private_channels(state, headers).await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert_eq!(response.len(), 0);
@@ -408,14 +451,63 @@ mod tests {
         let user_repo = MockUserRepository { users: vec![user1, user2, user3] };
         let jwt_service = JWTService::new("test_secret".to_string());
 
-        let controller = PrivateChannelController::new(jwt_service, repo, user_repo);
+        let controller = PrivateChannelController::new(jwt_service.clone(), repo, user_repo);
         let state = State(Arc::new(controller));
 
+        // Create valid JWT token for user2
+        let token = jwt_service.create_token(user2).unwrap();
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            axum::http::header::AUTHORIZATION,
+            format!("Bearer {}", token).parse().unwrap(),
+        );
+
         // Get channels for user2 - should only get channel1 and channel2
-        let result = get_list_private_channels(state, Path(user2)).await;
+        let result = get_list_private_channels(state, headers).await;
         assert!(result.is_ok());
         let response = result.unwrap();
         assert_eq!(response.len(), 2);
     }
+
+    #[tokio::test]
+    async fn test_get_list_private_channels_missing_auth() {
+        let user1 = Uuid::new_v4();
+
+        let repo = MockPrivateChannelRepository { channels: vec![] };
+        let user_repo = MockUserRepository { users: vec![user1] };
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let controller = PrivateChannelController::new(jwt_service, repo, user_repo);
+        let state = State(Arc::new(controller));
+
+        // Create empty headers (no Authorization)
+        let headers = HeaderMap::new();
+
+        let result = get_list_private_channels(state, headers).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_get_list_private_channels_invalid_token() {
+        let user1 = Uuid::new_v4();
+
+        let repo = MockPrivateChannelRepository { channels: vec![] };
+        let user_repo = MockUserRepository { users: vec![user1] };
+        let jwt_service = JWTService::new("test_secret".to_string());
+
+        let controller = PrivateChannelController::new(jwt_service, repo, user_repo);
+        let state = State(Arc::new(controller));
+
+        // Create headers with invalid token
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            axum::http::header::AUTHORIZATION,
+            "Bearer invalid_token".parse().unwrap(),
+        );
+
+        let result = get_list_private_channels(state, headers).await;
+        assert!(result.is_err());
+    }
 }
+
 

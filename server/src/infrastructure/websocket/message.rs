@@ -123,6 +123,13 @@ pub enum ServerMessage {
         server_id: String,
         user_id: String,
     },
+
+    /// Un nouveau canal privé a été créé entre deux utilisateurs
+    PrivateChannelCreated {
+        channel_id: String,
+        user1_id: String,
+        user2_id: String,
+    },
 }
 
 /// Structure pour les données d'un message dans l'historique

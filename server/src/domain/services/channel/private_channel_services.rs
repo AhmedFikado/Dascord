@@ -46,6 +46,20 @@ impl<PCR: PrivateChannelRepository, UR: UserRepository> PrivateChannelService<PC
     pub async fn get_user_private_channels(&self, user_id: Uuid) -> AppResult<Vec<PrivateChannel>> {
         self.private_channel_repository.get_user_channels(user_id).await
     }
+
+    pub async fn get_user_private_channels_with_recipient(
+        &self,
+        user_id: Uuid,
+    ) -> AppResult<Vec<(PrivateChannel, Option<crate::domain::entities::user::User>)>> {
+        let channels = self.private_channel_repository.get_user_channels(user_id).await?;
+        let mut result = Vec::new();
+        for channel in channels {
+            let recipient_id = if channel.user1 == user_id { channel.user2 } else { channel.user1 };
+            let recipient = self.user_repository.find_by_id(recipient_id).await?;
+            result.push((channel, recipient));
+        }
+        Ok(result)
+    }
 }
 
 
