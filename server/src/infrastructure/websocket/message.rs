@@ -130,6 +130,22 @@ pub enum ServerMessage {
         user1_id: String,
         user2_id: String,
     },
+
+    /// Réaction ajoutée à un message
+        ReactionAdded {
+            channel_id: String,
+            message_id: String,
+            user_id: String,
+            reaction: String,
+        },
+
+        /// Réaction supprimée d'un message
+        ReactionRemoved {
+            channel_id: String,
+            message_id: String,
+            user_id: String,
+            reaction: String,
+        },
 }
 
 /// Structure pour les données d'un message dans l'historique

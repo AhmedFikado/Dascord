@@ -24,6 +24,7 @@ export interface MessageData {
   username: string;
   content: string;
   created_at: string;
+  reactions?: Record<string, string[]>;
 }
 
 // Message reçu du serveur
@@ -139,6 +140,24 @@ export type ServerMessage =
       payload: {
         server_id: string;
         user_id: string;
+      };
+    }
+  | {
+      type: 'ReactionAdded';
+      payload: {
+        channel_id: string;
+        message_id: string;
+        user_id: string;
+        reaction: string;
+      };
+    }
+  | {
+      type: 'ReactionRemoved';
+      payload: {
+        channel_id: string;
+        message_id: string;
+        user_id: string;
+        reaction: string;
       };
     }
   | {

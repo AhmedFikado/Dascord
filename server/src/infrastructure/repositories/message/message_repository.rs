@@ -10,6 +10,8 @@ pub trait MessageRepository: Send + Sync + Clone {
     async fn find_by_id(&self, message_id: &str) -> AppResult<Option<Message>>;
     async fn delete(&self, message_id: &str) -> AppResult<()>;
     async fn update(&self, message_id: &str, content: String) -> AppResult<Message>;
+    async fn add_reaction(&self, message_id: &str, reaction: String, user_id: String) -> AppResult<Message>;
+    async fn remove_reaction(&self, message_id: &str, reaction: String, user_id: String) -> AppResult<Message>;
 }
 
 #[derive(Clone)]
@@ -122,6 +124,74 @@ impl MessageRepository for MongoMessageRepository {
             .await
             .map_err(|e| AppError::InternalServerError(e.to_string()))?
             .ok_or_else(|| AppError::NotFound("Message not found after update".to_string()))?;
+
+        Ok(updated_message)
+    }
+
+    async fn add_reaction(&self, message_id: &str, reaction: String, user_id: String) -> AppResult<Message> {
+        let db = self.client.database("chat_db");
+        let collection = db.collection::<Message>("messages");
+
+        let object_id = mongodb::bson::oid::ObjectId::parse_str(message_id)
+            .map_err(|_| AppError::ValidationError("Invalid message ID".to_string()))?;
+
+        let filter = doc! { "_id": object_id };
+        let update = doc! {
+            "$addToSet": {
+                format!("reactions.{}", reaction): user_id
+            }
+        };
+
+        collection
+            .update_one(filter.clone(), update)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        let updated_message = collection
+            .find_one(filter)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?
+            .ok_or_else(|| AppError::NotFound("Message not found after adding reaction".to_string()))?;
+
+        Ok(updated_message)
+    }
+    
+    async fn remove_reaction(&self, message_id: &str, reaction: String, user_id: String) -> AppResult<Message> {
+        let db = self.client.database("chat_db");
+        let collection = db.collection::<Message>("messages");
+
+        let object_id = mongodb::bson::oid::ObjectId::parse_str(message_id)
+            .map_err(|_| AppError::ValidationError("Invalid message ID".to_string()))?;
+
+        let filter = doc! { "_id": object_id };
+        let pull_update = doc! {
+            "$pull": {
+                format!("reactions.{}", reaction): &user_id
+            }
+        };
+
+        collection
+            .update_one(filter.clone(), pull_update)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        let unset_filter = doc! {
+            "_id": object_id,
+            format!("reactions.{}", reaction): { "$size": 0 }
+        };
+        let unset_update = doc! {
+            "$unset": { format!("reactions.{}", reaction): "" }
+        };
+        collection
+            .update_one(unset_filter, unset_update)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        let updated_message = collection
+            .find_one(filter)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?
+            .ok_or_else(|| AppError::NotFound("Message not found after removing reaction".to_string()))?;
 
         Ok(updated_message)
     }

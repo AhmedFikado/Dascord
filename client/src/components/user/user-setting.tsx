@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { User, Status } from '@/types/models/user';
+import { User } from '@/types/models/user';
 import { useSnackbar } from "@/components/shared/error-message";
 import { useAuthStore } from '@/app/lib/stores/use-auth-store';
 import { useRouter } from 'next/navigation';

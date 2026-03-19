@@ -7,4 +7,5 @@ export interface Message {
     created_at: string;
     updated_at?: string;
     deleted_at?: string;
+    reactions?: Record<string, string[]>;
 }

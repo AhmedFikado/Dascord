@@ -28,6 +28,8 @@ pub struct MessageHandler<
     get_history_uc: Arc<GetMessageHistoryUseCase<MR, CR, SR>>,
     delete_message_uc: Arc<DeleteMessageUseCase<MR, CR, SR>>,
     update_message_uc: Arc<UpdateMessageUseCase<MR, CR, SR>>,
+    add_reaction_uc: Arc<AddReactionUseCase<MR, CR, SR>>,
+    remove_reaction_uc: Arc<RemoveReactionUseCase<MR, CR, SR>>,
     user_repo: Arc<UR>,
     ws_manager: Option<Arc<ConnectionManager>>,
 }
@@ -60,6 +62,16 @@ impl<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: Use
                 server_repo.clone(),
             )),
             update_message_uc: Arc::new(UpdateMessageUseCase::new(
+                message_repo.clone(),
+                channel_repo.clone(),
+                server_repo.clone(),
+            )),
+            add_reaction_uc: Arc::new(AddReactionUseCase::new(
+                message_repo.clone(),
+                channel_repo.clone(),
+                server_repo.clone(),
+            )),
+            remove_reaction_uc: Arc::new(RemoveReactionUseCase::new(
                 message_repo,
                 channel_repo,
                 server_repo,
@@ -259,6 +271,79 @@ pub async fn update_message<MR: MessageRepository, CR: ChannelRepository, SR: Se
     }
     
     Ok((StatusCode::OK, Json(updated_message)))
+}
+
+/// - Ajouter une réaction à un message
+pub async fn add_reaction<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: UserRepository>(
+    State(handler): State<Arc<MessageHandler<MR, CR, SR, UR>>>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let reaction = payload
+        .get("reaction")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError::ValidationError("Missing reaction field".to_string()))?
+        .to_string();
+
+    let updated = handler.add_reaction_uc.execute(id, user_id, reaction.clone()).await?;
+
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_channel(
+            &updated.channel_id,
+            crate::infrastructure::websocket::ServerMessage::ReactionAdded {
+                channel_id: updated.channel_id.clone(),
+                message_id: updated.id.clone().unwrap_or_default(),
+                user_id: user_id.to_string(),
+                reaction: reaction.clone(),
+            },
+        ).await;
+    }
+
+    Ok((StatusCode::OK, Json(updated)))
+}
+
+/// - Supprimer une réaction d'un message
+pub async fn remove_reaction<MR: MessageRepository, CR: ChannelRepository, SR: ServerRepository, UR: UserRepository>(
+    State(handler): State<Arc<MessageHandler<MR, CR, SR, UR>>>,
+    Path((id, reaction)): Path<(String, String)>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let updated = handler.remove_reaction_uc.execute(id, user_id, reaction.clone()).await?;
+
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_channel(
+            &updated.channel_id,
+            crate::infrastructure::websocket::ServerMessage::ReactionRemoved {
+                channel_id: updated.channel_id.clone(),
+                message_id: updated.id.clone().unwrap_or_default(),
+                user_id: user_id.to_string(),
+                reaction: reaction.clone(),
+            },
+        ).await;
+    }
+
+    Ok((StatusCode::OK, Json(updated)))
 }
 
 /// - Envoyer un message de bienvenue dans un channel lorsqu'un utilisateur rejoint le serveur

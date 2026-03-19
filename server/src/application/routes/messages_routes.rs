@@ -1,15 +1,17 @@
 use crate::application::controller::message::message_controller::{
-    MessageHandler, 
-    send_welcome_message, 
-    get_message_history, 
-    send_message, 
-    delete_message, 
-    update_message};
+    MessageHandler,
+    send_welcome_message,
+    get_message_history,
+    send_message,
+    delete_message,
+    update_message,
+    add_reaction,
+    remove_reaction};
 use crate::application::controller::message::private_message_controller::{
-    PrivateMessageController, 
-    send_private_message, 
-    get_private_message_history, 
-    delete_private_message, 
+    PrivateMessageController,
+    send_private_message,
+    get_private_message_history,
+    delete_private_message,
     update_private_message};
 use crate::infrastructure::repositories::{
     ServerRepository, UserRepository,
@@ -20,6 +22,7 @@ use axum::{
     routing::{delete, get, post, put},
     Router,
 };
+
 use std::sync::Arc;
 
 pub fn message_routes<
@@ -53,6 +56,14 @@ pub fn message_routes<
             "/messages/:id",
             put(update_message::<MR, CR, SR, UR>),
         )
+        .route(
+            "/messages/:id/reactions",
+            post(add_reaction::<MR, CR, SR, UR>),
+        )
+        .route(
+            "/messages/:id/reactions/:reaction",
+            delete(remove_reaction::<MR, CR, SR, UR>),
+        )
         .with_state(handler)
         .route(
             "/channels/:channel_id/messages/private",
@@ -80,9 +91,9 @@ pub fn message_routes<
 mod tests {
     use super::*;
     use crate::infrastructure::repositories::mocks::{
-        mock_message_repository::MockMessageRepository, 
-        mock_channel_repository::MockChannelRepository, 
-        mock_server_repository::MockServerRepository, 
+        mock_message_repository::MockMessageRepository,
+        mock_channel_repository::MockChannelRepository,
+        mock_server_repository::MockServerRepository,
         mock_user_repository::MockUserRepository,
         mock_private_channel_repository::MockPrivateChannelRepository
     };

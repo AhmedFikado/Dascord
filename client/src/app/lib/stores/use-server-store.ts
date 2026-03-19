@@ -18,7 +18,7 @@ interface ServerState {
 
   fetchServers: () => Promise<void>;
   addServer: (server: Server) => void;
-  setCurrentServer: (server: Server) => void;
+  setCurrentServer: (server: Server | null) => void;
   createServer: (name: string) => Promise<Server>;
   deleteServer: (serverId: string) => Promise<void>;
   joinServer: (invitationCode: string) => Promise<void>;
