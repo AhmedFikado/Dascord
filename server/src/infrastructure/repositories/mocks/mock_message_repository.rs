@@ -1,5 +1,5 @@
-use crate::domain::entities::Message;
-use crate::infrastructure::repositories::MessageRepository;
+use crate::domain::entities::message::Message;
+use crate::infrastructure::repositories::message::MessageRepository;
 use crate::utils::error::{AppResult};
 use async_trait::async_trait;
 use std::collections::HashMap;
@@ -92,7 +92,7 @@ impl MessageRepository for MockMessageRepository {
             if let Some(users) = message.reactions.get_mut(&reaction) {
                 users.retain(|u| u != &user_id);
                 if users.is_empty() {
-                    message.reactions.remove(&reaction);
+                    message.reactions.shift_remove(&reaction);
                 }
             }
             Ok(message.clone())

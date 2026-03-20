@@ -167,6 +167,14 @@ export type ServerMessage =
         message: string;
         channel_id?: string;
       };
+    }
+  | {
+      type: 'PrivateChannelCreated';
+      payload: {
+        channel_id: string;
+        user1_id: string;
+        user2_id: string;
+      };
     };
 
 // État de la connexion WebSocket

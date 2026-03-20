@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use utoipa::ToSchema;
+use crate::domain::entities::message::Message;
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
 pub struct MessageDto {
@@ -9,8 +10,22 @@ pub struct MessageDto {
     pub user_id: String,
     pub username: String,
     pub content: String,
-    pub reactions: HashMap<String, Vec<String>>,
+    pub reactions: IndexMap<String, Vec<String>>,
     pub created_at: String,
+}
+
+impl From<Message> for MessageDto {
+    fn from(message: Message) -> Self {
+        Self {
+            id: message.id.map(|id| id.to_string()),
+            channel_id: message.channel_id,
+            user_id: message.user_id,
+            username: message.username,
+            content: message.content,
+            reactions: message.reactions,
+            created_at: message.created_at.to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -36,7 +51,7 @@ mod tests {
             user_id: "user1".to_string(),
             username: "testuser".to_string(),
             content: "Hello".to_string(),
-            reactions: HashMap::new(),
+            reactions: IndexMap::new(),
             created_at: "2024-01-01T00:00:00Z".to_string(),
         };
         assert_eq!(dto.content, "Hello");

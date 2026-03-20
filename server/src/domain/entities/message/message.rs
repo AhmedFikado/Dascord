@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -9,7 +9,7 @@ pub struct Message {
     pub user_id: String,
     pub username: String,
     pub content: String,
-    pub reactions: HashMap<String, Vec<String>>,
+    pub reactions: IndexMap<String, Vec<String>>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -21,7 +21,7 @@ impl Message {
             user_id,
             username,
             content,
-            reactions: HashMap::new(),
+            reactions: IndexMap::new(),
             created_at: chrono::Utc::now(),
         }
     }

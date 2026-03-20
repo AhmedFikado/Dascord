@@ -3,7 +3,8 @@
 import Sidebar from "@/components/layout/sidebar";
 import ServerSidebar from "@/components/server/server-sidebar";
 import MemberSidebar from "@/components/server/member-sidebar";
-import { useParams } from 'next/navigation';
+import DMSidebar from "@/components/dm/dm-sidebar";
+import { useParams, usePathname } from 'next/navigation';
 import UserPanel from "@/components/user/user-panel";
 import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { useState, createContext, useContext, useEffect } from 'react';
@@ -26,7 +27,9 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const params = useParams();
+    const pathname = usePathname();
     const serverId = params?.serverId ? (params.serverId as string) : null;
+    const isDMRoute = pathname?.startsWith('/dms') ?? false;
     const [isMembersOpen, setIsMembersOpen] = useState(false);
     const [isNavOpen, setIsNavOpen] = useState(false);
     const { setCurrentServer, servers } = useServerStore();
@@ -58,6 +61,12 @@ export default function DashboardLayout({
                     </div>
                 )}
 
+                {isDMRoute && (
+                    <div className="hidden md:flex h-full flex-shrink-0">
+                        <DMSidebar />
+                    </div>
+                )}
+
                 <div className="hidden md:flex flex-shrink-0">
                     <UserPanel />
                 </div>
@@ -83,6 +92,7 @@ export default function DashboardLayout({
                         >
                             <Sidebar />
                             {serverId && <ServerSidebar serverId={serverId} />}
+                            {isDMRoute && <DMSidebar />}
                             <UserPanel />
                         </div>
                     </div>

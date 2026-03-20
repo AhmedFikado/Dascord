@@ -1,5 +1,5 @@
-use crate::domain::entities::Channel;
-use crate::infrastructure::repositories::ChannelRepository;
+use crate::domain::entities::channel::Channel;
+use crate::infrastructure::repositories::channel::ChannelRepository;
 use crate::utils::error::{AppResult};
 use async_trait::async_trait;
 use std::collections::HashMap;

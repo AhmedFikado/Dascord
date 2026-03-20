@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 /// Types de messages que le client peut envoyer au serveur
@@ -124,21 +125,28 @@ pub enum ServerMessage {
         user_id: String,
     },
 
-    /// Réaction ajoutée à un message
-    ReactionAdded {
+    /// Un nouveau canal privé a été créé entre deux utilisateurs
+    PrivateChannelCreated {
         channel_id: String,
-        message_id: String,
-        user_id: String,
-        reaction: String,
+        user1_id: String,
+        user2_id: String,
     },
 
-    /// Réaction supprimée d'un message
-    ReactionRemoved {
-        channel_id: String,
-        message_id: String,
-        user_id: String,
-        reaction: String,
-    },
+    /// Réaction ajoutée à un message
+        ReactionAdded {
+            channel_id: String,
+            message_id: String,
+            user_id: String,
+            reaction: String,
+        },
+
+        /// Réaction supprimée d'un message
+        ReactionRemoved {
+            channel_id: String,
+            message_id: String,
+            user_id: String,
+            reaction: String,
+        },
 }
 
 /// Structure pour les données d'un message dans l'historique
@@ -149,6 +157,7 @@ pub struct MessageData {
     pub username: String,
     pub content: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
+    pub reactions: IndexMap<String, Vec<String>>,
 }
 
 impl ServerMessage {

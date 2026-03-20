@@ -37,6 +37,14 @@ CREATE TABLE channels (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE privateMessageChannel (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user1 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    user2 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    last_message_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE bans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     server_id UUID NOT NULL REFERENCES servers(id) ON DELETE CASCADE,

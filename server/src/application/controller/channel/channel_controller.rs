@@ -1,5 +1,6 @@
 use crate::domain::services::channel::*;
-use crate::infrastructure::repositories::{ChannelRepository, ServerRepository};
+use crate::infrastructure::repositories::ServerRepository;
+use crate::infrastructure::repositories::channel::ChannelRepository;
 use crate::infrastructure::security::JWTService;
 use crate::utils::error::AppError;
 use axum::{
@@ -154,7 +155,7 @@ pub async fn delete_channel<CR: ChannelRepository, SR: ServerRepository>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entities::Channel;
+    use crate::domain::entities::channel::Channel;
     use crate::domain::value_objects::ServerRole;
     use crate::infrastructure::repositories::mocks::{
         mock_channel_repository::MockChannelRepository,

@@ -9,17 +9,22 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Message } from '../../types/models/message';
 import UserCard from '../shared/user-card';
+import MemberContextMenu from '../server/member-context-menu';
 
 interface MessageItemProps {
   message: Message;
   onDelete: () => void;
   onUpdate: (content: string) => void;
+  onAddReaction?: (messageId: string, reaction: string) => void;
+  onRemoveReaction?: (messageId: string, reaction: string) => void;
 }
 
-export default function MessageItem({ message, onDelete, onUpdate }: MessageItemProps) {
+export default function MessageItem({ message, onDelete, onUpdate, onAddReaction, onRemoveReaction }: MessageItemProps) {
   const { user } = useCurrentUser();
   const currentUserId = user?.id;
   const members = useServerStore(state => state.members);
+  const currentServer = useServerStore(state => state.currentServer);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
   const [isActionsVisible, setIsActionsVisible] = useState(false);
@@ -39,8 +44,12 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
   }, []);
 
   const handleEmojiClick = (emojiData: EmojiClickData) => {
-    if (!currentUserId) return;
-    addReaction(message.id!, emojiData.emoji, currentUserId);
+    if (!currentUserId || !message.id) return;
+    if (onAddReaction) {
+      onAddReaction(message.id, emojiData.emoji);
+    } else {
+      addReaction(message.id, emojiData.emoji, currentUserId);
+    }
     setShowEmojiPicker(false);
   };
 
@@ -48,9 +57,11 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
     if (!currentUserId || !message.id) return;
     const users = message.reactions?.[emoji] || [];
     if (users.includes(currentUserId)) {
-      removeReaction(message.id, emoji, currentUserId);
+      if (onRemoveReaction) onRemoveReaction(message.id, emoji);
+      else removeReaction(message.id, emoji, currentUserId);
     } else {
-      addReaction(message.id, emoji, currentUserId);
+      if (onAddReaction) onAddReaction(message.id, emoji);
+      else addReaction(message.id, emoji, currentUserId);
     }
   };
 
@@ -68,6 +79,16 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
       minute: '2-digit',
     }).format(new Date(dateStr));
   };
+  const handleUserContextMenu = (e: React.MouseEvent) => {
+    if (!currentServer || message.user_id === currentUserId || isSystemMessage) return;
+    const currentMember = members.find(m => m.user_id === currentUserId);
+    const targetMember = members.find(m => m.user_id === message.user_id);
+    if (currentMember?.role === Role.ADMIN && targetMember?.role === Role.OWNER) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  };
+
   const isOwnerMessage = message.user_id === currentUserId;
   const canDeleteMessage = isOwnerMessage || isAdminOrOwner;
   const isSystemMessage = message.username === 'Système';
@@ -98,6 +119,7 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
   };
 
   return (
+    <>
     <div
       className={`relative flex gap-4 px-4 py-2 lg:hover:bg-gray-400/50 group ${isActionsVisible ? 'bg-gray-400/50 lg:bg-transparent' : ''}`}
       onClick={() => setIsActionsVisible(v => !v)}
@@ -125,11 +147,16 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
         </div>
       )}
 
-      <UserCard username={message.username} />
+      <div onContextMenu={handleUserContextMenu} className="cursor-pointer flex-shrink-0">
+        <UserCard username={message.username} />
+      </div>
 
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 mb-0.5">
-          <span className="font-semibold text-white cursor-pointer">{message.username}</span>
+          <span
+            className="font-semibold text-white cursor-pointer"
+            onContextMenu={handleUserContextMenu}
+          >{message.username}</span>
           <span className="text-xs text-gray-50">{formatDate(message.created_at)}</span>
           {message.updated_at && message.updated_at !== message.created_at && (
             <span className="text-xs text-gray-50 italic">{t('Message_item.modified')}</span>
@@ -204,7 +231,7 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
                   e.stopPropagation();
                   setShowEmojiPicker(v => !v);
                 }}
-                className="flex items-center p-1 rounded-full text-gray-light hover:text-white hover:bg-gray-300 transition-colors opacity-0 group-hover:opacity-100"
+                className="flex items-center p-1 rounded-full text-gray-light lg:hover:text-white lg:hover:bg-gray-300 transition-colors lg:opacity-0 lg:group-hover:opacity-100"
               >
                 <SmilePlus size={16} />
               </button>
@@ -218,5 +245,16 @@ export default function MessageItem({ message, onDelete, onUpdate }: MessageItem
         )}
       </div>
     </div>
+
+      {contextMenu && currentServer && (
+        <MemberContextMenu
+          targetMemberId={message.user_id}
+          serverId={currentServer.id}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
+    </>
   );
 }

@@ -203,5 +203,25 @@
     },
     "Settings": {
         "language": "Language"
+    },
+    "hello": "Hello",
+    "welcome": "Welcome",
+    "DM": {
+        "private_messages": "Private Messages",
+        "open_navigation": "Open navigation",
+        "unknown_user": "Unknown User",
+        "no_conversation": "No conversations",
+        "loading_messages": "Loading messages...",
+        "select_conversation": "Select a conversation to get started",
+        "send_private_message": "Send a private message",
+        "send_button": "Send",
+        "input_placeholder": "Send a private message..."
+    },
+    "Use_private_channel_store": {
+        "Error_loading_channels": "Error loading conversations",
+        "Error_sending_message": "Error sending message",
+        "Error_deleting_message": "Error deleting message",
+        "Error_updating_message": "Error updating message",
+        "Error_opening_conversation": "Error opening private conversation"
     }
 }

@@ -1,7 +1,10 @@
 import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
 import { useServerStore } from '@/app/lib/stores/use-server-store';
+import { usePrivateChannelStore } from '@/app/lib/stores/use-private-channel-store';
 import { Role } from '@/types/models/role';
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 import PermanentBanDialog from './permanent-ban-dialog';
 import TempBanDialog from './temp-ban-dialog';
 
@@ -21,9 +24,12 @@ export default function MemberContextMenu({
   y,
 }: MemberContextMenuProps) {
   const { userId } = useCurrentUser();
+  const router = useRouter();
+  const { t } = useTranslation();
   const members = useServerStore(state => state.members);
   const currentMember = members.find(m => m.user_id === userId);
   const currentUserRole = currentMember?.role;
+  const { createOrGetPrivateChannel } = usePrivateChannelStore();
 
   const menuRef = useRef<HTMLDivElement | null>(null);
   const hasPermission = currentUserRole === Role.OWNER || currentUserRole === Role.ADMIN;
@@ -49,10 +55,6 @@ export default function MemberContextMenu({
     };
   }, [isDialogOpen, onClose]);
 
-  if (!hasPermission) {
-    return null;
-  }
-
   const kickMember = useServerStore(state => state.kickMember);
   const banMember = useServerStore(state => state.banMember);
 
@@ -69,35 +71,64 @@ export default function MemberContextMenu({
     setShowPermBan(true);
   };
 
+  const handleSendMessage = async () => {
+    try {
+      if (!userId || !targetMemberId) {
+        throw new Error('User IDs are missing');
+      }
+
+      console.log('Opening/Creating DM with:', targetMemberId);
+      const channel = await createOrGetPrivateChannel(userId, targetMemberId);
+      console.log('Channel obtained:', channel.id);
+      router.push(`/dms/${channel.id}`);
+      onClose();
+    } catch (error: any) {
+      console.error('Erreur lors de l\'ouverture du message privé:', error);
+      // Still try to navigate even if there was an error, as the channel might exist
+      // This will be handled by the store's error state
+    }
+  };
+
   return (
     <>
       {!isDialogOpen && (
         <div
           ref={menuRef}
-          className="fixed bg-gray-700 text-white rounded-md shadow-lg p-1 z-50 min-w-[200px]"
+          className="fixed bg-gray-300 border border-gray-200 text-white rounded-md shadow-lg p-1 z-50 min-w-[200px]"
           style={{
             top: `${y}px`,
             left: `${x}px`,
           }}
         >
           <button
-            onClick={handleKick}
-            className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
+            onClick={handleSendMessage}
+            className="w-full text-left px-3 py-2 hover:bg-hoverSide rounded text-blue-400"
           >
-            Expulser
+            {t('DM.send_private_message')}
           </button>
-          <button
-            onClick={handleTempBan}
-            className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
-          >
-            Bannir temporairement
-          </button>
-          <button
-            onClick={handlePermBan}
-            className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
-          >
-            Bannir définitivement
-          </button>
+          {hasPermission && (
+            <>
+              <div className="border-t border-gray-200 my-1"></div>
+              <button
+                onClick={handleKick}
+                className="w-full text-left px-3 py-2 hover:bg-hoverSide rounded text-red-500"
+              >
+                Expulser
+              </button>
+              <button
+                onClick={handleTempBan}
+                className="w-full text-left px-3 py-2 hover:bg-hoverSide rounded text-red-500"
+              >
+                Bannir temporairement
+              </button>
+              <button
+                onClick={handlePermBan}
+                className="w-full text-left px-3 py-2 hover:bg-hoverSide rounded text-red-500"
+              >
+                Bannir définitivement
+              </button>
+            </>
+          )}
         </div>
       )}
 

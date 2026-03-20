@@ -12,11 +12,13 @@ interface MessageListProps {
   messages: Message[];
   onDeleteMessage: (id: string) => void;
   onUpdateMessage: (id: string, content: string) => void;
+  onAddReaction?: (messageId: string, reaction: string) => void;
+  onRemoveReaction?: (messageId: string, reaction: string) => void;
 }
 
 const EMPTY_ARRAY: MessageData[] = [];
 
-export default function MessageList({ channelId, messages, onDeleteMessage, onUpdateMessage }: MessageListProps) {
+export default function MessageList({ channelId, messages, onDeleteMessage, onUpdateMessage, onAddReaction, onRemoveReaction }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { joinChannel, leaveChannel } = useWebSocketContext();
 
@@ -45,7 +47,7 @@ export default function MessageList({ channelId, messages, onDeleteMessage, onUp
     return {
       ...m,
       content: wsMsg.content ?? m.content,
-      reactions: wsMsg.reactions ?? m.reactions,
+      reactions: wsMsg.reactions !== undefined ? wsMsg.reactions : m.reactions,
     };
   });
   wsMessages.forEach(wsMsg => {
@@ -81,6 +83,8 @@ export default function MessageList({ channelId, messages, onDeleteMessage, onUp
             message={message}
             onDelete={() => onDeleteMessage(message.id || '')}
             onUpdate={(content) => onUpdateMessage(message.id || '', content)}
+            onAddReaction={onAddReaction}
+            onRemoveReaction={onRemoveReaction}
           />
         ))}
         <div ref={messagesEndRef} />

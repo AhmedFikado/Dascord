@@ -102,7 +102,7 @@ export default function MessageInput({ channelId, channelName }: MessageInputPro
       )}
 
       <form onSubmit={handleSubmit} className="relative">
-        <div className="flex items-center bg-gray-400 rounded-xl px-4">
+        <div className="flex items-center bg-gray-400 rounded-xl px-4 gap-2">
           <input
             type="text"
             value={message}
@@ -112,6 +112,13 @@ export default function MessageInput({ channelId, channelName }: MessageInputPro
             className="w-full bg-gray-400 py-3 pl-2 text-white placeholder-gray-50 focus:outline-none"
           />
           <GifButton channelId={channelId} />
+          <button
+            type="submit"
+            disabled={!message.trim()}
+            className="flex-shrink-0 px-3 py-2 bg-blurple text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+          >
+            {t('DM.send_button')}
+          </button>
         </div>
       </form>
     </div>

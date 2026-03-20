@@ -1,4 +1,4 @@
-use crate::domain::entities::Message;
+use crate::domain::entities::message::Message;
 use crate::utils::error::{AppError, AppResult};
 use async_trait::async_trait;
 use mongodb::{bson::doc, Client as MongoClient};

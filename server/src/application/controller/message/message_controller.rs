@@ -1,7 +1,9 @@
 use crate::domain::services::message::*;
 use crate::infrastructure::repositories::{
-    ChannelRepository, MessageRepository, ServerRepository, UserRepository,
+    ServerRepository, UserRepository,
 };
+use crate::infrastructure::repositories::message::MessageRepository;
+use crate::infrastructure::repositories::channel::ChannelRepository;
 use crate::infrastructure::security::JWTService;
 use crate::infrastructure::websocket::ConnectionManager;
 use crate::utils::error::AppError;
@@ -411,7 +413,8 @@ pub async fn send_welcome_message<MR: MessageRepository, CR: ChannelRepository, 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::entities::{Channel, User};
+    use crate::domain::entities::User;
+    use crate::domain::entities::channel::Channel;
     use crate::domain::value_objects::ServerRole;
     use crate::infrastructure::repositories::mocks::{
         mock_channel_repository::MockChannelRepository,
@@ -575,7 +578,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_delete_message_success() {
-        use crate::domain::entities::Message;
+        use crate::domain::entities::message::Message;
         let user_id = Uuid::new_v4();
         let server_id = Uuid::new_v4();
         let channel = Channel::new(server_id, "General".to_string());
@@ -616,7 +619,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_update_message_success() {
-        use crate::domain::entities::Message;
+        use crate::domain::entities::message::Message;
         let user_id = Uuid::new_v4();
         let server_id = Uuid::new_v4();
         let channel = Channel::new(server_id, "General".to_string());

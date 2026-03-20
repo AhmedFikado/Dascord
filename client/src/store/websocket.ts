@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/app/lib/stores/use-auth-store';
 import { useServerStore } from '@/app/lib/stores/use-server-store';
+import { usePrivateChannelStore } from '@/app/lib/stores/use-private-channel-store';
 import { Member } from '@/types/models/member';
 import { Role } from '@/types/models/role';
 import { Status } from '@/types/models/status';
@@ -24,6 +25,8 @@ interface WebSocketState {
   typingByChannel: Record<string, TypingUser[]>;
   // Utilisateurs présents dans chaque channel (pour afficher qui est en ligne)
   usersByChannel: Record<string, Set<string>>;
+  // IDs des canaux privés reçus via PrivateChannelCreated (pour la détection dans NewMessage)
+  knownPrivateChannelIds: Set<string>;
 
   // Actions
   setStatus: (status: WebSocketStatus) => void;
@@ -51,6 +54,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
   messagesByChannel: {},
   typingByChannel: {},
   usersByChannel: {},
+  knownPrivateChannelIds: new Set<string>(),
 
   // Mettre à jour le statut de connexion
   setStatus: (status: WebSocketStatus) => set({ status }),
@@ -74,6 +78,24 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           content: message.payload.content,
           created_at: message.payload.created_at,
         });
+        // Si c'est un canal privé connu, remonter le canal en tête de liste
+        {
+          const channelId = message.payload.channel_id;
+          const privateStore = usePrivateChannelStore.getState();
+          const isKnownPrivate = privateStore.privateChannels.some(ch => ch.id === channelId);
+          if (isKnownPrivate) {
+            usePrivateChannelStore.setState(state => {
+              const channel = state.privateChannels.find(ch => ch.id === channelId);
+              if (!channel) return state;
+              return {
+                privateChannels: [channel, ...state.privateChannels.filter(ch => ch.id !== channelId)],
+              };
+            });
+          } else if (get().knownPrivateChannelIds.has(channelId)) {
+            // Canal privé connu (via PrivateChannelCreated) mais pas encore chargé → re-fetch
+            privateStore.fetchPrivateChannels();
+          }
+        }
         break;
 
       case 'MessageHistory':
@@ -101,7 +123,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         break;
 
       case 'UserStatusChanged':
-        // Mettre à jour le statut dans le store des membres
+        // Mettre à jour le statut dans le store des membres du serveur
         {
           const members = useServerStore.getState().members;
           const updatedMembers = members.map((member: Member) =>
@@ -111,20 +133,73 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           );
           useServerStore.setState({ members: updatedMembers });
         }
+        // Mettre à jour le statut du recipient dans les conversations privées
+        {
+          const privateStore = usePrivateChannelStore.getState();
+          const updatedChannels = privateStore.privateChannels.map(ch => {
+            if (ch.recipient_user?.id === message.payload.user_id) {
+              return { ...ch, recipient_user: { ...ch.recipient_user!, status: message.payload.status } };
+            }
+            return ch;
+          });
+          usePrivateChannelStore.setState({ privateChannels: updatedChannels });
+          // Mettre à jour currentPrivateChannel aussi si concerné
+          const current = privateStore.currentPrivateChannel;
+          if (current?.recipient_user?.id === message.payload.user_id) {
+            usePrivateChannelStore.setState({
+              currentPrivateChannel: {
+                ...current,
+                recipient_user: { ...current.recipient_user!, status: message.payload.status },
+              },
+            });
+          }
+        }
         break;
 
       case 'MessageUpdated':
-        // Un message a été modifié
+        // Un message a été modifié dans le WS store
         get().updateMessage(
           message.payload.channel_id,
           message.payload.message_id,
           message.payload.content
         );
+        // Sync avec le store des messages privés (pour les messages chargés via REST)
+        {
+          const privateStore = usePrivateChannelStore.getState();
+          const channelMsgs = privateStore.messagesByChannel[message.payload.channel_id];
+          if (channelMsgs) {
+            usePrivateChannelStore.setState(state => ({
+              messagesByChannel: {
+                ...state.messagesByChannel,
+                [message.payload.channel_id]: channelMsgs.map(m =>
+                  m.id === message.payload.message_id
+                    ? { ...m, content: message.payload.content }
+                    : m
+                ),
+              },
+            }));
+          }
+        }
         break;
 
       case 'MessageDeleted':
-        // Un message a été supprimé
+        // Un message a été supprimé dans le WS store
         get().removeMessage(message.payload.channel_id, message.payload.message_id);
+        // Sync avec le store des messages privés (pour les messages chargés via REST)
+        {
+          const privateStore = usePrivateChannelStore.getState();
+          const channelMsgs = privateStore.messagesByChannel[message.payload.channel_id];
+          if (channelMsgs) {
+            usePrivateChannelStore.setState(state => ({
+              messagesByChannel: {
+                ...state.messagesByChannel,
+                [message.payload.channel_id]: channelMsgs.filter(
+                  m => m.id !== message.payload.message_id
+                ),
+              },
+            }));
+          }
+        }
         break;
 
       case 'ServerMemberJoined':
@@ -209,6 +284,23 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         }
         break;
 
+      case 'PrivateChannelCreated':
+        // Un nouveau canal privé a été créé — rafraîchir la liste si on est concerné
+        {
+          const currentUserId = useAuthStore.getState().userId;
+          // Mémoriser cet ID comme canal privé (pour la détection dans NewMessage)
+          set(state => ({
+            knownPrivateChannelIds: new Set([...state.knownPrivateChannelIds, message.payload.channel_id]),
+          }));
+          if (
+            currentUserId === message.payload.user1_id ||
+            currentUserId === message.payload.user2_id
+          ) {
+            usePrivateChannelStore.getState().fetchPrivateChannels();
+          }
+        }
+        break;
+
       case 'ReactionAdded':
         get().updateReaction(
           message.payload.channel_id,
@@ -217,6 +309,24 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           message.payload.user_id,
           true
         );
+        // Sync avec les messages privés chargés via REST
+        {
+          const privateStore = usePrivateChannelStore.getState();
+          const channelMsgs = privateStore.messagesByChannel[message.payload.channel_id];
+          if (channelMsgs) {
+            usePrivateChannelStore.setState(state => ({
+              messagesByChannel: {
+                ...state.messagesByChannel,
+                [message.payload.channel_id]: channelMsgs.map(m => {
+                  if (m.id !== message.payload.message_id) return m;
+                  const users = m.reactions?.[message.payload.reaction] || [];
+                  if (users.includes(message.payload.user_id)) return m;
+                  return { ...m, reactions: { ...m.reactions, [message.payload.reaction]: [...users, message.payload.user_id] } };
+                }),
+              },
+            }));
+          }
+        }
         break;
 
       case 'ReactionRemoved':
@@ -227,6 +337,26 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           message.payload.user_id,
           false
         );
+        // Sync avec les messages privés chargés via REST
+        {
+          const privateStore = usePrivateChannelStore.getState();
+          const channelMsgs = privateStore.messagesByChannel[message.payload.channel_id];
+          if (channelMsgs) {
+            usePrivateChannelStore.setState(state => ({
+              messagesByChannel: {
+                ...state.messagesByChannel,
+                [message.payload.channel_id]: channelMsgs.map(m => {
+                  if (m.id !== message.payload.message_id) return m;
+                  const users = (m.reactions?.[message.payload.reaction] || []).filter(id => id !== message.payload.user_id);
+                  const updatedReactions = { ...m.reactions };
+                  if (users.length === 0) delete updatedReactions[message.payload.reaction];
+                  else updatedReactions[message.payload.reaction] = users;
+                  return { ...m, reactions: updatedReactions };
+                }),
+              },
+            }));
+          }
+        }
         break;
 
       case 'Error':
@@ -378,5 +508,6 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
       messagesByChannel: {},
       typingByChannel: {},
       usersByChannel: {},
+      knownPrivateChannelIds: new Set<string>(),
     }),
 }));
