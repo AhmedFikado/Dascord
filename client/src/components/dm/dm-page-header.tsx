@@ -4,7 +4,7 @@ import { Menu } from 'lucide-react';
 import { useMobileNav } from '@/app/(dashboard)/layout';
 import { PrivateChannelWithUser } from '@/app/lib/api/private-channels';
 import UserCard from '@/components/shared/user-card';
-import { Status } from '@/types/models/user';
+import { Status } from '@/types/models/status';
 import { useTranslation } from 'react-i18next';
 
 interface DMPageHeaderProps {

@@ -4,7 +4,7 @@ import { PrivateChannelWithUser } from '@/app/lib/api/private-channels';
 import { useRouter, useParams } from 'next/navigation';
 import { usePrivateChannelStore } from '@/app/lib/stores/use-private-channel-store';
 import UserCard from '@/components/shared/user-card';
-import { Status } from '@/types/models/user';
+import { Status } from '@/types/models/status';
 import { useTranslation } from 'react-i18next';
 
 interface PrivateConversationItemProps {
