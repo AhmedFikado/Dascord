@@ -231,7 +231,7 @@ export default function MessageItem({ message, onDelete, onUpdate, onAddReaction
                   e.stopPropagation();
                   setShowEmojiPicker(v => !v);
                 }}
-                className="flex items-center p-1 rounded-full text-gray-light hover:text-white hover:bg-gray-300 transition-colors opacity-0 group-hover:opacity-100"
+                className="flex items-center p-1 rounded-full text-gray-light lg:hover:text-white lg:hover:bg-gray-300 transition-colors lg:opacity-0 lg:group-hover:opacity-100"
               >
                 <SmilePlus size={16} />
               </button>
