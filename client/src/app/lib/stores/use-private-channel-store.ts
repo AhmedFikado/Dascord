@@ -38,18 +38,13 @@ export const usePrivateChannelStore = create<PrivateChannelState>((set, get) => 
     set({ isLoading: true, error: null });
     try {
       const channels = await privateChannelsApi.getList();
-      // Sort by most recent (updated_at)
-      const sortedChannels = channels.sort((a, b) => {
-        const dateA = new Date(a.updated_at).getTime();
-        const dateB = new Date(b.updated_at).getTime();
-        return dateB - dateA;
-      });
-      set({ privateChannels: sortedChannels, isLoading: false });
+      // Server returns channels ordered by last_message_at DESC — use that order directly
+      set({ privateChannels: channels, isLoading: false });
       // Sync les IDs dans le WS store pour la détection dans NewMessage
       useWebSocketStore.setState(state => ({
         knownPrivateChannelIds: new Set([
           ...state.knownPrivateChannelIds,
-          ...sortedChannels.map(ch => ch.id),
+          ...channels.map(ch => ch.id),
         ]),
       }));
     } catch (error) {
@@ -147,20 +142,18 @@ export const usePrivateChannelStore = create<PrivateChannelState>((set, get) => 
         };
 
         // Move channel to top
-        const updatedChannels = state.privateChannels.map((ch) =>
-          ch.id === channelId ? { ...ch, updated_at: newMessage.created_at } : ch
-        );
-        const sortedChannels = updatedChannels.sort((a, b) => {
-          const dateA = new Date(a.updated_at).getTime();
-          const dateB = new Date(b.updated_at).getTime();
-          return dateB - dateA;
-        });
+        const channel = state.privateChannels.find((ch) => ch.id === channelId);
+        const sortedChannels = channel
+          ? [channel, ...state.privateChannels.filter((ch) => ch.id !== channelId)]
+          : state.privateChannels;
 
         return {
           messagesByChannel: updated,
           privateChannels: sortedChannels,
         };
       });
+      // Re-sync channel order from server (which uses last_message_at DESC)
+      get().fetchPrivateChannels();
     } catch (error) {
       set({ error: t('Use_private_channel_store.Error_sending_message') });
     }

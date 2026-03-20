@@ -41,6 +41,7 @@ CREATE TABLE privateMessageChannel (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user1 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     user2 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    last_message_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

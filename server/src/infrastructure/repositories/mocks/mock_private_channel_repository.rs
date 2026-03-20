@@ -77,4 +77,8 @@ impl PrivateChannelRepository for MockPrivateChannelRepository {
         user_channels.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         Ok(user_channels)
     }
+
+    async fn update_last_message_at(&self, _channel_id: Uuid, _last_message_at: chrono::DateTime<chrono::Utc>) -> AppResult<()> {
+        Ok(())
+    }
 }

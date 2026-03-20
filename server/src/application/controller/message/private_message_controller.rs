@@ -100,17 +100,21 @@ pub async fn send_private_message<MR: MessageRepository, PCR: PrivateChannelRepo
 
     // Diffuser le nouveau message à tous les clients du channel via WebSocket
     if let Some(ws_manager) = &controller.ws_manager {
-        ws_manager.broadcast_to_channel(
-            &channel_id.to_string(),
-            crate::infrastructure::websocket::ServerMessage::NewMessage {
-                channel_id: channel_id.to_string(),
-                message_id: message.id.clone().unwrap_or_default(),
-                user_id: message.user_id.clone(),
-                username: message.username.clone(),
-                content: message.content.clone(),
-                created_at: chrono::Utc::now(),
-            },
-        ).await;
+        let ws_event = crate::infrastructure::websocket::ServerMessage::NewMessage {
+            channel_id: channel_id.to_string(),
+            message_id: message.id.clone().unwrap_or_default(),
+            user_id: message.user_id.clone(),
+            username: message.username.clone(),
+            content: message.content.clone(),
+            created_at: chrono::Utc::now(),
+        };
+        // Broadcast à tous les clients qui ont rejoint ce channel (en train de le regarder)
+        ws_manager.broadcast_to_channel(&channel_id.to_string(), ws_event.clone()).await;
+        // Envoyer aussi directement au destinataire (même s'il ne regarde pas ce channel)
+        if let Ok(Some(channel)) = controller.services.get_channel(channel_id).await {
+            let recipient_id = if channel.user1 == user_id { channel.user2 } else { channel.user1 };
+            ws_manager.send_to_user(recipient_id, ws_event).await;
+        }
     }
 
     Ok((StatusCode::CREATED, Json(message)))
@@ -341,7 +345,7 @@ mod tests {
     use crate::infrastructure::security::JWTService;
     use crate::infrastructure::websocket::ConnectionManager;
     use axum::http::{HeaderName, HeaderValue};
-    use axum::routing::{delete, get, post, put};
+    use axum::routing::{delete, post};
     use axum::Router;
     use axum_test::TestServer;
     use serde_json::json;

@@ -15,6 +15,9 @@ pub struct ConnectionManager {
 
     /// Rooms (channel_id -> set of connection_ids)
     rooms: DashMap<String, HashSet<Uuid>>,
+
+    /// Mapping user_id -> connection_id (pour envoyer directement à un utilisateur)
+    user_connections: DashMap<Uuid, Uuid>,
 }
 
 impl ConnectionManager {
@@ -23,13 +26,16 @@ impl ConnectionManager {
         Self {
             connections: DashMap::new(),
             rooms: DashMap::new(),
+            user_connections: DashMap::new(),
         }
     }
 
     /// Ajouter une connexion
     pub async fn add_connection(&self, connection: Connection) {
         let id = connection.id;
+        let user_id = connection.user_id;
         self.connections.insert(id, Arc::new(connection));
+        self.user_connections.insert(user_id, id);
         tracing::info!("Connexion ajoutée: {}", id);
     }
 
@@ -38,6 +44,11 @@ impl ConnectionManager {
         // Retirer de toutes les rooms
         for mut room in self.rooms.iter_mut() {
             room.value_mut().remove(&connection_id);
+        }
+
+        // Retirer du mapping user_connections
+        if let Some(conn) = self.connections.get(&connection_id) {
+            self.user_connections.remove(&conn.user_id);
         }
 
         // Supprimer la connexion
@@ -72,6 +83,13 @@ impl ConnectionManager {
         for entry in self.connections.iter() {
             let conn_id = *entry.key();
             let _ = self.send_to_connection(conn_id, message.clone()).await;
+        }
+    }
+
+    /// Envoyer un message directement à un utilisateur (par user_id)
+    pub async fn send_to_user(&self, user_id: Uuid, message: ServerMessage) {
+        if let Some(conn_id) = self.user_connections.get(&user_id) {
+            let _ = self.send_to_connection(*conn_id, message).await;
         }
     }
 

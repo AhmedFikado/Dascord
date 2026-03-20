@@ -92,7 +92,7 @@ impl MessageRepository for MockMessageRepository {
             if let Some(users) = message.reactions.get_mut(&reaction) {
                 users.retain(|u| u != &user_id);
                 if users.is_empty() {
-                    message.reactions.remove(&reaction);
+                    message.reactions.shift_remove(&reaction);
                 }
             }
             Ok(message.clone())

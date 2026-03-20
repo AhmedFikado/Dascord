@@ -10,6 +10,7 @@ pub trait PrivateChannelRepository: Send + Sync {
     async fn get_by_id(&self, id: Uuid) -> AppResult<Option<PrivateChannel>>;
     async fn get_by_users(&self, user1: Uuid, user2: Uuid) -> AppResult<Option<PrivateChannel>>;
     async fn get_user_channels(&self, user_id: Uuid) -> AppResult<Vec<PrivateChannel>>;
+    async fn update_last_message_at(&self, channel_id: Uuid, last_message_at: chrono::DateTime<chrono::Utc>) -> AppResult<()>;
 }
 
 #[derive(Clone)]
@@ -60,12 +61,25 @@ impl PrivateChannelRepository for PostgresPrivateChannelRepository {
     }
 
     async fn get_user_channels(&self, user_id: Uuid) -> AppResult<Vec<PrivateChannel>> {
-        let query = "SELECT id, user1, user2, created_at FROM privateMessageChannel WHERE user1 = $1 OR user2 = $1 ORDER BY created_at DESC";
-        
+        let query = "SELECT id, user1, user2, created_at FROM privateMessageChannel WHERE user1 = $1 OR user2 = $1 ORDER BY last_message_at DESC";
+
         sqlx::query_as::<_, PrivateChannel>(query)
             .bind(user_id)
             .fetch_all(&self.pool)
             .await
             .map_err(|e| AppError::InternalServerError(e.to_string()))
+    }
+
+    async fn update_last_message_at(&self, channel_id: Uuid, last_message_at: chrono::DateTime<chrono::Utc>) -> AppResult<()> {
+        let query = "UPDATE privateMessageChannel SET last_message_at = $1 WHERE id = $2";
+
+        sqlx::query(query)
+            .bind(last_message_at)
+            .bind(channel_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        Ok(())
     }
 }

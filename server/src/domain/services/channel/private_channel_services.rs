@@ -100,6 +100,10 @@ mod tests {
         async fn get_user_channels(&self, user_id: Uuid) -> AppResult<Vec<PrivateChannel>> {
             Ok(self.channels.iter().filter(|c| c.user1 == user_id || c.user2 == user_id).cloned().collect())
         }
+
+        async fn update_last_message_at(&self, _channel_id: Uuid, _last_message_at: chrono::DateTime<chrono::Utc>) -> AppResult<()> {
+            Ok(())
+        }
     }
 
     #[derive(Clone)]

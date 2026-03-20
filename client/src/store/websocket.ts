@@ -84,11 +84,13 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           const privateStore = usePrivateChannelStore.getState();
           const isKnownPrivate = privateStore.privateChannels.some(ch => ch.id === channelId);
           if (isKnownPrivate) {
-            usePrivateChannelStore.setState(state => ({
-              privateChannels: state.privateChannels
-                .map(ch => ch.id === channelId ? { ...ch, updated_at: message.payload.created_at } : ch)
-                .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()),
-            }));
+            usePrivateChannelStore.setState(state => {
+              const channel = state.privateChannels.find(ch => ch.id === channelId);
+              if (!channel) return state;
+              return {
+                privateChannels: [channel, ...state.privateChannels.filter(ch => ch.id !== channelId)],
+              };
+            });
           } else if (get().knownPrivateChannelIds.has(channelId)) {
             // Canal privé connu (via PrivateChannelCreated) mais pas encore chargé → re-fetch
             privateStore.fetchPrivateChannels();

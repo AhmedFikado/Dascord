@@ -1,4 +1,5 @@
 use crate::application::dto::message::MessageDto;
+use crate::domain::entities::channel::PrivateChannel;
 use crate::domain::entities::message::Message;
 use crate::infrastructure::repositories::channel::PrivateChannelRepository;
 use crate::infrastructure::repositories::message::MessageRepository;
@@ -47,9 +48,16 @@ impl<MR: MessageRepository, PCR: PrivateChannelRepository>
         );
 
         let created = self.message_repo.create(message).await?;
-        let result = MessageDto::from(created);
 
-        Ok(result)
+        self.private_channel_repo
+            .update_last_message_at(channel_id, created.created_at)
+            .await?;
+
+        Ok(MessageDto::from(created))
+    }
+
+    pub async fn get_channel(&self, channel_id: Uuid) -> AppResult<Option<PrivateChannel>> {
+        self.private_channel_repo.get_by_id(channel_id).await
     }
 
     pub async fn get_message_history(
