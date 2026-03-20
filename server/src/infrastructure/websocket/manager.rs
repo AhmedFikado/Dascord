@@ -105,6 +105,7 @@ impl ConnectionManager {
                         username: msg.username.clone(),
                         content: msg.content.clone(),
                         created_at: msg.created_at,
+                        reactions: msg.reactions.clone(),
                     })
                     .collect();
 

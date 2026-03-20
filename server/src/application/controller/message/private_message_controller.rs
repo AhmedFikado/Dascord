@@ -255,3 +255,76 @@ pub async fn update_private_message<MR: MessageRepository, PCR: PrivateChannelRe
     Ok((StatusCode::OK, Json(updated_message)))
 }
 
+/// - Ajouter une réaction à un message privé
+pub async fn add_private_reaction<MR: MessageRepository, PCR: PrivateChannelRepository, UR: UserRepository>(
+    State(controller): State<Arc<PrivateMessageController<MR, PCR, UR>>>,
+    Path(id): Path<String>,
+    headers: HeaderMap,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+
+    let claims = controller.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let reaction = payload
+        .get("reaction")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| AppError::ValidationError("Missing reaction field".to_string()))?
+        .to_string();
+
+    let updated_message = controller.services.add_reaction(id.clone(), user_id, reaction.clone()).await?;
+
+    if let Some(ws_manager) = &controller.ws_manager {
+        ws_manager.broadcast_to_channel(
+            &updated_message.channel_id,
+            crate::infrastructure::websocket::ServerMessage::ReactionAdded {
+                channel_id: updated_message.channel_id.clone(),
+                message_id: id,
+                user_id: user_id.to_string(),
+                reaction,
+            },
+        ).await;
+    }
+
+    Ok((StatusCode::OK, Json(updated_message)))
+}
+
+/// - Supprimer une réaction d'un message privé
+pub async fn remove_private_reaction<MR: MessageRepository, PCR: PrivateChannelRepository, UR: UserRepository>(
+    State(controller): State<Arc<PrivateMessageController<MR, PCR, UR>>>,
+    Path((id, reaction)): Path<(String, String)>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| AppError::Unauthorized("Missing or invalid Authorization header".to_string()))?;
+
+    let claims = controller.jwt_service.verify_token(token)?;
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let updated_message = controller.services.remove_reaction(id.clone(), user_id, reaction.clone()).await?;
+
+    if let Some(ws_manager) = &controller.ws_manager {
+        ws_manager.broadcast_to_channel(
+            &updated_message.channel_id,
+            crate::infrastructure::websocket::ServerMessage::ReactionRemoved {
+                channel_id: updated_message.channel_id.clone(),
+                message_id: id,
+                user_id: user_id.to_string(),
+                reaction,
+            },
+        ).await;
+    }
+
+    Ok((StatusCode::OK, Json(updated_message)))
+}
+

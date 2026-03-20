@@ -1,6 +1,7 @@
 'use client';
 
 import { usePrivateChannelStore } from '@/app/lib/stores/use-private-channel-store';
+import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +12,8 @@ import DMPageHeader from '@/components/dm/dm-page-header';
 export default function DMPage() {
   const params = useParams();
   const dmId = params?.dmId as string;
+  const { user } = useCurrentUser();
+  const currentUserId = user?.id ?? '';
   const {
     privateChannels,
     currentPrivateChannel,
@@ -19,6 +22,8 @@ export default function DMPage() {
     sendMessage,
     deleteMessage,
     updateMessage,
+    addReaction,
+    removeReaction,
     setCurrentPrivateChannel,
   } = usePrivateChannelStore();
 
@@ -64,6 +69,8 @@ export default function DMPage() {
             messages={messages}
             onDeleteMessage={(messageId) => deleteMessage(dmId, messageId)}
             onUpdateMessage={(messageId, content) => updateMessage(dmId, messageId, content)}
+            onAddReaction={(messageId, reaction) => addReaction(dmId, messageId, reaction, currentUserId)}
+            onRemoveReaction={(messageId, reaction) => removeReaction(dmId, messageId, reaction, currentUserId)}
           />
         )}
       </div>

@@ -168,6 +168,62 @@ impl<MR: MessageRepository, PCR: PrivateChannelRepository>
 
         Ok(MessageDto::from(updated_message))
     }
-    // Méthodes pour gérer les messages privés (en cours de développement)
+    pub async fn add_reaction(
+        &self,
+        message_id: String,
+        user_id: Uuid,
+        reaction: String,
+    ) -> AppResult<MessageDto> {
+        let message = self
+            .message_repo
+            .find_by_id(&message_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Message not found".to_string()))?;
+
+        let channel = self
+            .private_channel_repo
+            .get_by_id(Uuid::parse_str(&message.channel_id).map_err(|_| AppError::InternalServerError("Invalid channel ID".to_string()))?)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Channel not found".to_string()))?;
+
+        let is_participant = channel.user1 == user_id || channel.user2 == user_id;
+        if !is_participant {
+            return Err(AppError::Unauthorized(
+                "You are not a participant of this private channel".to_string(),
+            ));
+        }
+
+        let updated = self.message_repo.add_reaction(&message_id, reaction, user_id.to_string()).await?;
+        Ok(MessageDto::from(updated))
+    }
+
+    pub async fn remove_reaction(
+        &self,
+        message_id: String,
+        user_id: Uuid,
+        reaction: String,
+    ) -> AppResult<MessageDto> {
+        let message = self
+            .message_repo
+            .find_by_id(&message_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Message not found".to_string()))?;
+
+        let channel = self
+            .private_channel_repo
+            .get_by_id(Uuid::parse_str(&message.channel_id).map_err(|_| AppError::InternalServerError("Invalid channel ID".to_string()))?)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Channel not found".to_string()))?;
+
+        let is_participant = channel.user1 == user_id || channel.user2 == user_id;
+        if !is_participant {
+            return Err(AppError::Unauthorized(
+                "You are not a participant of this private channel".to_string(),
+            ));
+        }
+
+        let updated = self.message_repo.remove_reaction(&message_id, reaction, user_id.to_string()).await?;
+        Ok(MessageDto::from(updated))
+    }
 }
 

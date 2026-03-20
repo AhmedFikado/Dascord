@@ -307,6 +307,24 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           message.payload.user_id,
           true
         );
+        // Sync avec les messages privés chargés via REST
+        {
+          const privateStore = usePrivateChannelStore.getState();
+          const channelMsgs = privateStore.messagesByChannel[message.payload.channel_id];
+          if (channelMsgs) {
+            usePrivateChannelStore.setState(state => ({
+              messagesByChannel: {
+                ...state.messagesByChannel,
+                [message.payload.channel_id]: channelMsgs.map(m => {
+                  if (m.id !== message.payload.message_id) return m;
+                  const users = m.reactions?.[message.payload.reaction] || [];
+                  if (users.includes(message.payload.user_id)) return m;
+                  return { ...m, reactions: { ...m.reactions, [message.payload.reaction]: [...users, message.payload.user_id] } };
+                }),
+              },
+            }));
+          }
+        }
         break;
 
       case 'ReactionRemoved':
@@ -317,6 +335,26 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           message.payload.user_id,
           false
         );
+        // Sync avec les messages privés chargés via REST
+        {
+          const privateStore = usePrivateChannelStore.getState();
+          const channelMsgs = privateStore.messagesByChannel[message.payload.channel_id];
+          if (channelMsgs) {
+            usePrivateChannelStore.setState(state => ({
+              messagesByChannel: {
+                ...state.messagesByChannel,
+                [message.payload.channel_id]: channelMsgs.map(m => {
+                  if (m.id !== message.payload.message_id) return m;
+                  const users = (m.reactions?.[message.payload.reaction] || []).filter(id => id !== message.payload.user_id);
+                  const updatedReactions = { ...m.reactions };
+                  if (users.length === 0) delete updatedReactions[message.payload.reaction];
+                  else updatedReactions[message.payload.reaction] = users;
+                  return { ...m, reactions: updatedReactions };
+                }),
+              },
+            }));
+          }
+        }
         break;
 
       case 'Error':

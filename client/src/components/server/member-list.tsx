@@ -33,19 +33,30 @@ export default function MemberList({ searchQuery = '', isRole = false, listMembe
             ) : (
                 <>
                     <div className="ml-6">
-                        <h4 className="py-2 text-[10px] font-semibold text-gray-50 uppercase">{t('Member_list.Owner')}</h4>
-                        {usersOwner.map((member) => (
-                            <MemberItem key={member.user.id} member={member} serverId={serverId} />
-                        ))}
-                            
-                        <h4 className="py-2 mt-2 text-[10px] font-semibold text-gray-50 uppercase">{t('Member_list.Admin')}</h4>
-                        {usersAdmin.map((member) => (
-                            <MemberItem key={member.user.id} member={member} serverId={serverId} />
-                        ))}
-                            <h4 className="py-2 mt-2 text-[10px] font-semibold text-gray-50 uppercase">{t('Member_list.Member')}</h4>
-                        {usersMember.map((member) => (
-                            <MemberItem key={member.user.id} member={member} serverId={serverId} />
-                        ))}
+                        {usersOwner.length > 0 && (
+                            <>
+                                <h4 className="py-2 text-[10px] font-semibold text-gray-50 uppercase">{t('Member_list.Owner')}</h4>
+                                {usersOwner.map((member) => (
+                                    <MemberItem key={member.user.id} member={member} serverId={serverId} />
+                                ))}
+                            </>
+                        )}
+                        {usersAdmin.length > 0 && (
+                            <>
+                                <h4 className="py-2 mt-2 text-[10px] font-semibold text-gray-50 uppercase">{t('Member_list.Admin')}</h4>
+                                {usersAdmin.map((member) => (
+                                    <MemberItem key={member.user.id} member={member} serverId={serverId} />
+                                ))}
+                            </>
+                        )}
+                        {usersMember.length > 0 && (
+                            <>
+                                <h4 className="py-2 mt-2 text-[10px] font-semibold text-gray-50 uppercase">{t('Member_list.members')}</h4>
+                                {usersMember.map((member) => (
+                                    <MemberItem key={member.user.id} member={member} serverId={serverId} />
+                                ))}
+                            </>
+                        )}
                     </div>
                 </>
             )}

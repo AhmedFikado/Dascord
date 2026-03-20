@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
 /// Types de messages que le client peut envoyer au serveur
@@ -156,6 +157,7 @@ pub struct MessageData {
     pub username: String,
     pub content: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
+    pub reactions: IndexMap<String, Vec<String>>,
 }
 
 impl ServerMessage {

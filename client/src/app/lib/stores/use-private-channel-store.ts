@@ -20,6 +20,8 @@ interface PrivateChannelState {
   deleteMessage: (channelId: string, messageId: string) => Promise<void>;
   updateMessage: (channelId: string, messageId: string, content: string) => Promise<void>;
   addMessageLocally: (channelId: string, message: Message) => void;
+  addReaction: (channelId: string, messageId: string, reaction: string, userId: string) => Promise<void>;
+  removeReaction: (channelId: string, messageId: string, reaction: string, userId: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -205,6 +207,49 @@ export const usePrivateChannelStore = create<PrivateChannelState>((set, get) => 
         [channelId]: [...(state.messagesByChannel[channelId] || []), message],
       },
     }));
+  },
+
+  addReaction: async (channelId: string, messageId: string, reaction: string, userId: string) => {
+    try {
+      await privateMessagesApi.addReaction(messageId, reaction);
+      set((state) => ({
+        messagesByChannel: {
+          ...state.messagesByChannel,
+          [channelId]: (state.messagesByChannel[channelId] || []).map((m) => {
+            if (m.id !== messageId) return m;
+            const users = m.reactions?.[reaction] || [];
+            if (users.includes(userId)) return m;
+            return { ...m, reactions: { ...m.reactions, [reaction]: [...users, userId] } };
+          }),
+        },
+      }));
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+    }
+  },
+
+  removeReaction: async (channelId: string, messageId: string, reaction: string, userId: string) => {
+    try {
+      await privateMessagesApi.removeReaction(messageId, reaction);
+      set((state) => ({
+        messagesByChannel: {
+          ...state.messagesByChannel,
+          [channelId]: (state.messagesByChannel[channelId] || []).map((m) => {
+            if (m.id !== messageId) return m;
+            const users = (m.reactions?.[reaction] || []).filter((id) => id !== userId);
+            const updatedReactions = { ...m.reactions };
+            if (users.length === 0) {
+              delete updatedReactions[reaction];
+            } else {
+              updatedReactions[reaction] = users;
+            }
+            return { ...m, reactions: updatedReactions };
+          }),
+        },
+      }));
+    } catch (error) {
+      console.error('Error removing reaction:', error);
+    }
   },
 
   reset: () => {

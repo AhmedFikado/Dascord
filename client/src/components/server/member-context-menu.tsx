@@ -94,7 +94,7 @@ export default function MemberContextMenu({
       {!isDialogOpen && (
         <div
           ref={menuRef}
-          className="fixed bg-gray-700 text-white rounded-md shadow-lg p-1 z-50 min-w-[200px]"
+          className="fixed bg-gray-300 border border-gray-200 text-white rounded-md shadow-lg p-1 z-50 min-w-[200px]"
           style={{
             top: `${y}px`,
             left: `${x}px`,
@@ -102,28 +102,28 @@ export default function MemberContextMenu({
         >
           <button
             onClick={handleSendMessage}
-            className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-blue-400"
+            className="w-full text-left px-3 py-2 hover:bg-hoverSide rounded text-blue-400"
           >
             {t('DM.send_private_message')}
           </button>
           {hasPermission && (
             <>
-              <div className="border-t border-gray-600 my-1"></div>
+              <div className="border-t border-gray-200 my-1"></div>
               <button
                 onClick={handleKick}
-                className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
+                className="w-full text-left px-3 py-2 hover:bg-hoverSide rounded text-red-500"
               >
                 Expulser
               </button>
               <button
                 onClick={handleTempBan}
-                className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
+                className="w-full text-left px-3 py-2 hover:bg-hoverSide rounded text-red-500"
               >
                 Bannir temporairement
               </button>
               <button
                 onClick={handlePermBan}
-                className="w-full text-left px-3 py-2 hover:bg-gray-600 rounded text-red-500"
+                className="w-full text-left px-3 py-2 hover:bg-hoverSide rounded text-red-500"
               >
                 Bannir définitivement
               </button>

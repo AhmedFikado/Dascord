@@ -12,7 +12,9 @@ use crate::application::controller::message::private_message_controller::{
     send_private_message,
     get_private_message_history,
     delete_private_message,
-    update_private_message};
+    update_private_message,
+    add_private_reaction,
+    remove_private_reaction};
 use crate::infrastructure::repositories::{
     ServerRepository, UserRepository,
 };
@@ -80,6 +82,14 @@ pub fn message_routes<
         .route(
             "/messages/private/:id",
             put(update_private_message::<MR, PCR, UR>),
+        )
+        .route(
+            "/messages/private/:id/reactions",
+            post(add_private_reaction::<MR, PCR, UR>),
+        )
+        .route(
+            "/messages/private/:id/reactions/:reaction",
+            delete(remove_private_reaction::<MR, PCR, UR>),
         )
         .with_state(private_controller)
 }

@@ -25,4 +25,14 @@ export const privateMessagesApi = {
       content,
     });
   },
+
+  // POST /messages/private/:id/reactions
+  addReaction: async (messageId: string, reaction: string): Promise<void> => {
+    await apiClient.post(`/messages/private/${messageId}/reactions`, { reaction });
+  },
+
+  // DELETE /messages/private/:id/reactions/:reaction
+  removeReaction: async (messageId: string, emoji: string): Promise<void> => {
+    await apiClient.delete(`/messages/private/${messageId}/reactions/${encodeURIComponent(emoji)}`);
+  },
 };

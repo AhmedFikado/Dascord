@@ -4,6 +4,7 @@ import { useWebSocketContext } from '@/components/shared/websocket-provider';
 import { useWebSocketStore } from '@/store/websocket';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import TypingIndicator from './typing-indicator';
+import GifButton from './gif-button';
 import { useTranslation } from 'react-i18next';
 
 interface PrivateMessageInputProps {
@@ -115,6 +116,7 @@ export default function PrivateMessageInput({
             disabled={isLoading}
             className="w-full bg-gray-400 py-3 pl-2 text-white placeholder-gray-50 focus:outline-none disabled:opacity-50"
           />
+          <GifButton channelId={channelId} />
           <button
             type="submit"
             disabled={!message.trim() || isLoading}
