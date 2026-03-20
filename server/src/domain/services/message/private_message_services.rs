@@ -227,3 +227,465 @@ impl<MR: MessageRepository, PCR: PrivateChannelRepository>
     }
 }
 
+
+
+// --- UNIT TESTS ---
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entities::channel::PrivateChannel;
+    use crate::domain::entities::message::Message;
+    use crate::infrastructure::repositories::mocks::mock_message_repository::MockMessageRepository;
+    use crate::infrastructure::repositories::mocks::mock_private_channel_repository::MockPrivateChannelRepository;
+
+    fn make_channel(user_id: Uuid) -> PrivateChannel {
+        PrivateChannel {
+            id: Uuid::new_v4(),
+            user1: user_id,
+            user2: Uuid::new_v4(),
+            created_at: chrono::Utc::now(),
+        }
+    }
+
+    fn make_message(channel_id: Uuid, user_id: Uuid) -> Message {
+        Message::new(
+            channel_id.to_string(),
+            user_id.to_string(),
+            "testuser".to_string(),
+            "Hello".to_string(),
+        )
+    }
+
+    fn make_service(
+        msg_repo: MockMessageRepository,
+        channel_repo: MockPrivateChannelRepository,
+    ) -> PrivateMessageServices<MockMessageRepository, MockPrivateChannelRepository> {
+        PrivateMessageServices::new(msg_repo, channel_repo)
+    }
+
+    // --- send_message ---
+
+    #[tokio::test]
+    async fn test_send_message_success() {
+        let user_id = Uuid::new_v4();
+        let channel = make_channel(user_id);
+        let channel_id = channel.id;
+        let service = make_service(
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service
+            .send_message(channel_id, user_id, "testuser".to_string(), "Hello".to_string())
+            .await;
+
+        assert!(result.is_ok());
+        let dto = result.unwrap();
+        assert_eq!(dto.content, "Hello");
+        assert_eq!(dto.username, "testuser");
+        assert_eq!(dto.channel_id, channel_id.to_string());
+    }
+
+    #[tokio::test]
+    async fn test_send_message_channel_not_found() {
+        let user_id = Uuid::new_v4();
+        let service = make_service(
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::new(),
+        );
+
+        let result = service
+            .send_message(Uuid::new_v4(), user_id, "testuser".to_string(), "Hello".to_string())
+            .await;
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(matches!(err, AppError::NotFound(_)));
+    }
+
+    // --- get_message_history ---
+
+    #[tokio::test]
+    async fn test_get_message_history_success_empty() {
+        let user_id = Uuid::new_v4();
+        let channel = make_channel(user_id);
+        let channel_id = channel.id;
+        let service = make_service(
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service.get_message_history(channel_id, user_id).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_get_message_history_success_with_messages() {
+        let user_id = Uuid::new_v4();
+        let channel = make_channel(user_id);
+        let channel_id = channel.id;
+        let message = make_message(channel_id, user_id);
+        let service = make_service(
+            MockMessageRepository::new().with_message(message),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service.get_message_history(channel_id, user_id).await;
+
+        assert!(result.is_ok());
+        let messages = result.unwrap();
+        assert_eq!(messages.len(), 1);
+        assert_eq!(messages[0].content, "Hello");
+    }
+
+    #[tokio::test]
+    async fn test_get_message_history_channel_not_found() {
+        let user_id = Uuid::new_v4();
+        let service = make_service(
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::new(),
+        );
+
+        let result = service.get_message_history(Uuid::new_v4(), user_id).await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn test_get_message_history_not_participant() {
+        let user_id = Uuid::new_v4();
+        let other_user = Uuid::new_v4();
+        let channel = PrivateChannel {
+            id: Uuid::new_v4(),
+            user1: Uuid::new_v4(),
+            user2: Uuid::new_v4(),
+            created_at: chrono::Utc::now(),
+        };
+        let channel_id = channel.id;
+        let service = make_service(
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service.get_message_history(channel_id, user_id).await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::Unauthorized(_)));
+
+        // also verify the other_user (not in channel either) gets same error
+        let channel2 = PrivateChannel {
+            id: Uuid::new_v4(),
+            user1: Uuid::new_v4(),
+            user2: Uuid::new_v4(),
+            created_at: chrono::Utc::now(),
+        };
+        let channel2_id = channel2.id;
+        let service2 = make_service(
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![channel2]),
+        );
+        let result2 = service2.get_message_history(channel2_id, other_user).await;
+        assert!(result2.is_err());
+    }
+
+    // --- delete_message ---
+
+    #[tokio::test]
+    async fn test_delete_message_success() {
+        let user_id = Uuid::new_v4();
+        let channel = make_channel(user_id);
+        let channel_id = channel.id;
+        let message = make_message(channel_id, user_id);
+        let service = make_service(
+            MockMessageRepository::new().with_message(message),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service.delete_message("msg_1".to_string(), user_id).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), channel_id.to_string());
+    }
+
+    #[tokio::test]
+    async fn test_delete_message_not_found() {
+        let user_id = Uuid::new_v4();
+        let service = make_service(
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::new(),
+        );
+
+        let result = service.delete_message("nonexistent".to_string(), user_id).await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn test_delete_message_not_owner() {
+        let owner_id = Uuid::new_v4();
+        let other_user_id = Uuid::new_v4();
+        let channel = PrivateChannel {
+            id: Uuid::new_v4(),
+            user1: other_user_id,
+            user2: owner_id,
+            created_at: chrono::Utc::now(),
+        };
+        let channel_id = channel.id;
+        let message = make_message(channel_id, owner_id);
+        let service = make_service(
+            MockMessageRepository::new().with_message(message),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service.delete_message("msg_1".to_string(), other_user_id).await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::Forbidden(_)));
+    }
+
+    #[tokio::test]
+    async fn test_delete_message_not_participant() {
+        let owner_id = Uuid::new_v4();
+        let outsider_id = Uuid::new_v4();
+        // Channel does not include outsider_id
+        let channel = PrivateChannel {
+            id: Uuid::new_v4(),
+            user1: owner_id,
+            user2: Uuid::new_v4(),
+            created_at: chrono::Utc::now(),
+        };
+        let channel_id = channel.id;
+        let message = make_message(channel_id, outsider_id);
+        let service = make_service(
+            MockMessageRepository::new().with_message(message),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        // outsider_id owns the message but is not in the channel
+        let result = service.delete_message("msg_1".to_string(), outsider_id).await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::Unauthorized(_)));
+    }
+
+    // --- update_private_message ---
+
+    #[tokio::test]
+    async fn test_update_private_message_success() {
+        let user_id = Uuid::new_v4();
+        let channel = make_channel(user_id);
+        let channel_id = channel.id;
+        let message = make_message(channel_id, user_id);
+        let service = make_service(
+            MockMessageRepository::new().with_message(message),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service
+            .update_private_message("msg_1".to_string(), user_id, "Updated".to_string())
+            .await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().content, "Updated");
+    }
+
+    #[tokio::test]
+    async fn test_update_private_message_not_found() {
+        let user_id = Uuid::new_v4();
+        let service = make_service(
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::new(),
+        );
+
+        let result = service
+            .update_private_message("nonexistent".to_string(), user_id, "Updated".to_string())
+            .await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn test_update_private_message_not_owner() {
+        let owner_id = Uuid::new_v4();
+        let other_user_id = Uuid::new_v4();
+        let channel = PrivateChannel {
+            id: Uuid::new_v4(),
+            user1: other_user_id,
+            user2: owner_id,
+            created_at: chrono::Utc::now(),
+        };
+        let channel_id = channel.id;
+        let message = make_message(channel_id, owner_id);
+        let service = make_service(
+            MockMessageRepository::new().with_message(message),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service
+            .update_private_message("msg_1".to_string(), other_user_id, "Hacked".to_string())
+            .await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::Forbidden(_)));
+    }
+
+    #[tokio::test]
+    async fn test_update_private_message_not_participant() {
+        let owner_id = Uuid::new_v4();
+        // Channel does not include owner_id
+        let channel = PrivateChannel {
+            id: Uuid::new_v4(),
+            user1: Uuid::new_v4(),
+            user2: Uuid::new_v4(),
+            created_at: chrono::Utc::now(),
+        };
+        let channel_id = channel.id;
+        let message = make_message(channel_id, owner_id);
+        let service = make_service(
+            MockMessageRepository::new().with_message(message),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service
+            .update_private_message("msg_1".to_string(), owner_id, "Updated".to_string())
+            .await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::Unauthorized(_)));
+    }
+
+    // --- add_reaction ---
+
+    #[tokio::test]
+    async fn test_add_reaction_success() {
+        let user_id = Uuid::new_v4();
+        let channel = make_channel(user_id);
+        let channel_id = channel.id;
+        let message = make_message(channel_id, user_id);
+        let service = make_service(
+            MockMessageRepository::new().with_message(message),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service
+            .add_reaction("msg_1".to_string(), user_id, "+1".to_string())
+            .await;
+
+        assert!(result.is_ok());
+        let dto = result.unwrap();
+        assert!(dto.reactions.contains_key("+1"));
+        assert!(dto.reactions["+1"].contains(&user_id.to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_add_reaction_message_not_found() {
+        let user_id = Uuid::new_v4();
+        let service = make_service(
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::new(),
+        );
+
+        let result = service
+            .add_reaction("nonexistent".to_string(), user_id, "+1".to_string())
+            .await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn test_add_reaction_not_participant() {
+        let owner_id = Uuid::new_v4();
+        let outsider_id = Uuid::new_v4();
+        let channel = PrivateChannel {
+            id: Uuid::new_v4(),
+            user1: owner_id,
+            user2: Uuid::new_v4(),
+            created_at: chrono::Utc::now(),
+        };
+        let channel_id = channel.id;
+        let message = make_message(channel_id, owner_id);
+        let service = make_service(
+            MockMessageRepository::new().with_message(message),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service
+            .add_reaction("msg_1".to_string(), outsider_id, "+1".to_string())
+            .await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::Unauthorized(_)));
+    }
+
+    // --- remove_reaction ---
+
+    #[tokio::test]
+    async fn test_remove_reaction_success() {
+        let user_id = Uuid::new_v4();
+        let channel = make_channel(user_id);
+        let channel_id = channel.id;
+        let mut message = make_message(channel_id, user_id);
+        message.reactions.insert("+1".to_string(), vec![user_id.to_string()]);
+        let service = make_service(
+            MockMessageRepository::new().with_message(message),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service
+            .remove_reaction("msg_1".to_string(), user_id, "+1".to_string())
+            .await;
+
+        assert!(result.is_ok());
+        let dto = result.unwrap();
+        assert!(!dto.reactions.contains_key("+1"));
+    }
+
+    #[tokio::test]
+    async fn test_remove_reaction_message_not_found() {
+        let user_id = Uuid::new_v4();
+        let service = make_service(
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::new(),
+        );
+
+        let result = service
+            .remove_reaction("nonexistent".to_string(), user_id, "+1".to_string())
+            .await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn test_remove_reaction_not_participant() {
+        let owner_id = Uuid::new_v4();
+        let outsider_id = Uuid::new_v4();
+        let channel = PrivateChannel {
+            id: Uuid::new_v4(),
+            user1: owner_id,
+            user2: Uuid::new_v4(),
+            created_at: chrono::Utc::now(),
+        };
+        let channel_id = channel.id;
+        let mut message = make_message(channel_id, owner_id);
+        message.reactions.insert("+1".to_string(), vec![owner_id.to_string()]);
+        let service = make_service(
+            MockMessageRepository::new().with_message(message),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+        );
+
+        let result = service
+            .remove_reaction("msg_1".to_string(), outsider_id, "+1".to_string())
+            .await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::Unauthorized(_)));
+    }
+}

@@ -328,3 +328,642 @@ pub async fn remove_private_reaction<MR: MessageRepository, PCR: PrivateChannelR
     Ok((StatusCode::OK, Json(updated_message)))
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::entities::channel::PrivateChannel;
+    use crate::domain::entities::message::Message;
+    use crate::domain::entities::User;
+    use crate::infrastructure::repositories::mocks::mock_message_repository::MockMessageRepository;
+    use crate::infrastructure::repositories::mocks::mock_private_channel_repository::MockPrivateChannelRepository;
+    use crate::infrastructure::repositories::mocks::mock_user_repository::MockUserRepository;
+    use crate::infrastructure::security::JWTService;
+    use crate::infrastructure::websocket::ConnectionManager;
+    use axum::http::{HeaderName, HeaderValue};
+    use axum::routing::{delete, get, post, put};
+    use axum::Router;
+    use axum_test::TestServer;
+    use serde_json::json;
+    use uuid::Uuid;
+
+    fn make_jwt() -> JWTService {
+        JWTService::new("test_secret_key_for_tests".to_string())
+    }
+
+    fn make_user(user_id: Uuid) -> User {
+        User {
+            id: user_id,
+            username: "testuser".to_string(),
+            email: "test@example.com".to_string(),
+            language: "fr".to_string(),
+            password_hash: "hash".to_string(),
+            status: "ONLINE".to_string(),
+            created_at: chrono::Utc::now(),
+        }
+    }
+
+    fn make_channel(channel_id: Uuid, user_id: Uuid) -> PrivateChannel {
+        PrivateChannel {
+            id: channel_id,
+            user1: user_id,
+            user2: Uuid::new_v4(),
+            created_at: chrono::Utc::now(),
+        }
+    }
+
+    fn make_message(channel_id: Uuid, user_id: Uuid) -> Message {
+        Message::new(
+            channel_id.to_string(),
+            user_id.to_string(),
+            "testuser".to_string(),
+            "Hello".to_string(),
+        )
+    }
+
+    fn bearer(jwt: &JWTService, user_id: Uuid) -> HeaderValue {
+        let token = jwt.create_token(user_id).unwrap();
+        HeaderValue::from_str(&format!("Bearer {}", token)).unwrap()
+    }
+
+    type MockController =
+        PrivateMessageController<MockMessageRepository, MockPrivateChannelRepository, MockUserRepository>;
+
+    fn build_controller(
+        jwt: JWTService,
+        msg_repo: MockMessageRepository,
+        channel_repo: MockPrivateChannelRepository,
+        user_repo: MockUserRepository,
+    ) -> Arc<MockController> {
+        Arc::new(PrivateMessageController::new(jwt, msg_repo, channel_repo, user_repo))
+    }
+
+    fn build_app(controller: Arc<MockController>) -> TestServer {
+        let app = Router::new()
+            .route(
+                "/channels/:channel_id/messages/private",
+                post(send_private_message::<MockMessageRepository, MockPrivateChannelRepository, MockUserRepository>)
+                    .get(get_private_message_history::<MockMessageRepository, MockPrivateChannelRepository, MockUserRepository>),
+            )
+            .route(
+                "/messages/private/:id",
+                delete(delete_private_message::<MockMessageRepository, MockPrivateChannelRepository, MockUserRepository>)
+                    .put(update_private_message::<MockMessageRepository, MockPrivateChannelRepository, MockUserRepository>),
+            )
+            .route(
+                "/messages/private/:id/reactions",
+                post(add_private_reaction::<MockMessageRepository, MockPrivateChannelRepository, MockUserRepository>),
+            )
+            .route(
+                "/messages/private/:id/reactions/:reaction",
+                delete(remove_private_reaction::<MockMessageRepository, MockPrivateChannelRepository, MockUserRepository>),
+            )
+            .with_state(controller);
+        TestServer::new(app).unwrap()
+    }
+
+    // --- Controller struct tests ---
+
+    #[test]
+    fn test_new_controller_has_no_ws_manager() {
+        let controller = PrivateMessageController::new(
+            make_jwt(),
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::new(),
+            MockUserRepository::new(),
+        );
+        assert!(controller.ws_manager.is_none());
+    }
+
+    #[test]
+    fn test_with_ws_manager_sets_manager() {
+        let controller = PrivateMessageController::new(
+            make_jwt(),
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::new(),
+            MockUserRepository::new(),
+        );
+        let ws_manager = Arc::new(ConnectionManager::new());
+        let controller = controller.with_ws_manager(ws_manager);
+        assert!(controller.ws_manager.is_some());
+    }
+
+    // --- send_private_message tests ---
+
+    #[tokio::test]
+    async fn test_send_private_message_success() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .post(&format!("/channels/{}/messages/private", channel_id))
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .json(&json!({ "content": "Hello" }))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::CREATED);
+    }
+
+    #[tokio::test]
+    async fn test_send_private_message_missing_token() {
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .post(&format!("/channels/{}/messages/private", channel_id))
+            .json(&json!({ "content": "Hello" }))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_send_private_message_missing_content() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .post(&format!("/channels/{}/messages/private", channel_id))
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .json(&json!({}))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_send_private_message_user_not_found() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new(),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .post(&format!("/channels/{}/messages/private", channel_id))
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .json(&json!({ "content": "Hello" }))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn test_send_private_message_channel_not_found() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let other_channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(other_channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .post(&format!("/channels/{}/messages/private", channel_id))
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .json(&json!({ "content": "Hello" }))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::NOT_FOUND);
+    }
+
+    // --- get_private_message_history tests ---
+
+    #[tokio::test]
+    async fn test_get_private_message_history_success() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(make_message(channel_id, user_id)),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .get(&format!("/channels/{}/messages/private", channel_id))
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::OK);
+        let messages: Vec<serde_json::Value> = resp.json();
+        assert_eq!(messages.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_get_private_message_history_missing_token() {
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .get(&format!("/channels/{}/messages/private", channel_id))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_get_private_message_history_not_participant() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let channel = PrivateChannel {
+            id: channel_id,
+            user1: Uuid::new_v4(),
+            user2: Uuid::new_v4(),
+            created_at: chrono::Utc::now(),
+        };
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .get(&format!("/channels/{}/messages/private", channel_id))
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::UNAUTHORIZED);
+    }
+
+    // --- delete_private_message tests ---
+
+    #[tokio::test]
+    async fn test_delete_private_message_success() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(make_message(channel_id, user_id)),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .delete("/messages/private/msg_1")
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_delete_private_message_missing_token() {
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(make_message(channel_id, user_id)),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server.delete("/messages/private/msg_1").await;
+
+        assert_eq!(resp.status_code(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_delete_private_message_not_found() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .delete("/messages/private/nonexistent_msg")
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::NOT_FOUND);
+    }
+
+    #[tokio::test]
+    async fn test_delete_private_message_not_owner() {
+        let jwt = make_jwt();
+        let owner_id = Uuid::new_v4();
+        let other_user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let channel = PrivateChannel {
+            id: channel_id,
+            user1: other_user_id,
+            user2: owner_id,
+            created_at: chrono::Utc::now(),
+        };
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(make_message(channel_id, owner_id)),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+            MockUserRepository::new().with_user(make_user(other_user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .delete("/messages/private/msg_1")
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, other_user_id))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::FORBIDDEN);
+    }
+
+    // --- update_private_message tests ---
+
+    #[tokio::test]
+    async fn test_update_private_message_success() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(make_message(channel_id, user_id)),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .put("/messages/private/msg_1")
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .json(&json!({ "content": "Updated content" }))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_update_private_message_missing_token() {
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(make_message(channel_id, user_id)),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .put("/messages/private/msg_1")
+            .json(&json!({ "content": "Updated" }))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_update_private_message_missing_content() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(make_message(channel_id, user_id)),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .put("/messages/private/msg_1")
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .json(&json!({}))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_update_private_message_not_owner() {
+        let jwt = make_jwt();
+        let owner_id = Uuid::new_v4();
+        let other_user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let channel = PrivateChannel {
+            id: channel_id,
+            user1: other_user_id,
+            user2: owner_id,
+            created_at: chrono::Utc::now(),
+        };
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(make_message(channel_id, owner_id)),
+            MockPrivateChannelRepository::with_channels(vec![channel]),
+            MockUserRepository::new().with_user(make_user(other_user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .put("/messages/private/msg_1")
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, other_user_id))
+            .json(&json!({ "content": "Hacked" }))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::FORBIDDEN);
+    }
+
+    // --- add_private_reaction tests ---
+
+    #[tokio::test]
+    async fn test_add_private_reaction_success() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(make_message(channel_id, user_id)),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .post("/messages/private/msg_1/reactions")
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .json(&json!({ "reaction": "+1" }))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_add_private_reaction_missing_token() {
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(make_message(channel_id, user_id)),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .post("/messages/private/msg_1/reactions")
+            .json(&json!({ "reaction": "+1" }))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_add_private_reaction_missing_reaction_field() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(make_message(channel_id, user_id)),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .post("/messages/private/msg_1/reactions")
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .json(&json!({}))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn test_add_private_reaction_message_not_found() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .post("/messages/private/nonexistent/reactions")
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .json(&json!({ "reaction": "+1" }))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::NOT_FOUND);
+    }
+
+    // --- remove_private_reaction tests ---
+
+    #[tokio::test]
+    async fn test_remove_private_reaction_success() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let mut message = make_message(channel_id, user_id);
+        message.reactions.insert("+1".to_string(), vec![user_id.to_string()]);
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(message),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .delete("/messages/private/msg_1/reactions/%2B1")
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::OK);
+    }
+
+    #[tokio::test]
+    async fn test_remove_private_reaction_missing_token() {
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new().with_message(make_message(channel_id, user_id)),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .delete("/messages/private/msg_1/reactions/%2B1")
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[tokio::test]
+    async fn test_remove_private_reaction_message_not_found() {
+        let jwt = make_jwt();
+        let user_id = Uuid::new_v4();
+        let channel_id = Uuid::new_v4();
+        let controller = build_controller(
+            make_jwt(),
+            MockMessageRepository::new(),
+            MockPrivateChannelRepository::with_channels(vec![make_channel(channel_id, user_id)]),
+            MockUserRepository::new().with_user(make_user(user_id)),
+        );
+        let server = build_app(controller);
+
+        let resp = server
+            .delete("/messages/private/nonexistent/reactions/%2B1")
+            .add_header(HeaderName::from_static("authorization"), bearer(&jwt, user_id))
+            .await;
+
+        assert_eq!(resp.status_code(), StatusCode::NOT_FOUND);
+    }
+}

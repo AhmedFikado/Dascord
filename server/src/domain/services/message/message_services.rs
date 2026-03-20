@@ -701,4 +701,219 @@ mod tests {
             _ => panic!("Expected NotFound error"),
         }
     }
+
+    // --- DeleteMessageUseCase (tests manquants) ---
+
+    #[tokio::test]
+    async fn test_delete_message_not_found() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
+
+        let use_case = DeleteMessageUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
+        let result = use_case.execute("nonexistent".to_string(), user_id).await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn test_delete_message_member_cannot_delete_others() {
+        let owner_id = Uuid::new_v4();
+        let other_user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+
+        let message = Message::new(
+            channel.id.to_string(),
+            owner_id.to_string(),
+            "Owner".to_string(),
+            "Test message".to_string(),
+        );
+
+        let mock_message_repo = MockMessageRepository::new().with_message(message);
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new()
+            .with_member(server_id, owner_id, ServerRole::Member)
+            .with_member(server_id, other_user_id, ServerRole::Member);
+
+        let use_case = DeleteMessageUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
+        let result = use_case.execute("msg_1".to_string(), other_user_id).await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::Forbidden(_)));
+    }
+
+    #[tokio::test]
+    async fn test_delete_message_admin_can_delete_others() {
+        let owner_id = Uuid::new_v4();
+        let admin_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+
+        let message = Message::new(
+            channel.id.to_string(),
+            owner_id.to_string(),
+            "Owner".to_string(),
+            "Test message".to_string(),
+        );
+
+        let mock_message_repo = MockMessageRepository::new().with_message(message);
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new()
+            .with_member(server_id, owner_id, ServerRole::Member)
+            .with_member(server_id, admin_id, ServerRole::Admin);
+
+        let use_case = DeleteMessageUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
+        let result = use_case.execute("msg_1".to_string(), admin_id).await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_delete_message_server_owner_can_delete_others() {
+        let member_id = Uuid::new_v4();
+        let server_owner_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+
+        let message = Message::new(
+            channel.id.to_string(),
+            member_id.to_string(),
+            "Member".to_string(),
+            "Test message".to_string(),
+        );
+
+        let mock_message_repo = MockMessageRepository::new().with_message(message);
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new()
+            .with_member(server_id, member_id, ServerRole::Member)
+            .with_member(server_id, server_owner_id, ServerRole::Owner);
+
+        let use_case = DeleteMessageUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
+        let result = use_case.execute("msg_1".to_string(), server_owner_id).await;
+
+        assert!(result.is_ok());
+    }
+
+    // --- UpdateMessageUseCase (tests manquants) ---
+
+    #[tokio::test]
+    async fn test_update_message_not_member() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+
+        let message = Message::new(
+            channel.id.to_string(),
+            user_id.to_string(),
+            "TestUser".to_string(),
+            "Original content".to_string(),
+        );
+
+        let mock_message_repo = MockMessageRepository::new().with_message(message);
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new(); // user n'est pas membre
+
+        let use_case = UpdateMessageUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
+        let result = use_case.execute("msg_1".to_string(), user_id, "Updated".to_string()).await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::Unauthorized(_)));
+    }
+
+    // --- AddReactionUseCase (tests manquants) ---
+
+    #[tokio::test]
+    async fn test_add_reaction_message_not_found() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
+
+        let use_case = AddReactionUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
+        let result = use_case.execute("nonexistent".to_string(), user_id, "👍".to_string()).await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
+
+    #[tokio::test]
+    async fn test_add_reaction_multiple_users() {
+        let user1_id = Uuid::new_v4();
+        let user2_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+        let message = Message::new(
+            channel.id.to_string(),
+            user1_id.to_string(),
+            "TestUser".to_string(),
+            "Hello".to_string(),
+        );
+
+        let mock_message_repo = MockMessageRepository::new().with_message(message);
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new()
+            .with_member(server_id, user1_id, ServerRole::Member)
+            .with_member(server_id, user2_id, ServerRole::Member);
+
+        let use_case = AddReactionUseCase::new(mock_message_repo.clone(), mock_channel_repo.clone(), mock_server_repo.clone());
+        use_case.execute("msg_1".to_string(), user1_id, "👍".to_string()).await.unwrap();
+
+        let use_case2 = AddReactionUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
+        let result = use_case2.execute("msg_1".to_string(), user2_id, "👍".to_string()).await;
+
+        assert!(result.is_ok());
+        let updated = result.unwrap();
+        assert_eq!(updated.reactions["👍"].len(), 2);
+    }
+
+    // --- RemoveReactionUseCase (tests manquants) ---
+
+    #[tokio::test]
+    async fn test_remove_reaction_not_member() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+        let message = Message::new(
+            channel.id.to_string(),
+            user_id.to_string(),
+            "TestUser".to_string(),
+            "Hello".to_string(),
+        );
+
+        let mock_message_repo = MockMessageRepository::new().with_message(message);
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new(); // pas de membre
+
+        let use_case = RemoveReactionUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
+        let result = use_case.execute("msg_1".to_string(), user_id, "👍".to_string()).await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::Unauthorized(_)));
+    }
+
+    #[tokio::test]
+    async fn test_remove_reaction_message_not_found() {
+        let user_id = Uuid::new_v4();
+        let server_id = Uuid::new_v4();
+        let channel = Channel::new(server_id, "General".to_string());
+
+        let mock_message_repo = MockMessageRepository::new();
+        let mock_channel_repo = MockChannelRepository::new().with_channel(channel.clone());
+        let mock_server_repo = MockServerRepository::new().with_member(server_id, user_id, ServerRole::Member);
+
+        let use_case = RemoveReactionUseCase::new(mock_message_repo, mock_channel_repo, mock_server_repo);
+        let result = use_case.execute("nonexistent".to_string(), user_id, "👍".to_string()).await;
+
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), AppError::NotFound(_)));
+    }
 }
