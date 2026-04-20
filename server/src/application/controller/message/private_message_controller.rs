@@ -373,6 +373,8 @@ mod tests {
             user1: user_id,
             user2: Uuid::new_v4(),
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         }
     }
 
@@ -617,6 +619,8 @@ mod tests {
             user1: Uuid::new_v4(),
             user2: Uuid::new_v4(),
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let controller = build_controller(
             make_jwt(),
@@ -706,6 +710,8 @@ mod tests {
             user1: other_user_id,
             user2: owner_id,
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let controller = build_controller(
             make_jwt(),
@@ -800,6 +806,8 @@ mod tests {
             user1: other_user_id,
             user2: owner_id,
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let controller = build_controller(
             make_jwt(),

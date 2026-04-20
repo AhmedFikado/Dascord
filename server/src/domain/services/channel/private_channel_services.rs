@@ -251,59 +251,52 @@ mod tests {
     async fn test_create_private_channel_already_exists() {
         let user1 = Uuid::new_v4();
         let user2 = Uuid::new_v4();
-        
+        let channel_id = Uuid::new_v4();
+
         let existing_channel = PrivateChannel {
-            id: Uuid::new_v4(),
+            id: channel_id,
             user1,
             user2,
             created_at: Utc::now(),
             user1_hidden: false,
             user2_hidden: false,
         };
-        
+
         let repo = MockPrivateChannelRepository { channels: vec![existing_channel] };
         let user_repo = MockUserRepository { users: vec![user1, user2] };
-        
+
         let service = PrivateChannelService::new(repo, user_repo);
-        
+
+        // Quand le canal existe déjà, on le retourne (sans erreur) après l'avoir unhide si besoin
         let result = service.create_private_channel(user1, user2).await;
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            AppError::BadRequest(msg) => {
-                assert_eq!(msg, "Private channel already exists");
-            }
-            _ => panic!("Expected BadRequest error"),
-        }
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().id, channel_id);
     }
 
     #[tokio::test]
     async fn test_create_private_channel_already_exists_reversed_order() {
         let user1 = Uuid::new_v4();
         let user2 = Uuid::new_v4();
-        
+        let channel_id = Uuid::new_v4();
+
         let existing_channel = PrivateChannel {
-            id: Uuid::new_v4(),
+            id: channel_id,
             user1,
             user2,
             created_at: Utc::now(),
             user1_hidden: false,
             user2_hidden: false,
         };
-        
+
         let repo = MockPrivateChannelRepository { channels: vec![existing_channel] };
         let user_repo = MockUserRepository { users: vec![user1, user2] };
-        
+
         let service = PrivateChannelService::new(repo, user_repo);
-        
-        // Try creating with reversed order - should still detect existing channel
+
+        // Ordre inversé — le canal est quand même retrouvé et retourné
         let result = service.create_private_channel(user2, user1).await;
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            AppError::BadRequest(msg) => {
-                assert_eq!(msg, "Private channel already exists");
-            }
-            _ => panic!("Expected BadRequest error"),
-        }
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().id, channel_id);
     }
 
     #[tokio::test]
