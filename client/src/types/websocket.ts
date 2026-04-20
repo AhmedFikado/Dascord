@@ -175,6 +175,13 @@ export type ServerMessage =
         user1_id: string;
         user2_id: string;
       };
+    }
+  | {
+      type: 'PrivateChannelHidden';
+      payload: {
+        channel_id: string;
+        user_id: string;
+      };
     };
 
 // État de la connexion WebSocket

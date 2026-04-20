@@ -42,4 +42,9 @@ export const privateChannelsApi = {
     console.log('Fetching private channel:', channelId);
     return await apiClient.get<PrivateChannelWithUser>(`/channels/${channelId}/private`);
   },
+
+  // PATCH /channels/private/{id}/hide - Hide a private channel for the current user
+  hide: async (channelId: string): Promise<void> => {
+    await apiClient.patch<void>(`/channels/private/${channelId}/hide`, {});
+  },
 };

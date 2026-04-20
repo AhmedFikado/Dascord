@@ -359,6 +359,13 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         }
         break;
 
+      case 'PrivateChannelHidden':
+        // Retirer le canal de la liste des conversations privées
+        usePrivateChannelStore.setState(state => ({
+          privateChannels: state.privateChannels.filter(ch => ch.id !== message.payload.channel_id),
+        }));
+        break;
+
       case 'Error':
         console.error('WebSocket error:', message.payload);
         set({ error: message.payload.message });

@@ -22,6 +22,7 @@ interface PrivateChannelState {
   addMessageLocally: (channelId: string, message: Message) => void;
   addReaction: (channelId: string, messageId: string, reaction: string, userId: string) => Promise<void>;
   removeReaction: (channelId: string, messageId: string, reaction: string, userId: string) => Promise<void>;
+  hidePrivateChannel: (channelId: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -243,6 +244,13 @@ export const usePrivateChannelStore = create<PrivateChannelState>((set, get) => 
     } catch (error) {
       console.error('Error removing reaction:', error);
     }
+  },
+
+  hidePrivateChannel: async (channelId: string) => {
+    await privateChannelsApi.hide(channelId);
+    set((state) => ({
+      privateChannels: state.privateChannels.filter((ch) => ch.id !== channelId),
+    }));
   },
 
   reset: () => {

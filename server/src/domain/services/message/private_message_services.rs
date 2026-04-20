@@ -50,7 +50,7 @@ impl<MR: MessageRepository, PCR: PrivateChannelRepository>
         let created = self.message_repo.create(message).await?;
 
         self.private_channel_repo
-            .update_last_message_at(channel_id, created.created_at)
+            .update_last_message_at(channel_id, user_id, created.created_at)
             .await?;
 
         Ok(MessageDto::from(created))

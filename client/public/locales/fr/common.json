@@ -220,6 +220,7 @@
         "open_navigation": "Ouvrir la navigation",
         "unknown_user": "Utilisateur inconnu",
         "no_conversation": "Aucune conversation",
+        "hide_conversation": "Masquer la conversation",
         "loading_messages": "Chargement des messages...",
         "select_conversation": "Sélectionnez une conversation pour commencer",
         "send_private_message": "Envoyer un message privé",

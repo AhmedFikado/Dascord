@@ -1,11 +1,11 @@
 use crate::application::controller::channel::channel_controller::{ChannelHandler, get_channel_info, update_channel, delete_channel};
 use crate::application::controller::channel::private_channel_controller::{
-    create_private_channel, get_list_private_channels, get_private_channel, PrivateChannelController
+    create_private_channel, get_list_private_channels, get_private_channel, hide_private_channel, PrivateChannelController
 };
 use crate::infrastructure::repositories::{ServerRepository, UserRepository};
 use crate::infrastructure::repositories::channel::{ChannelRepository, PrivateChannelRepository};
 use axum::{
-    routing::{delete as axum_delete, get, put, post},
+    routing::{delete as axum_delete, get, patch, put, post},
     Router,
 };
 use std::sync::Arc;
@@ -27,6 +27,7 @@ PCR: PrivateChannelRepository + 'static
         .route("/private", post(create_private_channel::<PCR, UR>))
         .route("/private", get(get_list_private_channels::<PCR, UR>))
         .route("/:id/private", get(get_private_channel::<PCR, UR>))
+        .route("/private/:id/hide", patch(hide_private_channel::<PCR, UR>))
         .with_state(private_channel_controller)
 }
 

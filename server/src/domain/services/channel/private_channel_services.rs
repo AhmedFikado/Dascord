@@ -32,8 +32,10 @@ impl<PCR: PrivateChannelRepository, UR: UserRepository> PrivateChannelService<PC
         }
 
         // Check if channel already exists
-        if let Ok(Some(_)) = self.private_channel_repository.get_by_users(user1, user2).await {
-            return Err(AppError::BadRequest("Private channel already exists".to_string()));
+        if let Ok(Some(existing)) = self.private_channel_repository.get_by_users(user1, user2).await {
+            // Si le canal était caché pour user1 (le demandeur), on le réaffiche
+            self.private_channel_repository.unhide_channel(existing.id, user1).await?;
+            return Ok(existing);
         }
 
         self.private_channel_repository.create(user1, user2).await
@@ -45,6 +47,17 @@ impl<PCR: PrivateChannelRepository, UR: UserRepository> PrivateChannelService<PC
 
     pub async fn get_user_private_channels(&self, user_id: Uuid) -> AppResult<Vec<PrivateChannel>> {
         self.private_channel_repository.get_user_channels(user_id).await
+    }
+
+    pub async fn hide_private_channel(&self, channel_id: Uuid, user_id: Uuid) -> AppResult<()> {
+        let channel = self.private_channel_repository.get_by_id(channel_id).await?
+            .ok_or_else(|| AppError::NotFound("Private channel not found".to_string()))?;
+
+        if channel.user1 != user_id && channel.user2 != user_id {
+            return Err(AppError::Unauthorized("You are not a participant of this channel".to_string()));
+        }
+
+        self.private_channel_repository.hide_channel(channel_id, user_id).await
     }
 
     pub async fn get_user_private_channels_with_recipient(
@@ -85,6 +98,8 @@ mod tests {
                 user1,
                 user2,
                 created_at: Utc::now(),
+                user1_hidden: false,
+                user2_hidden: false,
             };
             Ok(channel)
         }
@@ -101,7 +116,15 @@ mod tests {
             Ok(self.channels.iter().filter(|c| c.user1 == user_id || c.user2 == user_id).cloned().collect())
         }
 
-        async fn update_last_message_at(&self, _channel_id: Uuid, _last_message_at: chrono::DateTime<chrono::Utc>) -> AppResult<()> {
+        async fn update_last_message_at(&self, _channel_id: Uuid, _sender_id: Uuid, _last_message_at: chrono::DateTime<chrono::Utc>) -> AppResult<()> {
+            Ok(())
+        }
+
+        async fn hide_channel(&self, _channel_id: Uuid, _user_id: Uuid) -> AppResult<()> {
+            Ok(())
+        }
+
+        async fn unhide_channel(&self, _channel_id: Uuid, _user_id: Uuid) -> AppResult<()> {
             Ok(())
         }
     }
@@ -234,6 +257,8 @@ mod tests {
             user1,
             user2,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         
         let repo = MockPrivateChannelRepository { channels: vec![existing_channel] };
@@ -261,6 +286,8 @@ mod tests {
             user1,
             user2,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         
         let repo = MockPrivateChannelRepository { channels: vec![existing_channel] };
@@ -290,6 +317,8 @@ mod tests {
             user1,
             user2,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         
         let repo = MockPrivateChannelRepository { channels: vec![channel.clone()] };
@@ -332,6 +361,8 @@ mod tests {
             user1,
             user2,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         
         let channel2 = PrivateChannel {
@@ -339,6 +370,8 @@ mod tests {
             user1,
             user2: user3,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         
         let repo = MockPrivateChannelRepository {
@@ -365,6 +398,8 @@ mod tests {
             user1: user2,
             user2: user3,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         
         let repo = MockPrivateChannelRepository { channels: vec![channel] };
@@ -390,6 +425,8 @@ mod tests {
             user1,
             user2,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         
         let channel2 = PrivateChannel {
@@ -397,6 +434,8 @@ mod tests {
             user1: user3,
             user2: user4,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         
         let channel3 = PrivateChannel {
@@ -404,6 +443,8 @@ mod tests {
             user1: user2,
             user2,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         
         let repo = MockPrivateChannelRepository {
