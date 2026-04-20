@@ -7,6 +7,8 @@ pub struct PrivateChannel {
     pub user1: Uuid,
     pub user2: Uuid,
     pub created_at: chrono::DateTime<chrono::Utc>,
+    pub user1_hidden: bool,
+    pub user2_hidden: bool,
 }
 
 impl PrivateChannel {
@@ -16,6 +18,8 @@ impl PrivateChannel {
             user1,
             user2,
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         }
     }
 }

@@ -211,6 +211,7 @@
         "open_navigation": "Open navigation",
         "unknown_user": "Unknown User",
         "no_conversation": "No conversations",
+        "hide_conversation": "Hide conversation",
         "loading_messages": "Loading messages...",
         "select_conversation": "Select a conversation to get started",
         "send_private_message": "Send a private message",

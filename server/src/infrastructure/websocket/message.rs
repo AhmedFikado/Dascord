@@ -132,6 +132,12 @@ pub enum ServerMessage {
         user2_id: String,
     },
 
+    /// Une discussion privée a été cachée par un utilisateur
+    PrivateChannelHidden {
+        channel_id: String,
+        user_id: String,
+    },
+
     /// Réaction ajoutée à un message
         ReactionAdded {
             channel_id: String,

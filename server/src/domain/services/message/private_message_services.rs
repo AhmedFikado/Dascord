@@ -50,7 +50,7 @@ impl<MR: MessageRepository, PCR: PrivateChannelRepository>
         let created = self.message_repo.create(message).await?;
 
         self.private_channel_repo
-            .update_last_message_at(channel_id, created.created_at)
+            .update_last_message_at(channel_id, user_id, created.created_at)
             .await?;
 
         Ok(MessageDto::from(created))
@@ -253,6 +253,8 @@ mod tests {
             user1: user_id,
             user2: Uuid::new_v4(),
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         }
     }
 
@@ -372,6 +374,8 @@ mod tests {
             user1: Uuid::new_v4(),
             user2: Uuid::new_v4(),
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let channel_id = channel.id;
         let service = make_service(
@@ -390,6 +394,8 @@ mod tests {
             user1: Uuid::new_v4(),
             user2: Uuid::new_v4(),
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let channel2_id = channel2.id;
         let service2 = make_service(
@@ -442,6 +448,8 @@ mod tests {
             user1: other_user_id,
             user2: owner_id,
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let channel_id = channel.id;
         let message = make_message(channel_id, owner_id);
@@ -466,6 +474,8 @@ mod tests {
             user1: owner_id,
             user2: Uuid::new_v4(),
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let channel_id = channel.id;
         let message = make_message(channel_id, outsider_id);
@@ -527,6 +537,8 @@ mod tests {
             user1: other_user_id,
             user2: owner_id,
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let channel_id = channel.id;
         let message = make_message(channel_id, owner_id);
@@ -552,6 +564,8 @@ mod tests {
             user1: Uuid::new_v4(),
             user2: Uuid::new_v4(),
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let channel_id = channel.id;
         let message = make_message(channel_id, owner_id);
@@ -616,6 +630,8 @@ mod tests {
             user1: owner_id,
             user2: Uuid::new_v4(),
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let channel_id = channel.id;
         let message = make_message(channel_id, owner_id);
@@ -680,6 +696,8 @@ mod tests {
             user1: owner_id,
             user2: Uuid::new_v4(),
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let channel_id = channel.id;
         let mut message = make_message(channel_id, owner_id);

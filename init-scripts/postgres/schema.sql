@@ -42,7 +42,9 @@ CREATE TABLE privateMessageChannel (
     user1 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     user2 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     last_message_at TIMESTAMPTZ DEFAULT NOW(),
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    user1_hidden BOOLEAN DEFAULT FALSE,
+    user2_hidden BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE bans (
