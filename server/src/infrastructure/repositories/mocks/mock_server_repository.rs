@@ -13,6 +13,7 @@ pub struct MockServerRepository {
     members: Arc<Mutex<HashMap<(Uuid, Uuid), ServerRole>>>, // (server_id, user_id) -> role
     invitation_codes: Arc<Mutex<HashMap<String, Uuid>>>,    // code -> server_id
     bans: Arc<Mutex<HashMap<(Uuid, Uuid), Option<chrono::DateTime<chrono::Utc>>>>>, // (server_id, user_id) -> expires_at
+    ban_entries: Arc<Mutex<Vec<(Uuid, Uuid, String, BanType, chrono::DateTime<chrono::Utc>, Option<chrono::DateTime<chrono::Utc>>)>>>, // (server_id, user_id, username, ban_type, banned_at, expires_at)
 }
 
 impl MockServerRepository {
@@ -22,6 +23,7 @@ impl MockServerRepository {
             members: Arc::new(Mutex::new(HashMap::new())),
             invitation_codes: Arc::new(Mutex::new(HashMap::new())),
             bans: Arc::new(Mutex::new(HashMap::new())),
+            ban_entries: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
@@ -39,6 +41,16 @@ impl MockServerRepository {
         {
             let mut members = self.members.lock().unwrap();
             members.insert((server_id, user_id), role);
+        }
+        self
+    }
+
+    pub fn with_ban(self, server_id: Uuid, user_id: Uuid, username: String, ban_type: BanType, expires_at: Option<chrono::DateTime<chrono::Utc>>) -> Self {
+        {
+            let mut bans = self.bans.lock().unwrap();
+            bans.insert((server_id, user_id), expires_at);
+            let mut entries = self.ban_entries.lock().unwrap();
+            entries.push((server_id, user_id, username, ban_type, chrono::Utc::now(), expires_at));
         }
         self
     }
@@ -173,11 +185,43 @@ impl ServerRepository for MockServerRepository {
         }
     }
 
-    async fn ban_member(&self, server_id: Uuid, user_id: Uuid, _banned_by: Uuid, _ban_type: BanType, expires_at: Option<chrono::DateTime<chrono::Utc>>) -> AppResult<()> {
+    async fn ban_member(&self, server_id: Uuid, user_id: Uuid, _banned_by: Uuid, ban_type: BanType, expires_at: Option<chrono::DateTime<chrono::Utc>>) -> AppResult<()> {
         {
             let mut bans = self.bans.lock().unwrap();
             bans.insert((server_id, user_id), expires_at);
+            let mut entries = self.ban_entries.lock().unwrap();
+            entries.push((server_id, user_id, String::new(), ban_type, chrono::Utc::now(), expires_at));
         }
         self.remove_member(server_id, user_id).await
+    }
+
+    async fn list_bans(&self, server_id: Uuid) -> AppResult<Vec<(Uuid, String, BanType, chrono::DateTime<chrono::Utc>, Option<chrono::DateTime<chrono::Utc>>)>> {
+        let bans = self.bans.lock().unwrap();
+        let entries = self.ban_entries.lock().unwrap();
+        let now = chrono::Utc::now();
+
+        let result = entries.iter()
+            .filter(|(sid, uid, _, _, _, expires_at)| {
+                *sid == server_id && bans.contains_key(&(*sid, *uid)) && {
+                    match expires_at {
+                        None => true,
+                        Some(exp) => *exp > now,
+                    }
+                }
+            })
+            .map(|(_, uid, username, ban_type, banned_at, expires_at)| {
+                (*uid, username.clone(), *ban_type, *banned_at, *expires_at)
+            })
+            .collect();
+
+        Ok(result)
+    }
+
+    async fn unban_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<()> {
+        let mut bans = self.bans.lock().unwrap();
+        bans.remove(&(server_id, user_id));
+        let mut entries = self.ban_entries.lock().unwrap();
+        entries.retain(|(sid, uid, _, _, _, _)| !(*sid == server_id && *uid == user_id));
+        Ok(())
     }
 }

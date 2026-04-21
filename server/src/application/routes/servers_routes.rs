@@ -1,6 +1,7 @@
 use crate::application::controller::server_controller::{
     create_server, get_user_servers, get_server_info, update_server, delete_server,
     join_server, leave_server, list_members, update_member_role, kick_member, ban_member,
+    list_banned_members, unban_member,
     get_channels, create_channel, ServerHandler,
 };
 use crate::infrastructure::repositories::{ServerRepository, UserRepository};
@@ -26,6 +27,8 @@ pub fn server_routes<SR: ServerRepository + 'static, CR: ChannelRepository + 'st
         .route("/:id/members/:userId", put(update_member_role::<SR, CR, UR>))
         .route("/:id/members/:userId/kick", delete(kick_member::<SR, CR, UR>))
         .route("/:id/members/:userId/ban", post(ban_member::<SR, CR, UR>))
+        .route("/:id/members/:userId/ban", delete(unban_member::<SR, CR, UR>))
+        .route("/:id/bans", get(list_banned_members::<SR, CR, UR>))
         .route("/:id/channels", get(get_channels::<SR, CR, UR>))
         .route("/:id/channels", post(create_channel::<SR, CR, UR>))
         .with_state(handler)
