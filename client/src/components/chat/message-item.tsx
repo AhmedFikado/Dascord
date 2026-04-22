@@ -259,13 +259,10 @@ export default function MessageItem({ message, onDelete, onUpdate, onAddReaction
                   setTooltipPos(null);
                   setTooltipReady(false);
                 }}
-<<<<<<< S03-03-Ajouter-des-images-comme-avatar
                 className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors ${currentUserId && users.includes(currentUserId)
                     ? 'bg-purple/30 border-purple text-white'
                     : 'bg-gray-300 border-gray-200 text-gray-light hover:border-purple'
                 }`}
-=======
->>>>>>> dev
               >
                 <button
                   onClick={e => {
