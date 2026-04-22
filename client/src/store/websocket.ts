@@ -1,6 +1,7 @@
 import { useAuthStore } from '@/app/lib/stores/use-auth-store';
 import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { usePrivateChannelStore } from '@/app/lib/stores/use-private-channel-store';
+import { useUnreadStore } from '@/app/lib/stores/use-unread-store';
 import { Member } from '@/types/models/member';
 import { Role } from '@/types/models/role';
 import { Status } from '@/types/models/status';
@@ -364,6 +365,15 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         usePrivateChannelStore.setState(state => ({
           privateChannels: state.privateChannels.filter(ch => ch.id !== message.payload.channel_id),
         }));
+        break;
+
+      case 'UnreadUpdate':
+        // Nouveau message non lu dans un channel où l'utilisateur n'est pas
+        useUnreadStore.getState().addUnread(
+          message.payload.server_id,
+          message.payload.channel_id,
+          message.payload.first_unread_message_id
+        );
         break;
 
       case 'Error':

@@ -44,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let user_service = UserService::new(user_repo.clone());
     
     // Créer le gestionnaire WebSocket avec le repository
-    let ws_manager = Arc::new(ConnectionManager::new());
+    let ws_manager = Arc::new(ConnectionManager::new().with_pg_pool(app_state.pg_pool.clone()));
     
     let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
     let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone())

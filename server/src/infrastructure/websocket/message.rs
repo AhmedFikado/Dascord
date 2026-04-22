@@ -153,6 +153,13 @@ pub enum ServerMessage {
             user_id: String,
             reaction: String,
         },
+
+    /// Notification de message non lu dans un channel
+    UnreadUpdate {
+        server_id: String,
+        channel_id: String,
+        first_unread_message_id: String,
+    },
 }
 
 /// Structure pour les données d'un message dans l'historique

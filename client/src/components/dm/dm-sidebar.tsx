@@ -1,17 +1,20 @@
 'use client';
 
 import { usePrivateChannelStore } from '@/app/lib/stores/use-private-channel-store';
+import { useUnreadStore } from '@/app/lib/stores/use-unread-store';
 import { useEffect } from 'react';
 import PrivateConversationList from './private-conversation-list';
 import { useTranslation } from 'react-i18next';
 
 export default function DMSidebar() {
   const { privateChannels, fetchPrivateChannels } = usePrivateChannelStore();
+  const { fetchUnreadPrivate } = useUnreadStore();
   const { t } = useTranslation();
 
   useEffect(() => {
     fetchPrivateChannels();
-  }, [fetchPrivateChannels]);
+    fetchUnreadPrivate();
+  }, [fetchPrivateChannels, fetchUnreadPrivate]);
 
   return (
     <aside className="w-60 h-full flex flex-col bg-backgroundSide overflow-y-auto scrollbar-hide flex-shrink-0">

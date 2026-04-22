@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Save } from "lucide-react";
 import { Role } from "@/types/models/role";
 import { useTranslation } from 'react-i18next';
+import { useUnreadStore } from "@/app/lib/stores/use-unread-store";
 
 interface ChannelItemProps {
     channel: Channel;
@@ -66,6 +67,7 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
     };
 
     const hasChanges = newChannelName !== channel.name;
+    const isUnread = useUnreadStore((state) => channel.id in state.unreadChannels);
 
     return (
         <>
@@ -82,8 +84,11 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
                 `}
             >
                 <div className="flex items-center gap-2">
+                    {isUnread && !isActive && (
+                        <span className="w-2 h-2 bg-red-500 rounded-full flex-shrink-0" />
+                    )}
                     <span className={isActive ? 'text-white' : 'text-gray-50'}>#</span>
-                    <span className={`text-sm font-medium ${isActive ? 'text-white' : ''}`}>
+                    <span className={`text-sm font-medium ${isActive ? 'text-white' : isUnread ? 'text-white font-semibold' : ''}`}>
                         {channel.name}
                     </span>
                 </div>

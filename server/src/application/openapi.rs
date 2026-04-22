@@ -46,6 +46,11 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
         crate::application::controller::message::private_message_controller::send_private_message,
         crate::application::controller::message::private_message_controller::delete_private_message,
         crate::application::controller::message::private_message_controller::update_private_message,
+
+        // Read status (messages non lus)
+        crate::application::controller::read_status_controller::mark_channel_read,
+        crate::application::controller::read_status_controller::get_unread_channels,
+        crate::application::controller::read_status_controller::get_unread_private_channels,
     ),
     components(
         schemas(
@@ -66,6 +71,8 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
             crate::application::dto::message::CreateMessageDto,
             crate::application::dto::user_dto::UserDto,
             crate::domain::value_objects::ServerRole,
+            crate::application::dto::read_status_dto::UnreadChannelDto,
+            crate::application::dto::read_status_dto::UnreadStatusResponse,
         )
     ),
     tags(

@@ -57,8 +57,18 @@ CREATE TABLE bans (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE unread_channels (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    channel_id UUID NOT NULL,
+    first_unread_message_id TEXT NOT NULL,
+    is_private BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, channel_id)
+);
+
 -- Recherche rapide des serveurs d'un utilisateur
 CREATE INDEX idx_server_members_user_id ON server_members(user_id);
+CREATE INDEX idx_unread_channels_user_id ON unread_channels(user_id);
 
 -- Recherche rapide des channels d'un serveur
 CREATE INDEX idx_channels_server_id ON channels(server_id);

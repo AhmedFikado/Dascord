@@ -227,6 +227,9 @@
         "send_button": "Envoyer",
         "input_placeholder": "Envoyer un message privé..."
     },
+    "Message_list": {
+        "unread_marker": "Non lus"
+    },
     "Use_private_channel_store": {
         "Error_loading_channels": "Erreur lors du chargement des conversations",
         "Error_sending_message": "Erreur lors de l'envoi du message",

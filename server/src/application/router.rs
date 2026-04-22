@@ -7,11 +7,14 @@ use crate::application::controller::message::{
 };
 use crate::application::controller::channel::channel_controller::ChannelHandler;
 use crate::application::controller::channel::private_channel_controller::PrivateChannelController;
+use crate::application::controller::read_status_controller::ReadStatusHandler;
 use crate::application::openapi::ApiDoc;
-use crate::application::routes::{auth_routes, channel_routes, message_routes, server_routes, user_routes};
+use crate::application::routes::{
+    auth_routes, channel_routes, message_routes, server_routes, user_routes, read_status_routes,
+};
 use crate::domain::services::auth::{LoginUseCase, LogoutUseCase, SignupUseCase};
 use crate::infrastructure::repositories::{
-    PostgresServerRepository, PostgresUserRepository,
+    PostgresServerRepository, PostgresUserRepository, PostgresReadStatusRepository,
 };
 use crate::infrastructure::repositories::message::MongoMessageRepository;
 use crate::infrastructure::repositories::channel::{ PostgresChannelRepository, PostgresPrivateChannelRepository };
@@ -51,8 +54,9 @@ pub fn create_router(
     let private_channel_repo = PostgresPrivateChannelRepository::new(pg_pool.clone());
     let message_repo = MongoMessageRepository::new(mongo_client);
     let user_repo = PostgresUserRepository::new(pg_pool.clone());
-    let user_repo2 = PostgresUserRepository::new(pg_pool);
-    
+    let user_repo2 = PostgresUserRepository::new(pg_pool.clone());
+    let read_status_repo = PostgresReadStatusRepository::new(pg_pool.clone());
+
     let server_handler = Arc::new(
         ServerHandler::new(
             jwt_service.clone(),
@@ -88,6 +92,12 @@ pub fn create_router(
             user_repo2,
         ).with_ws_manager(ws_manager)
     );
+    let read_status_handler = Arc::new(ReadStatusHandler::new(
+        jwt_service,
+        read_status_repo,
+        channel_repo,
+        server_repo,
+    ));
 
     let cors = CorsLayer::new()
         .allow_origin(Any)
@@ -101,6 +111,7 @@ pub fn create_router(
         .nest("/servers", server_routes(server_handler))
         .nest("/channels", channel_routes(channel_handler, private_channel_controller))
         .merge(message_routes(message_handler, private_message_controller))
+        .merge(read_status_routes(read_status_handler))
         .layer(cors)
 }
 
@@ -111,11 +122,12 @@ pub fn create_router(
 mod tests {
     use super::*;
     use crate::infrastructure::repositories::mocks::{
-        mock_user_repository::MockUserRepository, 
-        mock_server_repository::MockServerRepository, 
-        mock_channel_repository::MockChannelRepository, 
+        mock_user_repository::MockUserRepository,
+        mock_server_repository::MockServerRepository,
+        mock_channel_repository::MockChannelRepository,
         mock_message_repository::MockMessageRepository,
-        mock_private_channel_repository::MockPrivateChannelRepository
+        mock_private_channel_repository::MockPrivateChannelRepository,
+        mock_read_status_repository::MockReadStatusRepository,
     };
 
     #[test]
@@ -123,7 +135,7 @@ mod tests {
         let mock_user_repo = MockUserRepository::new();
         let user_service = UserService::new(mock_user_repo.clone());
         let jwt_service = JWTService::new("test_secret".to_string());
-        
+
         let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
         let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
         let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
@@ -135,19 +147,22 @@ mod tests {
         let mock_channel_repo = MockChannelRepository::new();
         let mock_message_repo = MockMessageRepository::new();
         let mock_private_channel_repo = MockPrivateChannelRepository::new();
+        let mock_read_status_repo = MockReadStatusRepository::new();
 
         let server_handler = Arc::new(ServerHandler::new(jwt_service.clone(), mock_server_repo.clone(), mock_channel_repo.clone(), mock_user_repo.clone()));
         let channel_handler = Arc::new(ChannelHandler::new(jwt_service.clone(), mock_channel_repo.clone(), mock_server_repo.clone()));
         let private_channel_controller = Arc::new(PrivateChannelController::new(jwt_service.clone(), mock_private_channel_repo.clone(), mock_user_repo.clone()));
         let message_handler = Arc::new(MessageHandler::new(jwt_service.clone(), mock_message_repo.clone(), mock_channel_repo.clone(), mock_server_repo.clone(), mock_user_repo.clone()));
-        let private_message_controller = Arc::new(PrivateMessageController::new(jwt_service, mock_message_repo, mock_private_channel_repo, mock_user_repo));
+        let private_message_controller = Arc::new(PrivateMessageController::new(jwt_service.clone(), mock_message_repo, mock_private_channel_repo, mock_user_repo));
+        let read_status_handler = Arc::new(ReadStatusHandler::new(jwt_service, mock_read_status_repo, mock_channel_repo.clone(), mock_server_repo.clone()));
 
         let _router = Router::new()
             .nest("/auth", auth_routes(auth_handler))
             .nest("/users", user_routes(user_handler))
             .nest("/servers", server_routes(server_handler))
             .nest("/channels", channel_routes(channel_handler, private_channel_controller))
-            .merge(message_routes(message_handler, private_message_controller));
+            .merge(message_routes(message_handler, private_message_controller))
+            .merge(read_status_routes(read_status_handler));
 
         assert!(true);
     }
@@ -158,7 +173,7 @@ mod tests {
             .allow_origin(Any)
             .allow_methods(Any)
             .allow_headers(Any);
-        
+
         assert!(true);
     }
 
@@ -167,14 +182,14 @@ mod tests {
         let mock_user_repo = MockUserRepository::new();
         let user_service = UserService::new(mock_user_repo.clone());
         let jwt_service = JWTService::new("test_secret".to_string());
-        
+
         let signup_uc = SignupUseCase::new(user_service.clone(), jwt_service.clone());
         let login_uc = LoginUseCase::new(user_service.clone(), jwt_service.clone());
         let logout_uc = LogoutUseCase::new(user_service, jwt_service.clone());
 
         let auth_handler = Arc::new(AuthHandler::new(signup_uc, login_uc, logout_uc, jwt_service));
         let _router = Router::new().nest("/auth", auth_routes(auth_handler));
-        
+
         assert!(true);
     }
 }
