@@ -125,6 +125,12 @@ pub enum ServerMessage {
         user_id: String,
     },
 
+    /// Un membre a été débanni du serveur
+    MemberUnbanned {
+        server_id: String,
+        user_id: String,
+    },
+
     /// Un nouveau canal privé a été créé entre deux utilisateurs
     PrivateChannelCreated {
         channel_id: String,

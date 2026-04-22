@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Trash2, Save, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { Server } from '@/types/models/Server';
 import MemberList from './member-list';
+import BannedMembersList from './banned-members-list';
 import { useServerStore } from "@/app/lib/stores/use-server-store";
 import { useMembers } from "@/app/lib/hooks/use-members";
 import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
@@ -26,6 +27,7 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState('');
     const [isMembersOpen, setIsMembersOpen] = useState(false);
+    const [isBannedMembersOpen, setIsBannedMembersOpen] = useState(false);
     const [searchMember, setSearchMember] = useState('');
     const serverId = server.id;
     const { userId } = useCurrentUser();
@@ -118,6 +120,32 @@ export default function ServerSettings({ server, onClose, onUpdate, onDelete }: 
                         </div>
                     )}
                 </section>
+
+                {canUpdateServer && (
+                    <section>
+                        <button
+                            onClick={() => setIsBannedMembersOpen(!isBannedMembersOpen)}
+                            className="w-full flex items-center justify-between p-3 bg-gray-400 hover:bg-hoverSide rounded-lg transition-colors"
+                        >
+                            <h3 className="text-white text-sm font-semibold uppercase">
+                                {t('Server_settings.banned_members')}
+                            </h3>
+                            {isBannedMembersOpen ? (
+                                <ChevronUp className="text-white" size={20} />
+                            ) : (
+                                <ChevronDown className="text-white" size={20} />
+                            )}
+                        </button>
+
+                        {isBannedMembersOpen && (
+                            <div className="mt-4">
+                                <div className="bg-gray-400 rounded-lg p-4 max-h-96 overflow-y-auto">
+                                    <BannedMembersList serverId={serverId} />
+                                </div>
+                            </div>
+                        )}
+                    </section>
+                )}
 
                 {
                     !showDeleteConfirm && (

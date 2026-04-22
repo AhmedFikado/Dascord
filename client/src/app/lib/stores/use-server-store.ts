@@ -1,4 +1,5 @@
 import { Member } from '@/types/models/member';
+import { BannedMember } from '@/types/models/BannedMember';
 import { Role } from '@/types/models/role';
 import { Server } from '@/types/models/Server';
 import { create } from 'zustand';
@@ -28,6 +29,8 @@ interface ServerState {
   updateRoleMember: (serverId: string, userId: string, role: Role) => Promise<void>;
   kickMember: (serverId: string, userId: string) => Promise<void>;
   banMember: (serverId: string, userId: string, banType: 'Permanent' | 'Temporary', expiresAt?: string) => Promise<void>;
+  getBannedMembers: (serverId: string) => Promise<BannedMember[]>;
+  unbanMember: (serverId: string, userId: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -180,6 +183,26 @@ export const useServerStore = create<ServerState>(set => ({
       }));
     } catch (error) {
       set({ error: t('Use_server_store.Error_banning_member'), isLoading: false });
+      throw error;
+    }
+  },
+
+  getBannedMembers: async (serverId) => {
+    try {
+      return await serversApi.getBannedMembers(serverId);
+    } catch (error) {
+      set({ error: t('Use_server_store.Error_loading_banned_members') });
+      throw error;
+    }
+  },
+
+  unbanMember: async (serverId, userId) => {
+    set({ isLoading: true, error: null });
+    try {
+      await serversApi.unbanMember(serverId, userId);
+      set({ isLoading: false });
+    } catch (error) {
+      set({ error: t('Use_server_store.Error_unbanning_member'), isLoading: false });
       throw error;
     }
   },
