@@ -180,6 +180,7 @@ pub async fn update_user<R: UserRepository, SR: ServerRepository>(
         password_hash: String::new(),
         language,
         status: String::new(),
+        avatar_id: current_user.avatar_id,
         created_at: chrono::Utc::now(),
     };
 
@@ -258,6 +259,7 @@ mod tests {
             password_hash: password_service.hash("password").unwrap(),
             language: "en".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         };
 
@@ -318,6 +320,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_repo = MockUserRepository::new().with_user(user);
@@ -350,6 +353,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_repo = MockUserRepository::new().with_user(user);
@@ -381,6 +385,7 @@ mod tests {
             password_hash: password_service.hash("password").unwrap(),
             language: "en".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         };
 
@@ -414,6 +419,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_repo = MockUserRepository::new().with_user(user);
@@ -477,6 +483,7 @@ mod tests {
             password_hash: password_service.hash("password").unwrap(),
             language: "en".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         };
 
@@ -509,6 +516,7 @@ mod tests {
             password_hash: password_service.hash("password").unwrap(),
             language: "en".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         };
 
@@ -541,6 +549,7 @@ mod tests {
             password_hash: password_service.hash("password").unwrap(),
             language: "en".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         };
 

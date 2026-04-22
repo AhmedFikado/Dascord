@@ -285,6 +285,7 @@ mod tests {
                     password_hash: "hash".to_string(),
                     status: "ONLINE".to_string(),
                     created_at: Utc::now(),
+                    avatar_id: None,
                 }
             }))
         }
@@ -298,6 +299,10 @@ mod tests {
         }
 
         async fn update_status(&self, _id: Uuid, _status: &str) -> crate::utils::error::AppResult<()> {
+            Ok(())
+        }
+
+        async fn update_avatar(&self, _id: Uuid, _avatar_id: Option<String>) -> crate::utils::error::AppResult<()> {
             Ok(())
         }
 

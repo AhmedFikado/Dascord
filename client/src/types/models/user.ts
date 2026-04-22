@@ -7,4 +7,5 @@ export interface User {
     created_at: Date,
     status: Status,
     language: string,
+    avatar_id?: string,
 }

@@ -1,12 +1,15 @@
 import { Status } from "@/types/models/status";
+import { getAvatarUrl } from "@/app/lib/api/users";
 
 interface UserCardProps {
     username?: string;
     size?: number;
     status?: Status;
+    avatarId?: string;
 }
 
-export default function UserCard({ username, size = 40, status }: UserCardProps) {
+export default function UserCard({ username, size = 40, status, avatarId }: UserCardProps) {
+    const isSystemUser = username === 'Système';
 
     const getInitials = (username?: string) => {
         return username?.charAt(0).toUpperCase() || '?';
@@ -55,17 +58,29 @@ export default function UserCard({ username, size = 40, status }: UserCardProps)
 
     return (
         <div className="relative flex-shrink-0">
-            <div
-                className="rounded-full flex items-center justify-center text-white font-semibold"
-                style={{
-                    backgroundColor: getColorFromUsername(username),
-                    width: `${size}px`,
-                    height: `${size}px`,
-                    fontSize: `${size * 0.4}px`
-                }}
-            >
-                {getInitials(username)}
-            </div>
+            {avatarId && !isSystemUser ? (
+                <img
+                    src={getAvatarUrl(avatarId)}
+                    alt={username}
+                    className="rounded-full object-cover"
+                    style={{
+                        width: `${size}px`,
+                        height: `${size}px`,
+                    }}
+                />
+            ) : (
+                <div
+                    className="rounded-full flex items-center justify-center text-white font-semibold"
+                    style={{
+                        backgroundColor: getColorFromUsername(username),
+                        width: `${size}px`,
+                        height: `${size}px`,
+                        fontSize: `${size * 0.4}px`
+                    }}
+                >
+                    {getInitials(username)}
+                </div>
+            )}
             {status && getStatusIndicator(status)}
         </div>
 

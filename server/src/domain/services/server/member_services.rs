@@ -25,12 +25,10 @@ impl<SR: ServerRepository, UR: UserRepository> ListMembersUseCase<SR, UR> {
         }
 
         let members = self.server_repo.get_members(server_id).await?;
-        
         let mut responses = Vec::new();
         for (srv_id, usr_id, role, joined_at) in members {
             let user = self.user_repo.find_by_id(usr_id).await?
                 .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
-            
             responses.push(MemberResponse {
                 server_id: srv_id.to_string(),
                 user_id: usr_id.to_string(),
@@ -41,11 +39,11 @@ impl<SR: ServerRepository, UR: UserRepository> ListMembersUseCase<SR, UR> {
                     username: user.username,
                     email: user.email,
                     status: user.status,
+                    avatar_id: user.avatar_id,
                     created_at: user.created_at.to_rfc3339(),
                 },
             });
         }
-        
         Ok(responses)
     }
 }
@@ -85,15 +83,12 @@ impl<R: ServerRepository> UpdateMemberRoleUseCase<R> {
                     "Only owner or admin can update roles".to_string(),
                 ));
             }
-            
             if new_role == ServerRole::Owner {
                 return Err(AppError::Unauthorized("Only owner can transfer ownership".to_string()));
             }
-            
             if target_role == ServerRole::Owner || target_role == ServerRole::Admin {
                 return Err(AppError::Unauthorized("Admins cannot modify owner or other admin roles".to_string()));
             }
-            
             if new_role == ServerRole::Owner {
                 return Err(AppError::Unauthorized("Only owner can transfer ownership".to_string()));
             }
@@ -107,7 +102,6 @@ impl<R: ServerRepository> UpdateMemberRoleUseCase<R> {
             if server.owner_id != requester_id {
                 return Err(AppError::Unauthorized("Only current owner can transfer ownership".to_string()));
             }
-            
             server.owner_id = target_user_id;
             self.server_repo.update(server).await?;
             self.server_repo.update_member_role(server_id, requester_id, ServerRole::Admin).await?;
@@ -160,7 +154,7 @@ impl<R: ServerRepository> KickMemberUseCase<R> {
             Self { server_repo }
         }
 
-        pub async fn execute(&self, server_id: Uuid, target_user_id: Uuid, requester_id: Uuid) -> AppResult<()> {
+        pub async fn execute(&self, server_id: Uuid, target_user_id: Uuid, requester_id: Uuid,) -> AppResult<()> {
             let server = self.server_repo.find_by_id(server_id).await?
                 .ok_or_else(|| AppError::NotFound("Server not found".to_string()))?;
 
@@ -191,8 +185,7 @@ mod tests {
     use super::*;
     use crate::domain::entities::{Server, User};
     use crate::infrastructure::repositories::mocks::{
-        mock_server_repository::MockServerRepository,
-        mock_user_repository::MockUserRepository,
+        mock_server_repository::MockServerRepository,mock_user_repository::MockUserRepository,
     };
     use crate::infrastructure::security::PasswordService;
 
@@ -475,6 +468,7 @@ mod tests {
             password_hash: password_service.hash("password").unwrap(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_server_repo = MockServerRepository::new()

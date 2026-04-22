@@ -1,6 +1,6 @@
 'use client';
 
-import { PrivateChannelWithUser } from '@/app/lib/api/private-channels';
+import type { PrivateChannelWithUser } from '../../types/models/privateChannels';
 import { useRouter, useParams } from 'next/navigation';
 import { usePrivateChannelStore } from '@/app/lib/stores/use-private-channel-store';
 import UserCard from '@/components/shared/user-card';
@@ -55,6 +55,7 @@ export default function PrivateConversationItem({
         username={recipientUser?.username}
         size={32}
         status={recipientUser?.status as Status | undefined}
+        avatarId={recipientUser?.avatar_id}
       />
 
       <span className="truncate text-sm flex-1">

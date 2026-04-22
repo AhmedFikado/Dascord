@@ -732,6 +732,7 @@ mod tests {
             language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_server_repo = MockServerRepository::new().with_server(server.clone());
@@ -934,6 +935,7 @@ mod tests {
             language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_server_repo = MockServerRepository::new()

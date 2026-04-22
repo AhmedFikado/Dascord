@@ -66,6 +66,7 @@ export default function UserPanel() {
                     <UserPanelBar
                         username={user.username}
                         status={user.status}
+                        avatarId={user.avatar_id}
                         onClick={() => setIsOpen(!isOpen)}
                     />
 

@@ -1,5 +1,6 @@
 import { useCurrentUser } from '@/app/lib/hooks/use-current-user';
 import { useMessageStore } from '@/app/lib/stores/use-messages-store';
+import { usePrivateChannelStore } from '@/app/lib/stores/use-private-channel-store';
 import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { Button } from '@/components/ui/button';
 import { Role } from '@/types/models/role';
@@ -24,6 +25,8 @@ export default function MessageItem({ message, onDelete, onUpdate, onAddReaction
   const currentUserId = user?.id;
   const members = useServerStore(state => state.members);
   const currentServer = useServerStore(state => state.currentServer);
+  const privateChannels = usePrivateChannelStore(state => state.privateChannels);
+  const currentPrivateChannel = usePrivateChannelStore(state => state.currentPrivateChannel);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
@@ -71,13 +74,16 @@ export default function MessageItem({ message, onDelete, onUpdate, onAddReaction
     : false;
 
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
     return new Intl.DateTimeFormat('fr-FR', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(dateStr));
+    }).format(date);
   };
   const handleUserContextMenu = (e: React.MouseEvent) => {
     if (!currentServer || message.user_id === currentUserId || isSystemMessage) return;
@@ -92,6 +98,13 @@ export default function MessageItem({ message, onDelete, onUpdate, onAddReaction
   const isOwnerMessage = message.user_id === currentUserId;
   const canDeleteMessage = isOwnerMessage || isAdminOrOwner;
   const isSystemMessage = message.username === 'Système';
+  const targetMember = members.find(m => m.user_id === message.user_id);
+  const dmChannel =
+    privateChannels.find(channel => channel.id === message.channel_id)
+    || (currentPrivateChannel?.id === message.channel_id ? currentPrivateChannel : undefined);
+  const messageAvatarId = message.user_id === currentUserId
+    ? user?.avatar_id
+    : targetMember?.user.avatar_id || dmChannel?.recipient_user?.avatar_id;
 
   const handleSaveEdit = () => {
     if (editContent.trim() && editContent !== message.content) {
@@ -148,7 +161,7 @@ export default function MessageItem({ message, onDelete, onUpdate, onAddReaction
       )}
 
       <div onContextMenu={handleUserContextMenu} className="cursor-pointer flex-shrink-0">
-        <UserCard username={message.username} />
+        <UserCard username={message.username} avatarId={messageAvatarId} />
       </div>
 
       <div className="flex-1 min-w-0">
@@ -214,8 +227,7 @@ export default function MessageItem({ message, onDelete, onUpdate, onAddReaction
                   e.stopPropagation();
                   handleToggleReaction(emoji);
                 }}
-                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors ${
-                  currentUserId && users.includes(currentUserId)
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors ${currentUserId && users.includes(currentUserId)
                     ? 'bg-purple/30 border-purple text-white'
                     : 'bg-gray-300 border-gray-200 text-gray-light hover:border-purple'
                 }`}

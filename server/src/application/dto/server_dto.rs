@@ -56,6 +56,7 @@ pub struct UserInfo {
     pub username: String,
     pub email: String,
     pub status: String,
+    pub avatar_id: Option<String>,
     pub created_at: String,
 }
 
