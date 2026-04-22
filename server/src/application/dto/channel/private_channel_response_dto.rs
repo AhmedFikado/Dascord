@@ -9,6 +9,7 @@ pub struct UserInfo {
     pub id: Uuid,
     pub username: String,
     pub status: String,
+    pub avatar_id: Option<String>,
 }
 
 impl From<User> for UserInfo {
@@ -17,6 +18,7 @@ impl From<User> for UserInfo {
             id: user.id,
             username: user.username,
             status: user.status,
+            avatar_id: user.avatar_id,
         }
     }
 }
@@ -54,7 +56,6 @@ impl PrivateChannelResponse {
     }
 }
 
-
 // --- UNIT TESTS ---
 
 #[cfg(test)]
@@ -70,6 +71,7 @@ mod tests {
             password_hash: "hash".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         }
     }
 

@@ -80,5 +80,16 @@ impl UserRepository for MockUserRepository {
         } else {
             Ok(None)
         }
-}
+    }
+
+    async fn update_avatar(&self, id: Uuid, avatar_id: Option<String>) -> AppResult<()> {
+        let mut users = self.users.lock().unwrap();
+
+        if let Some(user) = users.get_mut(&id) {
+            user.avatar_id = avatar_id;
+            Ok(())
+        } else {
+            Err(AppError::NotFound("User not found".to_string()))
+        }
+    }
 }

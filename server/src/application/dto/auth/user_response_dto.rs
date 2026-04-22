@@ -9,6 +9,7 @@ pub struct UserResponse {
     pub email: String,
     pub status: String,
     pub language: String,
+    pub avatar_id: Option<String>,
 }
 
 impl From<User> for UserResponse {
@@ -19,6 +20,7 @@ impl From<User> for UserResponse {
             email: user.email,
             status: user.status,
             language: user.language,
+            avatar_id: user.avatar_id,
         }
     }
 }
@@ -40,6 +42,7 @@ mod tests {
             created_at: chrono::Utc::now(),
             password_hash: "hashed_password".to_string(),
             language: "fr".to_string(),
+            avatar_id: None,
         };
 
         let user_response = UserResponse::from(user);
@@ -59,6 +62,7 @@ mod tests {
             email: "test@test.com".to_string(),
             status: "ONLINE".to_string(),
             language: "fr".to_string(),
+            avatar_id: None,
         };
         let json = serde_json::to_string(&response).unwrap();
         assert!(json.contains("test"));

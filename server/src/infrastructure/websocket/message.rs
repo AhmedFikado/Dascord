@@ -86,6 +86,9 @@ pub enum ServerMessage {
         status: String,
     },
 
+    /// Changement d'avatar d'un utilisateur
+    UserAvatarUpdated { user_id: String, avatar_id: String },
+
     /// Un membre a rejoint le serveur
     ServerMemberJoined {
         server_id: String,

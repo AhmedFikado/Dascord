@@ -150,6 +150,7 @@ mod tests {
                     password_hash: "hash".to_string(),
                     status: "ONLINE".to_string(),
                     created_at: Utc::now(),
+                    avatar_id: None,
                 }
             }))
         }
@@ -168,6 +169,10 @@ mod tests {
 
         async fn update_user(&self, user: User) -> AppResult<Option<User>> {
             Ok(Some(user))
+        }
+
+        async fn update_avatar(&self, _id: Uuid, _avatar_id: Option<String>) -> AppResult<()> {
+            Ok(())
         }
     }
 

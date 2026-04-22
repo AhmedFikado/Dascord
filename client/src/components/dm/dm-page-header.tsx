@@ -2,7 +2,7 @@
 
 import { Menu } from 'lucide-react';
 import { useMobileNav } from '@/app/(dashboard)/layout';
-import { PrivateChannelWithUser } from '@/app/lib/api/private-channels';
+import type { PrivateChannelWithUser } from '../../types/models/privateChannels';
 import UserCard from '@/components/shared/user-card';
 import { Status } from '@/types/models/status';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +32,7 @@ export default function DMPageHeader({ conversation }: DMPageHeaderProps) {
             username={recipientUser.username}
             size={32}
             status={recipientUser.status as Status | undefined}
+            avatarId={recipientUser.avatar_id}
           />
           <span className="font-semibold text-white truncate">
             {recipientUser.username}

@@ -1,6 +1,6 @@
 'use client';
 
-import { PrivateChannelWithUser } from '@/app/lib/api/private-channels';
+import { PrivateChannelWithUser } from '../../types/models/privateChannels';
 
 interface DMHeaderProps {
   conversation: PrivateChannelWithUser;

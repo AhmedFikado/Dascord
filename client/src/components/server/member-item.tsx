@@ -96,7 +96,9 @@ export default function MemberItem({ member, isRole = false, serverId }: Memberi
         onContextMenu={handleContextMenu}
       >
         <div className="flex items-center gap-3 px-2 py-1.5">
-          <UserCard username={member.user.username} size={32} status={member.user.status} />
+          <UserCard username={member.user.username} size={32} status={member.user.status}
+          avatarId={member.user.avatar_id}
+          />
           <span className="text-sm font-medium text-gray-light group-hover:text-white transition-colors truncate">
             {member.user.username}
           </span>

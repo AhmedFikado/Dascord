@@ -8,7 +8,6 @@ db.messages.createIndex({ channel_id: 1, created_at: -1 }, { name: 'idx_channel_
 
 // Index pour trouver les messages d'un utilisateur (pour suppression en cascade)
 db.messages.createIndex({ user_id: 1 }, { name: 'idx_user_messages' });
-
 print("MongoDB: Collection 'messages' créée avec indexes");
 
 // Données de démonstration pour tests

@@ -10,6 +10,7 @@ pub struct User {
     #[serde(skip_serializing)]
     pub password_hash: String,
     pub status: String,
+    pub avatar_id: Option<String>,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -22,6 +23,7 @@ impl User {
             language: "fr".to_string(),
             password_hash,
             status: "OFFLINE".to_string(),
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         }
     }

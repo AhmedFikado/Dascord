@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { privateChannelsApi, PrivateChannelWithUser } from '../api/private-channels';
+import { PrivateChannelWithUser } from '../../../types/models/privateChannels';
+import { privateChannelsApi } from '../api/private-channels';
 import { privateMessagesApi } from '../api/private-messages';
 import { Message } from '@/types/models/message';
 import i18n from 'i18next';

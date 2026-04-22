@@ -364,6 +364,7 @@ mod tests {
             password_hash: "hash".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         }
     }
 

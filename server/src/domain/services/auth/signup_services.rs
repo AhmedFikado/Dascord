@@ -46,6 +46,7 @@ impl<R: UserRepository> SignupUseCase<R> {
                 email: user.email,
                 status: user.status,
                 language: user.language,
+                avatar_id: user.avatar_id,
             },
             token,
         })
