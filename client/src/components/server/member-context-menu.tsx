@@ -39,6 +39,16 @@ export default function MemberContextMenu({
   const isDialogOpen = showTempBan || showPermBan;
 
   useEffect(() => {
+    if (!menuRef.current) return;
+    const menu = menuRef.current;
+    const rect = menu.getBoundingClientRect();
+    const clampedLeft = Math.min(x, window.innerWidth - rect.width - 8);
+    const clampedTop = Math.min(y, window.innerHeight - rect.height - 8);
+    menu.style.left = `${Math.max(8, clampedLeft)}px`;
+    menu.style.top = `${Math.max(8, clampedTop)}px`;
+  }, [x, y]);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (isDialogOpen) {
         return;
