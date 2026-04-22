@@ -60,6 +60,15 @@ pub struct UserInfo {
     pub created_at: String,
 }
 
+#[derive(Debug, Serialize, ToSchema)]
+pub struct BanResponse {
+    pub user_id: String,
+    pub username: String,
+    pub ban_type: String,
+    pub banned_at: String,
+    pub expires_at: Option<String>,
+}
+
 // --- UNIT TESTS ---
 
 #[cfg(test)]

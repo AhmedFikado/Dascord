@@ -7,6 +7,7 @@ import { Role } from '@/types/models/role';
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { Check, Edit, SmilePlus, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Message } from '../../types/models/message';
 import UserCard from '../shared/user-card';
@@ -32,7 +33,11 @@ export default function MessageItem({ message, onDelete, onUpdate, onAddReaction
   const [editContent, setEditContent] = useState(message.content);
   const [isActionsVisible, setIsActionsVisible] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [hoveredReaction, setHoveredReaction] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; anchorTop: number; left: number } | null>(null);
+  const [tooltipReady, setTooltipReady] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const { addReaction, removeReaction } = useMessageStore();
   const { t } = useTranslation();
 
@@ -127,8 +132,27 @@ export default function MessageItem({ message, onDelete, onUpdate, onAddReaction
     }
   };
 
+  useEffect(() => {
+    if (!tooltipRef.current || !tooltipPos) return;
+    const rect = tooltipRef.current.getBoundingClientRect();
+    const clampedLeft = Math.min(tooltipPos.left, window.innerWidth - rect.width - 8);
+    const wouldOverflowBottom = tooltipPos.top + rect.height + 8 > window.innerHeight;
+    const finalTop = wouldOverflowBottom
+      ? tooltipPos.anchorTop - rect.height - 4
+      : tooltipPos.top;
+    tooltipRef.current.style.left = `${Math.max(8, clampedLeft)}px`;
+    tooltipRef.current.style.top = `${Math.max(8, finalTop)}px`;
+    setTooltipReady(true);
+  }, [hoveredReaction, tooltipPos]);
+
   const isGifUrl = (text: string) => {
     return text.trim().includes('giphy.com/media');
+  };
+
+  const getUsernameById = (userId: string): string => {
+    if (userId === currentUserId && user?.username) return user.username;
+    const member = members.find(m => m.user_id === userId);
+    return member?.user?.username ?? 'Utilisateur inconnu';
   };
 
   return (
@@ -221,20 +245,43 @@ export default function MessageItem({ message, onDelete, onUpdate, onAddReaction
         {!isSystemMessage && (
           <div className="flex flex-wrap items-center gap-1 mt-1">
             {Object.entries(message.reactions || {}).map(([emoji, users]) => (
-              <button
+              <div
                 key={emoji}
-                onClick={e => {
-                  e.stopPropagation();
-                  handleToggleReaction(emoji);
+                className="relative"
+                onMouseEnter={e => {
+                  const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
+                  setTooltipReady(false);
+                  setTooltipPos({ top: rect.bottom + 4, anchorTop: rect.top, left: rect.left });
+                  setHoveredReaction(emoji);
                 }}
+                onMouseLeave={() => {
+                  setHoveredReaction(null);
+                  setTooltipPos(null);
+                  setTooltipReady(false);
+                }}
+<<<<<<< S03-03-Ajouter-des-images-comme-avatar
                 className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors ${currentUserId && users.includes(currentUserId)
                     ? 'bg-purple/30 border-purple text-white'
                     : 'bg-gray-300 border-gray-200 text-gray-light hover:border-purple'
                 }`}
+=======
+>>>>>>> dev
               >
-                <span>{emoji}</span>
-                <span>{users.length}</span>
-              </button>
+                <button
+                  onClick={e => {
+                    e.stopPropagation();
+                    handleToggleReaction(emoji);
+                  }}
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors ${
+                    currentUserId && users.includes(currentUserId)
+                      ? 'bg-purple/30 border-purple text-white'
+                      : 'bg-gray-300 border-gray-200 text-gray-light hover:border-purple'
+                  }`}
+                >
+                  <span>{emoji}</span>
+                  <span>{users.length}</span>
+                </button>
+              </div>
             ))}
 
             <div className="relative" ref={emojiPickerRef}>
@@ -266,6 +313,25 @@ export default function MessageItem({ message, onDelete, onUpdate, onAddReaction
           y={contextMenu.y}
           onClose={() => setContextMenu(null)}
         />
+      )}
+
+      {hoveredReaction && tooltipPos && typeof window !== 'undefined' && createPortal(
+        <div
+          ref={tooltipRef}
+          style={{ position: 'fixed', top: tooltipPos.top, left: tooltipPos.left }}
+          className={`z-[9999] bg-gray-300 border border-gray-200 rounded-lg shadow-xl p-2 min-w-[150px] transition-opacity duration-100 ${tooltipReady ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <p className="text-xs font-semibold text-gray-light mb-1.5">Ont réagis</p>
+          <div className="flex flex-col gap-1">
+            {(message.reactions?.[hoveredReaction] ?? []).map(userId => (
+              <div key={userId} className="flex items-center gap-2">
+                <UserCard username={getUsernameById(userId)} size={20} />
+                <span className="text-xs text-white">{getUsernameById(userId)}</span>
+              </div>
+            ))}
+          </div>
+        </div>,
+        document.body
       )}
     </>
   );

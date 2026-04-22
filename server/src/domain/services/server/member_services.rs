@@ -145,6 +145,58 @@ impl<R: ServerRepository> BanMemberUseCase<R> {
     }
 }
 
+pub struct ListBannedMembersUseCase<R: ServerRepository> {
+    server_repo: R,
+}
+
+impl<R: ServerRepository> ListBannedMembersUseCase<R> {
+    pub fn new(server_repo: R) -> Self {
+        Self { server_repo }
+    }
+
+    pub async fn execute(&self, server_id: Uuid, requester_id: Uuid) -> AppResult<Vec<(Uuid, String, BanType, chrono::DateTime<chrono::Utc>, Option<chrono::DateTime<chrono::Utc>>)>> {
+        let server = self.server_repo.find_by_id(server_id).await?
+            .ok_or_else(|| AppError::NotFound("Server not found".to_string()))?;
+
+        if server.owner_id != requester_id {
+            let requester_role = self.server_repo.get_member_role(server_id, requester_id).await?
+                .ok_or_else(|| AppError::Unauthorized("Not a member".to_string()))?;
+
+            if requester_role != ServerRole::Admin {
+                return Err(AppError::Unauthorized("Only owner or admin can view banned members".to_string()));
+            }
+        }
+
+        self.server_repo.list_bans(server_id).await
+    }
+}
+
+pub struct UnbanMemberUseCase<R: ServerRepository> {
+    server_repo: R,
+}
+
+impl<R: ServerRepository> UnbanMemberUseCase<R> {
+    pub fn new(server_repo: R) -> Self {
+        Self { server_repo }
+    }
+
+    pub async fn execute(&self, server_id: Uuid, target_user_id: Uuid, requester_id: Uuid) -> AppResult<()> {
+        let server = self.server_repo.find_by_id(server_id).await?
+            .ok_or_else(|| AppError::NotFound("Server not found".to_string()))?;
+
+        if server.owner_id != requester_id {
+            let requester_role = self.server_repo.get_member_role(server_id, requester_id).await?
+                .ok_or_else(|| AppError::Unauthorized("Not a member".to_string()))?;
+
+            if requester_role != ServerRole::Admin {
+                return Err(AppError::Unauthorized("Only owner or admin can unban members".to_string()));
+            }
+        }
+
+        self.server_repo.unban_member(server_id, target_user_id).await
+    }
+}
+
 pub struct KickMemberUseCase<R: ServerRepository> {
     server_repo: R,
 }
@@ -452,6 +504,71 @@ mod tests {
         let use_case = BanMemberUseCase::new(mock_server_repo);
 
         let result = use_case.execute(server.id, member_id, requester_id, crate::domain::entities::BanType::Permanent, None).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_list_banned_members_success() {
+        let owner_id = Uuid::new_v4();
+        let banned_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_ban(server.id, banned_id, "banned_user".to_string(), crate::domain::entities::BanType::Permanent, None);
+        let use_case = ListBannedMembersUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, owner_id).await;
+        assert!(result.is_ok());
+        let bans = result.unwrap();
+        assert_eq!(bans.len(), 1);
+        assert_eq!(bans[0].0, banned_id);
+    }
+
+    #[tokio::test]
+    async fn test_list_banned_members_unauthorized() {
+        let owner_id = Uuid::new_v4();
+        let requester_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, requester_id, ServerRole::Member);
+        let use_case = ListBannedMembersUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, requester_id).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_unban_member_success() {
+        let owner_id = Uuid::new_v4();
+        let banned_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_ban(server.id, banned_id, "banned_user".to_string(), crate::domain::entities::BanType::Permanent, None);
+        let use_case = UnbanMemberUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, banned_id, owner_id).await;
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_unban_member_unauthorized() {
+        let owner_id = Uuid::new_v4();
+        let banned_id = Uuid::new_v4();
+        let requester_id = Uuid::new_v4();
+        let server = Server::new("Test".to_string(), owner_id, "CODE".to_string());
+
+        let mock_server_repo = MockServerRepository::new()
+            .with_server(server.clone())
+            .with_member(server.id, requester_id, ServerRole::Member)
+            .with_ban(server.id, banned_id, "banned_user".to_string(), crate::domain::entities::BanType::Permanent, None);
+        let use_case = UnbanMemberUseCase::new(mock_server_repo);
+
+        let result = use_case.execute(server.id, banned_id, requester_id).await;
         assert!(result.is_err());
     }
 
