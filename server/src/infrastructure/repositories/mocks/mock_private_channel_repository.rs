@@ -39,6 +39,8 @@ impl PrivateChannelRepository for MockPrivateChannelRepository {
             user1,
             user2,
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
 
         let mut channels = self.channels.lock().unwrap();
@@ -78,7 +80,37 @@ impl PrivateChannelRepository for MockPrivateChannelRepository {
         Ok(user_channels)
     }
 
-    async fn update_last_message_at(&self, _channel_id: Uuid, _last_message_at: chrono::DateTime<chrono::Utc>) -> AppResult<()> {
+    async fn update_last_message_at(&self, _channel_id: Uuid, _sender_id: Uuid, _last_message_at: chrono::DateTime<chrono::Utc>) -> AppResult<()> {
+        Ok(())
+    }
+
+    async fn hide_channel(&self, channel_id: Uuid, user_id: Uuid) -> AppResult<()> {
+        let mut channels = self.channels.lock().unwrap();
+        for channel in channels.iter_mut() {
+            if channel.id == channel_id {
+                if channel.user1 == user_id {
+                    channel.user1_hidden = true;
+                } else if channel.user2 == user_id {
+                    channel.user2_hidden = true;
+                }
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    async fn unhide_channel(&self, channel_id: Uuid, user_id: Uuid) -> AppResult<()> {
+        let mut channels = self.channels.lock().unwrap();
+        for channel in channels.iter_mut() {
+            if channel.id == channel_id {
+                if channel.user1 == user_id {
+                    channel.user1_hidden = false;
+                } else if channel.user2 == user_id {
+                    channel.user2_hidden = false;
+                }
+                break;
+            }
+        }
         Ok(())
     }
 }

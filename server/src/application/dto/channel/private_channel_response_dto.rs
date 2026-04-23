@@ -9,6 +9,7 @@ pub struct UserInfo {
     pub id: Uuid,
     pub username: String,
     pub status: String,
+    pub avatar_id: Option<String>,
 }
 
 impl From<User> for UserInfo {
@@ -17,6 +18,7 @@ impl From<User> for UserInfo {
             id: user.id,
             username: user.username,
             status: user.status,
+            avatar_id: user.avatar_id,
         }
     }
 }
@@ -54,7 +56,6 @@ impl PrivateChannelResponse {
     }
 }
 
-
 // --- UNIT TESTS ---
 
 #[cfg(test)]
@@ -70,6 +71,7 @@ mod tests {
             password_hash: "hash".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         }
     }
 
@@ -80,6 +82,8 @@ mod tests {
             user1: Uuid::new_v4(),
             user2: Uuid::new_v4(),
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let response = PrivateChannelResponse::from(channel.clone());
         assert_eq!(response.id, channel.id);
@@ -98,6 +102,8 @@ mod tests {
             user1: user1_id,
             user2: user2_id,
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let recipient = make_user(user2_id);
         let response = PrivateChannelResponse::with_recipient(channel.clone(), Some(recipient));
@@ -116,6 +122,8 @@ mod tests {
             user1: Uuid::new_v4(),
             user2: Uuid::new_v4(),
             created_at: chrono::Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         let response = PrivateChannelResponse::with_recipient(channel.clone(), None);
         assert!(response.recipient_user.is_none());

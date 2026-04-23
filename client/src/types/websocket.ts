@@ -75,6 +75,13 @@ export type ServerMessage =
         status: string;
       };
     }
+    | {
+      type: 'UserAvatarUpdated';
+      payload: {
+        user_id: string;
+        avatar_id: string;
+      };
+    }
   | {
       type: 'MessageHistory';
       payload: {
@@ -174,6 +181,13 @@ export type ServerMessage =
         channel_id: string;
         user1_id: string;
         user2_id: string;
+      };
+    }
+  | {
+      type: 'PrivateChannelHidden';
+      payload: {
+        channel_id: string;
+        user_id: string;
       };
     };
 

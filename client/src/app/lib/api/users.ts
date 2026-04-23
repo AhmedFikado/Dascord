@@ -16,3 +16,18 @@ export const updateStatus = async (status: Status): Promise<User> => {
 export const updateUserInfo = async (userInfo: Partial<User>): Promise<User> => {
     return await apiClient.put<User>('/users/update_user', userInfo);
 };
+
+// Upload avatar
+export const uploadAvatar = async (file: File): Promise<{ avatar_id: string }> => {
+    const arrayBuffer = await file.arrayBuffer();
+    return await apiClient.post<{ avatar_id: string }>('/users/avatar', arrayBuffer, {
+        headers: {
+            'Content-Type': 'application/octet-stream',
+        },
+    });
+};
+
+// Get avatar URL
+export const getAvatarUrl = (avatarId: string): string => {
+    return `data:image/*;base64,${avatarId}`;
+};

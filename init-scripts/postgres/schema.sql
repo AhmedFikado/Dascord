@@ -11,6 +11,7 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     status user_status DEFAULT 'OFFLINE',
     language VARCHAR(10) DEFAULT 'fr',
+    avatar_id TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -42,7 +43,9 @@ CREATE TABLE privateMessageChannel (
     user1 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     user2 UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     last_message_at TIMESTAMPTZ DEFAULT NOW(),
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    user1_hidden BOOLEAN DEFAULT FALSE,
+    user2_hidden BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE bans (

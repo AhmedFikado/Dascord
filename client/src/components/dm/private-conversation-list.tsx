@@ -1,6 +1,7 @@
 'use client';
 
-import { PrivateChannelWithUser } from '@/app/lib/api/private-channels';
+import { PrivateChannelWithUser } from '../../types/models/privateChannels';
+
 import PrivateConversationItem from './private-conversation-item';
 import { useTranslation } from 'react-i18next';
 

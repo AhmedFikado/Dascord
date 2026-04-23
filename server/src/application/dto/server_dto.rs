@@ -56,7 +56,17 @@ pub struct UserInfo {
     pub username: String,
     pub email: String,
     pub status: String,
+    pub avatar_id: Option<String>,
     pub created_at: String,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct BanResponse {
+    pub user_id: String,
+    pub username: String,
+    pub ban_type: String,
+    pub banned_at: String,
+    pub expires_at: Option<String>,
 }
 
 // --- UNIT TESTS ---

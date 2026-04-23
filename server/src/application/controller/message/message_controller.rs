@@ -438,6 +438,7 @@ mod tests {
             language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_message_repo = MockMessageRepository::new();
@@ -769,6 +770,7 @@ mod tests {
             language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_message_repo = MockMessageRepository::new();
@@ -808,6 +810,7 @@ mod tests {
             language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_message_repo = MockMessageRepository::new();

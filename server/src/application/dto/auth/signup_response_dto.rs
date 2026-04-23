@@ -23,6 +23,7 @@ mod tests {
             email: "newuser@example.com".to_string(),
             status: "OFFLINE".to_string(),
             language: "en".to_string(),
+            avatar_id: None,
         };
         let response = SignupResponse {
             user,
@@ -45,6 +46,7 @@ mod tests {
             email: "test@test.com".to_string(),
             status: "OFFLINE".to_string(),
             language: "en".to_string(),
+            avatar_id: None,
         };
         let response = SignupResponse {
             user,

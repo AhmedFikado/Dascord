@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { privateChannelsApi, PrivateChannelWithUser } from '../api/private-channels';
+import { PrivateChannelWithUser } from '../../../types/models/privateChannels';
+import { privateChannelsApi } from '../api/private-channels';
 import { privateMessagesApi } from '../api/private-messages';
 import { Message } from '@/types/models/message';
 import i18n from 'i18next';
@@ -22,6 +23,7 @@ interface PrivateChannelState {
   addMessageLocally: (channelId: string, message: Message) => void;
   addReaction: (channelId: string, messageId: string, reaction: string, userId: string) => Promise<void>;
   removeReaction: (channelId: string, messageId: string, reaction: string, userId: string) => Promise<void>;
+  hidePrivateChannel: (channelId: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -243,6 +245,13 @@ export const usePrivateChannelStore = create<PrivateChannelState>((set, get) => 
     } catch (error) {
       console.error('Error removing reaction:', error);
     }
+  },
+
+  hidePrivateChannel: async (channelId: string) => {
+    await privateChannelsApi.hide(channelId);
+    set((state) => ({
+      privateChannels: state.privateChannels.filter((ch) => ch.id !== channelId),
+    }));
   },
 
   reset: () => {

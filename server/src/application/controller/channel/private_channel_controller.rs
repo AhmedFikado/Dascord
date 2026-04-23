@@ -111,6 +111,62 @@ pub async fn get_private_channel<PCR: PrivateChannelRepository, UR: UserReposito
     }
 }
 
+/// Cacher une discussion privée pour l'utilisateur courant
+#[utoipa::path(
+    patch,
+    path = "/channels/private/{id}/hide",
+    tag = "channels",
+    params(
+        ("id" = Uuid, Path, description = "ID du canal privé")
+    ),
+    responses(
+        (status = 200, description = "Discussion cachée avec succès"),
+        (status = 401, description = "Non authentifié"),
+        (status = 403, description = "Non autorisé"),
+        (status = 404, description = "Canal privé non trouvé"),
+    ),
+    security(
+        ("bearer_auth" = [])
+    )
+)]
+pub async fn hide_private_channel<PCR: PrivateChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<PrivateChannelController<PCR, UR>>>,
+    headers: HeaderMap,
+    Path(channel_id): Path<Uuid>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Missing or invalid Authorization header".to_string()))?;
+
+    let claims = handler.jwt_service.verify_token(token)
+        .map_err(|e| (StatusCode::UNAUTHORIZED, e.to_string()))?;
+
+    let user_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid user ID".to_string()))?;
+
+    handler.service.hide_private_channel(channel_id, user_id).await
+        .map_err(|e| match e {
+            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
+            AppError::Unauthorized(msg) => (StatusCode::FORBIDDEN, msg),
+            e => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+        })?;
+
+    // Notifier l'utilisateur via WebSocket
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.send_to_user(
+            user_id,
+            crate::infrastructure::websocket::ServerMessage::PrivateChannelHidden {
+                channel_id: channel_id.to_string(),
+                user_id: user_id.to_string(),
+            },
+        ).await;
+    }
+
+    Ok(StatusCode::OK)
+}
+
 /// Récupérer tous les canaux privés d'un utilisateur
 #[utoipa::path(
     get,
@@ -177,6 +233,8 @@ mod tests {
                 user1,
                 user2,
                 created_at: Utc::now(),
+                user1_hidden: false,
+                user2_hidden: false,
             };
             Ok(channel)
         }
@@ -193,7 +251,15 @@ mod tests {
             Ok(self.channels.iter().filter(|c| c.user1 == user_id || c.user2 == user_id).cloned().collect())
         }
 
-        async fn update_last_message_at(&self, _channel_id: Uuid, _last_message_at: chrono::DateTime<chrono::Utc>) -> crate::utils::error::AppResult<()> {
+        async fn update_last_message_at(&self, _channel_id: Uuid, _sender_id: Uuid, _last_message_at: chrono::DateTime<chrono::Utc>) -> crate::utils::error::AppResult<()> {
+            Ok(())
+        }
+
+        async fn hide_channel(&self, _channel_id: Uuid, _user_id: Uuid) -> crate::utils::error::AppResult<()> {
+            Ok(())
+        }
+
+        async fn unhide_channel(&self, _channel_id: Uuid, _user_id: Uuid) -> crate::utils::error::AppResult<()> {
             Ok(())
         }
     }
@@ -219,6 +285,7 @@ mod tests {
                     password_hash: "hash".to_string(),
                     status: "ONLINE".to_string(),
                     created_at: Utc::now(),
+                    avatar_id: None,
                 }
             }))
         }
@@ -232,6 +299,10 @@ mod tests {
         }
 
         async fn update_status(&self, _id: Uuid, _status: &str) -> crate::utils::error::AppResult<()> {
+            Ok(())
+        }
+
+        async fn update_avatar(&self, _id: Uuid, _avatar_id: Option<String>) -> crate::utils::error::AppResult<()> {
             Ok(())
         }
 
@@ -323,6 +394,8 @@ mod tests {
             user1,
             user2,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
 
         let repo = MockPrivateChannelRepository {
@@ -372,6 +445,8 @@ mod tests {
             user1,
             user2,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         
         let channel2 = PrivateChannel {
@@ -379,6 +454,8 @@ mod tests {
             user1,
             user2: user3,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
 
         let repo = MockPrivateChannelRepository {
@@ -440,6 +517,8 @@ mod tests {
             user1,
             user2,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
         
         let channel2 = PrivateChannel {
@@ -447,6 +526,8 @@ mod tests {
             user1: user2,
             user2: user3,
             created_at: Utc::now(),
+            user1_hidden: false,
+            user2_hidden: false,
         };
 
         let repo = MockPrivateChannelRepository {

@@ -9,10 +9,11 @@ import { useTranslation } from 'react-i18next';
 interface UserPanelBarProps {
     username: string;
     status: Status;
+    avatarId?: string;
     onClick: () => void;
 }
 
-export default function UserPanelBar({ username, status, onClick }: UserPanelBarProps) {
+export default function UserPanelBar({ username, status, avatarId, onClick }: UserPanelBarProps) {
     const { t } = useTranslation();
     const getStatusLabel = (status: Status) => {
         switch (status) {
@@ -29,7 +30,7 @@ export default function UserPanelBar({ username, status, onClick }: UserPanelBar
             className="fixed bottom-2 rounded-2xl pl-3 py-1 left-3 gap-3 bg-gray-400 w-72 flex items-center justify-between z-50 cursor-pointer hover:bg-gray-300 transition-colors"
         >
             <div className="flex items-center gap-3">
-                <UserCard username={username} />
+                <UserCard username={username} avatarId={avatarId} />
                 <div className="flex-1 min-w-0">
                     <span className="font-semibold text-white">{username}</span>
                     <div className='flex'>

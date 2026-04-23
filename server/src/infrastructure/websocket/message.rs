@@ -86,6 +86,9 @@ pub enum ServerMessage {
         status: String,
     },
 
+    /// Changement d'avatar d'un utilisateur
+    UserAvatarUpdated { user_id: String, avatar_id: String },
+
     /// Un membre a rejoint le serveur
     ServerMemberJoined {
         server_id: String,
@@ -125,11 +128,23 @@ pub enum ServerMessage {
         user_id: String,
     },
 
+    /// Un membre a été débanni du serveur
+    MemberUnbanned {
+        server_id: String,
+        user_id: String,
+    },
+
     /// Un nouveau canal privé a été créé entre deux utilisateurs
     PrivateChannelCreated {
         channel_id: String,
         user1_id: String,
         user2_id: String,
+    },
+
+    /// Une discussion privée a été cachée par un utilisateur
+    PrivateChannelHidden {
+        channel_id: String,
+        user_id: String,
     },
 
     /// Réaction ajoutée à un message
