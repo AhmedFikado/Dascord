@@ -153,7 +153,14 @@
         "delete_permanently": "Delete permanently",
         "unsaved_changes": "Warning — you have unsaved changes!",
         "reset": "Reset",
-        "save": "Save"
+        "save": "Save",
+        "banned_members": "Banned members",
+        "no_banned_members": "No banned members",
+        "unban": "Unban",
+        "banned_at": "Banned on",
+        "unban_in": "Unbanned in",
+        "ban_permanent": "Permanent ban",
+        "ban_expired": "Expired"
     },
     "Server_sidebar": {
         "create_channel": "Create a channel"
@@ -187,6 +194,10 @@
         "update_error": "Error updating",
         "settings": "Settings",
         "my_account": "My account",
+        "avatar": "Avatar",
+        "avatar_hint": "Click to change",
+        "change_avatar": "Change avatar",
+        "confirm_avatar": "Confirm",
         "username": "Username",
         "email": "Email",
         "save": "Save",

@@ -25,6 +25,8 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
         crate::application::controller::server_controller::leave_server,
         crate::application::controller::server_controller::list_members,
         crate::application::controller::server_controller::update_member_role,
+        crate::application::controller::server_controller::list_banned_members,
+        crate::application::controller::server_controller::unban_member,
         crate::application::controller::server_controller::get_channels,
         crate::application::controller::server_controller::create_channel,
 
@@ -73,6 +75,7 @@ use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
             crate::domain::value_objects::ServerRole,
             crate::application::dto::read_status_dto::UnreadChannelDto,
             crate::application::dto::read_status_dto::UnreadStatusResponse,
+            crate::application::dto::server_dto::BanResponse,
         )
     ),
     tags(

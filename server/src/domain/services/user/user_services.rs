@@ -34,6 +34,7 @@ impl<R: UserRepository> UserService<R> {
             password_hash,
             status: "OFFLINE".to_string(),
             language,
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         };
 
@@ -124,6 +125,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let repo = MockUserRepository::new().with_user(user);
@@ -146,6 +148,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let repo = MockUserRepository::new().with_user(user);
@@ -168,6 +171,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let repo = MockUserRepository::new().with_user(user);
@@ -191,6 +195,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let repo = MockUserRepository::new().with_user(user);
@@ -214,6 +219,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let repo = MockUserRepository::new().with_user(existing_user);
@@ -242,6 +248,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let repo = MockUserRepository::new().with_user(existing_user);
@@ -292,6 +299,7 @@ mod tests {
             language: String::new(),
             status: String::new(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let result = service.update_user(user).await.unwrap();
@@ -310,6 +318,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let user_id = existing_user.id;

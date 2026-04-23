@@ -12,6 +12,7 @@ pub trait UserRepository: Send + Sync + Clone {
     async fn find_by_username(&self, username: &str) -> AppResult<Option<User>>;
     async fn update_status(&self, id: Uuid, status: &str) -> AppResult<()>;
     async fn update_user(&self, user: User) -> AppResult<Option<User>>;
+    async fn update_avatar(&self, id: Uuid, avatar_id: Option<String>) -> AppResult<()>;
 }
 
 #[derive(Clone)]
@@ -47,7 +48,7 @@ impl UserRepository for PostgresUserRepository {
 
     async fn find_by_id(&self, id: Uuid) -> AppResult<Option<User>> {
         let result = sqlx::query_as::<_, User>(
-            "SELECT id, username, email, password_hash, status::text as status, language, created_at FROM users WHERE id = $1"
+            "SELECT id, username, email, password_hash, status::text as status, language, avatar_id, created_at FROM users WHERE id = $1"
         )
         .bind(id)
         .fetch_optional(&self.pool)
@@ -59,7 +60,7 @@ impl UserRepository for PostgresUserRepository {
 
     async fn find_by_email(&self, email: &str) -> AppResult<Option<User>> {
         let result = sqlx::query_as::<_, User>(
-            "SELECT id, username, email, password_hash, status::text as status, language, created_at FROM users WHERE email = $1"
+            "SELECT id, username, email, password_hash, status::text as status, language, avatar_id, created_at FROM users WHERE email = $1"
         )
         .bind(email)
         .fetch_optional(&self.pool)
@@ -71,7 +72,7 @@ impl UserRepository for PostgresUserRepository {
 
     async fn find_by_username(&self, username: &str) -> AppResult<Option<User>> {
         let result = sqlx::query_as::<_, User>(
-            "SELECT id, username, email, password_hash, status::text as status, language, created_at FROM users WHERE username = $1"
+            "SELECT id, username, email, password_hash, status::text as status, language, avatar_id, created_at FROM users WHERE username = $1"
         )
         .bind(username)
         .fetch_optional(&self.pool)
@@ -94,7 +95,7 @@ impl UserRepository for PostgresUserRepository {
 
     async fn update_user(&self, user: User) -> AppResult<Option<User>> {
         sqlx::query_as::<_, User>(
-            "UPDATE users SET username = $1, email = $2, language = $3 WHERE id = $4 RETURNING id, username, email, password_hash, status::text as status, language, created_at"
+            "UPDATE users SET username = $1, email = $2, language = $3 WHERE id = $4 RETURNING id, username, email, password_hash, status::text as status, language, avatar_id, created_at"
         )
         .bind(&user.username)
         .bind(&user.email)
@@ -103,5 +104,16 @@ impl UserRepository for PostgresUserRepository {
         .fetch_optional(&self.pool)
         .await
         .map_err(|e| AppError::InternalServerError(e.to_string()))
+    }
+
+    async fn update_avatar(&self, id: Uuid, avatar_id: Option<String>) -> AppResult<()> {
+        sqlx::query("UPDATE users SET avatar_id = $1 WHERE id = $2")
+            .bind(avatar_id)
+            .bind(id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        Ok(())
     }
 }

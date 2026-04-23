@@ -8,6 +8,7 @@ pub struct UserDto {
     pub email: String,
     pub status: String,
     pub language: String,
+    pub avatar_id: Option<String>,
 }
 
 
@@ -26,6 +27,7 @@ mod tests {
             email: "test@example.com".to_string(),
             language: "en".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
         };
 
         assert_eq!(dto.username, "testuser");
@@ -40,6 +42,7 @@ mod tests {
             email: "test@test.com".to_string(),
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
+            avatar_id: None,
         };
         let json = serde_json::to_string(&dto).unwrap();
         assert!(json.contains("test"));

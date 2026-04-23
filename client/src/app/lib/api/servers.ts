@@ -1,5 +1,6 @@
 import { Server } from "@/types/models/Server";
 import { Member } from "@/types/models/member";
+import { BannedMember } from "@/types/models/BannedMember";
 import { apiClient } from './client';
 import { Role } from "@/types/models/role";
 
@@ -68,5 +69,15 @@ export const serversApi = {
             ban_type: banType,
             expires_at: expiresAt ?? null,
         });
+    },
+
+    // GET /servers/{id}/bans
+    getBannedMembers: async (serverId: string): Promise<BannedMember[]> => {
+        return await apiClient.get<BannedMember[]>(`/servers/${serverId}/bans`);
+    },
+
+    // DELETE /servers/{id}/members/:userId/ban
+    unbanMember: async (serverId: string, userId: string): Promise<void> => {
+        await apiClient.delete(`/servers/${serverId}/members/${userId}/ban`);
     },
 };

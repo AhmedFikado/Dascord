@@ -1,21 +1,6 @@
 import { apiClient } from './client';
+import type { PrivateChannel, PrivateChannelWithUser } from '../../../types/models/privateChannels';
 
-export interface PrivateChannel {
-  id: string;
-  user1: string;
-  user2: string;
-  created_at: Date;
-  updated_at: Date;
-}
-
-export interface PrivateChannelWithUser extends PrivateChannel {
-  recipient_user?: {
-    id: string;
-    username: string;
-    email: string;
-    status: string;
-  };
-}
 
 export const privateChannelsApi = {
   // POST /channels/private - Create a new private channel

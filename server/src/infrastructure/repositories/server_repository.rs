@@ -24,6 +24,8 @@ pub trait ServerRepository: Send + Sync + Clone {
     async fn update_member_role(&self, server_id: Uuid, user_id: Uuid, role: ServerRole) -> AppResult<()>;
     async fn is_banned(&self, server_id: Uuid, user_id: Uuid) -> AppResult<bool>;
     async fn ban_member(&self, server_id: Uuid, user_id: Uuid, banned_by: Uuid, ban_type: BanType, expires_at: Option<chrono::DateTime<chrono::Utc>>) -> AppResult<()>;
+    async fn list_bans(&self, server_id: Uuid) -> AppResult<Vec<(Uuid, String, BanType, chrono::DateTime<chrono::Utc>, Option<chrono::DateTime<chrono::Utc>>)>>;
+    async fn unban_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<()>;
 }
 
 #[derive(Clone)]
@@ -269,5 +271,43 @@ impl ServerRepository for PostgresServerRepository {
         .map_err(|e| AppError::InternalServerError(e.to_string()))?;
 
         self.remove_member(server_id, user_id).await
+    }
+
+    async fn list_bans(&self, server_id: Uuid) -> AppResult<Vec<(Uuid, String, BanType, chrono::DateTime<chrono::Utc>, Option<chrono::DateTime<chrono::Utc>>)>> {
+        let rows = sqlx::query(
+            "SELECT b.user_id, u.username, b.ban_type::text, b.created_at, b.expires_at \
+             FROM bans b \
+             JOIN users u ON b.user_id = u.id \
+             WHERE b.server_id = $1 AND (b.expires_at IS NULL OR b.expires_at > NOW())"
+        )
+        .bind(server_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+
+        let bans = rows.into_iter().map(|row| {
+            let user_id: Uuid = row.get("user_id");
+            let username: String = row.get("username");
+            let ban_type_str: String = row.get("ban_type");
+            let ban_type = match ban_type_str.as_str() {
+                "TEMPORARY" => BanType::Temporary,
+                _ => BanType::Permanent,
+            };
+            let banned_at: chrono::DateTime<chrono::Utc> = row.get("created_at");
+            let expires_at: Option<chrono::DateTime<chrono::Utc>> = row.get("expires_at");
+            (user_id, username, ban_type, banned_at, expires_at)
+        }).collect();
+
+        Ok(bans)
+    }
+
+    async fn unban_member(&self, server_id: Uuid, user_id: Uuid) -> AppResult<()> {
+        sqlx::query("DELETE FROM bans WHERE server_id = $1 AND user_id = $2")
+            .bind(server_id)
+            .bind(user_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| AppError::InternalServerError(e.to_string()))?;
+        Ok(())
     }
 }

@@ -86,6 +86,9 @@ pub enum ServerMessage {
         status: String,
     },
 
+    /// Changement d'avatar d'un utilisateur
+    UserAvatarUpdated { user_id: String, avatar_id: String },
+
     /// Un membre a rejoint le serveur
     ServerMemberJoined {
         server_id: String,
@@ -121,6 +124,12 @@ pub enum ServerMessage {
 
     /// Un membre a été banni du serveur
     MemberBanned {
+        server_id: String,
+        user_id: String,
+    },
+
+    /// Un membre a été débanni du serveur
+    MemberUnbanned {
         server_id: String,
         user_id: String,
     },

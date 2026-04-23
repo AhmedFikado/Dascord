@@ -162,7 +162,14 @@
         "delete_permanently": "Supprimer définitivement",
         "unsaved_changes": "Attention — vous avez des modifications non sauvegardées !",
         "reset": "Réinitialiser",
-        "save": "Sauvegarder"
+        "save": "Sauvegarder",
+        "banned_members": "Membres bannis",
+        "no_banned_members": "Aucun membre banni",
+        "unban": "Débannir",
+        "banned_at": "Banni le",
+        "unban_in": "Débanni dans",
+        "ban_permanent": "Bannissement permanent",
+        "ban_expired": "Expiré"
     },
     "Server_sidebar": {
         "create_channel": "Créer un salon"
@@ -196,6 +203,10 @@
         "update_error": "Erreur lors de la mise à jour",
         "settings": "Paramètres",
         "my_account": "Mon compte",
+        "avatar": "Avatar",
+        "avatar_hint": "Cliquez pour modifier",
+        "change_avatar": "Changer l'avatar",
+        "confirm_avatar": "Confirmer",
         "username": "Nom d'utilisateur",
         "email": "Email",
         "save": "Sauvegarder",

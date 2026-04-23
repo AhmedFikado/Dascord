@@ -75,6 +75,13 @@ export type ServerMessage =
         status: string;
       };
     }
+    | {
+      type: 'UserAvatarUpdated';
+      payload: {
+        user_id: string;
+        avatar_id: string;
+      };
+    }
   | {
       type: 'MessageHistory';
       payload: {

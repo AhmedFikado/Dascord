@@ -24,6 +24,7 @@ mod tests {
             email: "test@example.com".to_string(),
             language: "en".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
         };
 
         let response = LoginResponse {
@@ -46,6 +47,7 @@ mod tests {
             language: "en".to_string(),
             email: "test@test.com".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
         };
         let response = LoginResponse {
             message: "Success".to_string(),

@@ -157,6 +157,58 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         }
         break;
 
+      case 'UserAvatarUpdated':
+        {
+          const { user_id, avatar_id } = message.payload;
+
+          const authStore = useAuthStore.getState();
+          if (authStore.user?.id === user_id) {
+            useAuthStore.setState({
+              user: { ...authStore.user, avatar_id },
+            });
+          }
+
+          const serverStore = useServerStore.getState();
+          useServerStore.setState({
+            members: serverStore.members.map((member: Member) =>
+              member.user_id === user_id
+                ? { ...member, user: { ...member.user, avatar_id } }
+                : member
+            ),
+          });
+
+          const privateStore = usePrivateChannelStore.getState();
+          const updatedChannels = privateStore.privateChannels.map(channel => {
+            if (channel.recipient_user?.id === user_id) {
+              return {
+                ...channel,
+                recipient_user: {
+                  ...channel.recipient_user,
+                  avatar_id,
+                },
+              };
+            }
+            return channel;
+          });
+
+          const updatedCurrentChannel =
+            privateStore.currentPrivateChannel?.recipient_user?.id === user_id
+              ? {
+                ...privateStore.currentPrivateChannel,
+                recipient_user: {
+                  ...privateStore.currentPrivateChannel.recipient_user,
+                  avatar_id,
+                },
+              }
+              : privateStore.currentPrivateChannel;
+
+          usePrivateChannelStore.setState({
+            privateChannels: updatedChannels,
+            currentPrivateChannel: updatedCurrentChannel,
+          });
+        }
+        break;
+
       case 'MessageUpdated':
         // Un message a été modifié dans le WS store
         get().updateMessage(

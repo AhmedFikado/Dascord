@@ -30,6 +30,7 @@ impl<R: UserRepository> GetUserInfoUseCase<R> {
             email: user.email,
             language: user.language,
             status: user.status,
+            avatar_id: user.avatar_id,
         })
     }
 }
@@ -69,6 +70,7 @@ impl<R: UserRepository> UpdateUserStatusUseCase<R> {
             email: user.email,
             status: user.status,
             language: user.language,
+            avatar_id: user.avatar_id,
         })
     }
 }
@@ -96,6 +98,7 @@ impl<R: UserRepository> UpdateUserInfoUseCase<R> {
             email: updated.email,
             language: updated.language,
             status: updated.status,
+            avatar_id: updated.avatar_id,
         })
     }
 }
@@ -121,6 +124,7 @@ mod tests {
             password_hash: password_service.hash("password").unwrap(),
             language: "en".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         };
 
@@ -158,6 +162,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_repo = MockUserRepository::new().with_user(user);
@@ -181,6 +186,7 @@ mod tests {
             password_hash: password_service.hash("password").unwrap(),
             language: "en".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         };
 
@@ -213,6 +219,7 @@ mod tests {
             password_hash: password_service.hash("password").unwrap(),
             language: "en".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         };
 
@@ -237,6 +244,7 @@ mod tests {
             password_hash: password_service.hash("password").unwrap(),
             language: "en".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         };
 
@@ -251,6 +259,7 @@ mod tests {
             password_hash: String::new(),
             language: "en".to_string(),
             status: "ONLINE".to_string(),
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         };
 
@@ -276,6 +285,7 @@ mod tests {
             password_hash: String::new(),
             language: "en".to_string(),
             status: String::new(),
+            avatar_id: None,
             created_at: chrono::Utc::now(),
         };
 
@@ -296,6 +306,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_repo = MockUserRepository::new().with_user(user);

@@ -31,6 +31,8 @@ pub struct ServerHandler<SR: ServerRepository, CR: ChannelRepository, UR: UserRe
     update_member_role_uc: Arc<UpdateMemberRoleUseCase<SR>>,
     kick_member_uc: Arc<KickMemberUseCase<SR>>,
     ban_member_uc: Arc<BanMemberUseCase<SR>>,
+    list_banned_members_uc: Arc<ListBannedMembersUseCase<SR>>,
+    unban_member_uc: Arc<UnbanMemberUseCase<SR>>,
     get_channels_uc: Arc<GetChannelsUseCase<SR, CR>>,
     create_channel_uc: Arc<CreateChannelUseCase<SR, CR>>,
     user_repo: Arc<UR>,
@@ -57,6 +59,8 @@ impl<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository> ServerHand
             update_member_role_uc: Arc::new(UpdateMemberRoleUseCase::new(server_repo.clone())),
             kick_member_uc: Arc::new(KickMemberUseCase::new(server_repo.clone())),
             ban_member_uc: Arc::new(BanMemberUseCase::new(server_repo.clone())),
+            list_banned_members_uc: Arc::new(ListBannedMembersUseCase::new(server_repo.clone())),
+            unban_member_uc: Arc::new(UnbanMemberUseCase::new(server_repo.clone())),
             get_channels_uc: Arc::new(GetChannelsUseCase::new(
                 server_repo.clone(),
                 channel_repo.clone(),
@@ -567,6 +571,98 @@ pub async fn ban_member<SR: ServerRepository, CR: ChannelRepository, UR: UserRep
     ))
 }
 
+/// - Lister les membres bannis d'un serveur
+#[utoipa::path(
+    get,
+    path = "/servers/{id}/bans",
+    tag = "servers",
+    responses(
+        (status = 200, description = "Liste des membres bannis", body = Vec<crate::application::dto::server_dto::BanResponse>),
+        (status = 401, description = "Non autorisé"),
+        (status = 403, description = "Permissions insuffisantes"),
+        (status = 404, description = "Serveur non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn list_banned_members<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    Path(id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let requester_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    let bans = handler.list_banned_members_uc.execute(id, requester_id).await?;
+
+    let response: Vec<crate::application::dto::server_dto::BanResponse> = bans.into_iter().map(|(user_id, username, ban_type, banned_at, expires_at)| {
+        crate::application::dto::server_dto::BanResponse {
+            user_id: user_id.to_string(),
+            username,
+            ban_type: format!("{:?}", ban_type),
+            banned_at: banned_at.to_rfc3339(),
+            expires_at: expires_at.map(|e| e.to_rfc3339()),
+        }
+    }).collect();
+
+    Ok((StatusCode::OK, Json(response)))
+}
+
+/// - Débannir un membre d'un serveur
+#[utoipa::path(
+    delete,
+    path = "/servers/{id}/members/{userId}/ban",
+    tag = "servers",
+    responses(
+        (status = 200, description = "Membre débanni"),
+        (status = 401, description = "Non autorisé"),
+        (status = 403, description = "Permissions insuffisantes"),
+        (status = 404, description = "Serveur ou membre non trouvé")
+    ),
+    security(("bearer_auth" = []))
+)]
+pub async fn unban_member<SR: ServerRepository, CR: ChannelRepository, UR: UserRepository>(
+    State(handler): State<Arc<ServerHandler<SR, CR, UR>>>,
+    Path((id, target_user_id)): Path<(Uuid, Uuid)>,
+    headers: HeaderMap,
+) -> Result<impl IntoResponse, AppError> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or_else(|| {
+            AppError::Unauthorized("Missing or invalid Authorization header".to_string())
+        })?;
+
+    let claims = handler.jwt_service.verify_token(token)?;
+    let requester_id = Uuid::parse_str(&claims.sub_id)
+        .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
+
+    handler.unban_member_uc.execute(id, target_user_id, requester_id).await?;
+
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_all(
+            crate::infrastructure::websocket::ServerMessage::MemberUnbanned {
+                server_id: id.to_string(),
+                user_id: target_user_id.to_string(),
+            },
+        ).await;
+    }
+
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({"message": "Member unbanned"})),
+    ))
+}
+
 /// - Obtenir les channels d'un serveur
 #[utoipa::path(
     get,
@@ -732,6 +828,7 @@ mod tests {
             language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_server_repo = MockServerRepository::new().with_server(server.clone());
@@ -934,6 +1031,7 @@ mod tests {
             language: "en".to_string(),
             status: "ONLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_server_repo = MockServerRepository::new()

@@ -101,6 +101,7 @@ mod tests {
             status: "ONLINE".to_string(),
             language: "en".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_repo = MockUserRepository::new().with_user(user);
@@ -128,6 +129,7 @@ mod tests {
             language: "en".to_string(),
             status: "OFFLINE".to_string(),
             created_at: chrono::Utc::now(),
+            avatar_id: None,
         };
 
         let mock_repo = MockUserRepository::new().with_user(user);

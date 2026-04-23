@@ -11,6 +11,7 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     status user_status DEFAULT 'OFFLINE',
     language VARCHAR(10) DEFAULT 'fr',
+    avatar_id TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
