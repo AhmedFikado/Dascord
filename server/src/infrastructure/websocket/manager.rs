@@ -1,4 +1,5 @@
 use dashmap::DashMap;
+use sqlx::{PgPool, Row};
 use std::collections::HashSet;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -18,6 +19,9 @@ pub struct ConnectionManager {
 
     /// Mapping user_id -> connection_id (pour envoyer directement à un utilisateur)
     user_connections: DashMap<Uuid, Uuid>,
+
+    /// Pool PostgreSQL optionnel (pour le tracking des messages non lus)
+    pg_pool: Option<PgPool>,
 }
 
 impl ConnectionManager {
@@ -27,7 +31,14 @@ impl ConnectionManager {
             connections: DashMap::new(),
             rooms: DashMap::new(),
             user_connections: DashMap::new(),
+            pg_pool: None,
         }
+    }
+
+    /// Attacher un pool PostgreSQL (pour le tracking non lus)
+    pub fn with_pg_pool(mut self, pool: PgPool) -> Self {
+        self.pg_pool = Some(pool);
+        self
     }
 
     /// Ajouter une connexion
@@ -189,6 +200,156 @@ impl ConnectionManager {
         );
     }
 
+    /// Notifier les membres du serveur non présents dans le channel qu'il y a un message non lu
+    async fn notify_unread(
+        &self,
+        channel_id: &str,
+        message_id: &str,
+        sender_connection_id: Uuid,
+        pg_pool: &PgPool,
+    ) {
+        let channel_uuid = match Uuid::parse_str(channel_id) {
+            Ok(u) => u,
+            Err(_) => return,
+        };
+
+        // Récupérer le server_id et tous les membres du serveur pour ce channel
+        let rows = match sqlx::query(
+            "SELECT sm.user_id, c.server_id
+             FROM server_members sm
+             INNER JOIN channels c ON c.server_id = sm.server_id
+             WHERE c.id = $1",
+        )
+        .bind(channel_uuid)
+        .fetch_all(pg_pool)
+        .await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::error!("Erreur récupération membres pour unread: {:?}", e);
+                return;
+            }
+        };
+
+        if rows.is_empty() {
+            return;
+        }
+
+        let server_id: Uuid = rows[0].get("server_id");
+
+        // Récupérer les connection_ids abonnés au channel (sauf l'émetteur)
+        let subscribed_conn_ids: HashSet<Uuid> = self
+            .rooms
+            .get(channel_id)
+            .map(|r| r.value().clone())
+            .unwrap_or_default();
+
+        for row in &rows {
+            let member_user_id: Uuid = row.get("user_id");
+
+            // Récupérer la connexion de ce membre
+            let member_conn_id = match self.user_connections.get(&member_user_id) {
+                Some(c) => *c,
+                None => continue, // Pas connecté
+            };
+
+            // Si le membre est l'émetteur du message, on ignore
+            if member_conn_id == sender_connection_id {
+                continue;
+            }
+
+            // Si le membre est abonné au channel (en train de le lire), on ignore
+            if subscribed_conn_ids.contains(&member_conn_id) {
+                continue;
+            }
+
+            // Insérer en base le statut non lu (ON CONFLICT DO NOTHING = on garde le premier)
+            let _ = sqlx::query(
+                "INSERT INTO unread_channels (user_id, channel_id, first_unread_message_id, is_private)
+                 VALUES ($1, $2, $3, FALSE)
+                 ON CONFLICT (user_id, channel_id) DO NOTHING",
+            )
+            .bind(member_user_id)
+            .bind(channel_uuid)
+            .bind(message_id)
+            .execute(pg_pool)
+            .await;
+
+            // Envoyer l'événement UnreadUpdate
+            self.send_to_user(
+                member_user_id,
+                ServerMessage::UnreadUpdate {
+                    server_id: server_id.to_string(),
+                    channel_id: channel_id.to_string(),
+                    first_unread_message_id: message_id.to_string(),
+                },
+            )
+            .await;
+        }
+    }
+
+    /// Notifier le destinataire d'un message privé non lu
+    pub async fn notify_private_channel_unread(
+        &self,
+        channel_id: &str,
+        message_id: &str,
+        sender_user_id: Uuid,
+        recipient_user_id: Uuid,
+    ) {
+        // Vérifier si le destinataire est abonné au channel privé
+        let subscribed = self
+            .rooms
+            .get(channel_id)
+            .map(|r| {
+                r.value()
+                    .iter()
+                    .any(|conn_id| {
+                        self.connections
+                            .get(conn_id)
+                            .map(|c| c.user_id == recipient_user_id)
+                            .unwrap_or(false)
+                    })
+            })
+            .unwrap_or(false);
+
+        if subscribed {
+            return;
+        }
+
+        // Insérer en base si pg_pool disponible
+        if let Some(pool) = &self.pg_pool {
+            if let Ok(channel_uuid) = uuid::Uuid::parse_str(channel_id) {
+                let _ = sqlx::query(
+                    "INSERT INTO unread_channels (user_id, channel_id, first_unread_message_id, is_private)
+                     VALUES ($1, $2, $3, TRUE)
+                     ON CONFLICT (user_id, channel_id) DO NOTHING",
+                )
+                .bind(recipient_user_id)
+                .bind(channel_uuid)
+                .bind(message_id)
+                .execute(pool)
+                .await;
+            }
+        }
+
+        // Envoyer l'événement UnreadUpdate au destinataire
+        self.send_to_user(
+            recipient_user_id,
+            ServerMessage::UnreadUpdate {
+                server_id: "private".to_string(),
+                channel_id: channel_id.to_string(),
+                first_unread_message_id: message_id.to_string(),
+            },
+        )
+        .await;
+
+        tracing::debug!(
+            "UnreadUpdate (private) envoyé à {} pour channel {}",
+            recipient_user_id,
+            channel_id
+        );
+    }
+
     /// Gérer les messages reçus du client
     pub async fn handle_client_message(
         &self,
@@ -235,20 +396,31 @@ impl ConnectionManager {
                     match message_repository.save_message(&new_message).await {
                         Ok(message_id) => {
                             // Broadcast à tous les membres du channel
-                            let message = ServerMessage::NewMessage {
+                            let ws_message = ServerMessage::NewMessage {
                                 channel_id: channel_id.clone(),
-                                message_id,
+                                message_id: message_id.clone(),
                                 user_id: conn.user_id.to_string(),
                                 username: conn.username.clone(),
                                 content,
                                 created_at: new_message.created_at,
                             };
 
-                            self.broadcast_to_channel(&channel_id, message).await;
+                            self.broadcast_to_channel(&channel_id, ws_message).await;
                             tracing::info!(
                                 "Message sauvegardé et diffusé sur le channel {}",
                                 channel_id
                             );
+
+                            // Notifier les membres non abonnés (messages non lus)
+                            if let Some(pool) = &self.pg_pool {
+                                self.notify_unread(
+                                    &channel_id,
+                                    &message_id,
+                                    connection_id,
+                                    pool,
+                                )
+                                .await;
+                            }
                         }
                         Err(e) => {
                             tracing::error!("Erreur lors de la sauvegarde du message: {:?}", e);
@@ -321,11 +493,11 @@ impl ConnectionManager {
             user_id: user_id.to_string(),
             status,
         };
-        
+
         for conn in self.connections.iter() {
             let _ = conn.value().send(message.clone());
         }
-        
+
         tracing::info!("Status change broadcasted for user {}", user_id);
     }
 }

@@ -8,3 +8,5 @@ pub mod mock_server_repository;
 pub mod mock_user_repository;
 #[cfg(test)]
 pub mod mock_private_channel_repository;
+#[cfg(test)]
+pub mod mock_read_status_repository;

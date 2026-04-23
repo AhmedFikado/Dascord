@@ -3,6 +3,7 @@
 import type { PrivateChannelWithUser } from '../../types/models/privateChannels';
 import { useRouter, useParams } from 'next/navigation';
 import { usePrivateChannelStore } from '@/app/lib/stores/use-private-channel-store';
+import { useUnreadStore } from '@/app/lib/stores/use-unread-store';
 import UserCard from '@/components/shared/user-card';
 import { Status } from '@/types/models/status';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +21,10 @@ export default function PrivateConversationItem({
   const { t } = useTranslation();
   const currentDmId = params?.dmId as string | undefined;
   const { setCurrentPrivateChannel, fetchMessages, hidePrivateChannel } = usePrivateChannelStore();
+  const { isChannelUnread } = useUnreadStore();
   const [isHovered, setIsHovered] = useState(false);
+
+  const isUnread = isChannelUnread(conversation.id);
 
   const handleClick = async () => {
     setCurrentPrivateChannel(conversation);
@@ -58,9 +62,13 @@ export default function PrivateConversationItem({
         avatarId={recipientUser?.avatar_id}
       />
 
-      <span className="truncate text-sm flex-1">
+      <span className={`truncate text-sm flex-1 ${isUnread && !isActive ? 'font-semibold text-white' : ''}`}>
         {recipientUser?.username || t('DM.unknown_user')}
       </span>
+
+      {isUnread && !isActive && (
+        <span className="w-2.5 h-2.5 bg-red-500 rounded-full flex-shrink-0" />
+      )}
 
       {isHovered && (
         <button

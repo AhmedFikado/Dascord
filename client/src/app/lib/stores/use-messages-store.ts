@@ -11,6 +11,7 @@ interface MessageState {
   error: string | null;
 
   fetchMessages: (channelId: string) => Promise<void>;
+  invalidateChannel: (channelId: string) => void;
   sendMessage: (channelId: string, content: string) => Promise<void>;
   deleteMessage: (channelId: string, messageId: string) => Promise<void>;
   updateMessage: (channelId: string, messageId: string, content: string) => Promise<void>;
@@ -26,6 +27,14 @@ export const useMessageStore = create<MessageState>(set => ({
   messagesByChannel: {},
   isLoading: false,
   error: null,
+
+  invalidateChannel: (channelId: string) => {
+    set(state => {
+      const updated = { ...state.messagesByChannel };
+      delete updated[channelId];
+      return { messagesByChannel: updated };
+    });
+  },
 
   fetchMessages: async (channelId: string) => {
     set({ isLoading: true, error: null });

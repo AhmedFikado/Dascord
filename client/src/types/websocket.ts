@@ -189,6 +189,14 @@ export type ServerMessage =
         channel_id: string;
         user_id: string;
       };
+    }
+  | {
+      type: 'UnreadUpdate';
+      payload: {
+        server_id: string;
+        channel_id: string;
+        first_unread_message_id: string;
+      };
     };
 
 // État de la connexion WebSocket
