@@ -54,10 +54,27 @@ export function useWebSocket(token: string | null, config?: WebSocketConfig) {
       };
 
       // Réception d'un message du serveur
-      ws.onmessage = event => {
+      ws.onmessage = async event => {
         try {
           const message: ServerMessage = JSON.parse(event.data);
           handleServerMessage(message);
+
+          if (message.type === 'NewMessage') {
+            try {
+              const { isPermissionGranted, requestPermission, sendNotification } =
+                await import('@tauri-apps/plugin-notification');
+              const granted =
+                (await isPermissionGranted()) || (await requestPermission()) === 'granted';
+              if (granted) {
+                sendNotification({
+                  title: message.payload.username,
+                  body: message.payload.content,
+                });
+              }
+            } catch (e) {
+              console.error('Notification error:', e);
+            }
+          }
         } catch (error) {
           console.error('Failed to parse WebSocket message:', error);
         }
