@@ -229,6 +229,9 @@
         "send_button": "Send",
         "input_placeholder": "Send a private message..."
     },
+    "Message_list": {
+        "unread_marker": "Unread"
+    },
     "Use_private_channel_store": {
         "Error_loading_channels": "Error loading conversations",
         "Error_sending_message": "Error sending message",

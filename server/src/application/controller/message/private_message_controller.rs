@@ -110,10 +110,21 @@ pub async fn send_private_message<MR: MessageRepository, PCR: PrivateChannelRepo
         };
         // Broadcast à tous les clients qui ont rejoint ce channel (en train de le regarder)
         ws_manager.broadcast_to_channel(&channel_id.to_string(), ws_event.clone()).await;
-        // Envoyer aussi directement au destinataire (même s'il ne regarde pas ce channel)
+        // Envoyer le message + notifier non lu au destinataire
         if let Ok(Some(channel)) = controller.services.get_channel(channel_id).await {
             let recipient_id = if channel.user1 == user_id { channel.user2 } else { channel.user1 };
+            // Envoyer le NewMessage directement au destinataire s'il n'est pas dans le channel
             ws_manager.send_to_user(recipient_id, ws_event).await;
+            // Notifier le statut non lu si le destinataire ne regarde pas ce channel
+            let message_id = message.id.clone().unwrap_or_default();
+            ws_manager
+                .notify_private_channel_unread(
+                    &channel_id.to_string(),
+                    &message_id,
+                    user_id,
+                    recipient_id,
+                )
+                .await;
         }
     }
 

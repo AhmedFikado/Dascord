@@ -3,7 +3,8 @@
 import { Server } from "@/types/models/Server";
 import { useRouter, useParams } from 'next/navigation';
 import { useChannelStore } from '@/app/lib/stores/use-channel-store';
-import { useEffect, useState } from 'react';
+import { useUnreadStore } from '@/app/lib/stores/use-unread-store';
+import { useEffect } from 'react';
 
 interface ServerItemProps {
     server: Server;
@@ -14,14 +15,11 @@ export default function ServerItem({ server }: ServerItemProps) {
     const params = useParams();
     const currentServerId = params?.serverId as string | undefined;
     const { channelsByServer, fetchChannels } = useChannelStore();
-    const [firstChannelId, setFirstChannelId] = useState<string | null>(null);
+    const { isServerUnread, fetchUnreadForServer } = useUnreadStore();
 
     useEffect(() => {
-        const channels = channelsByServer[server.id];
-        if (channels && channels.length > 0) {
-            setFirstChannelId(channels[0].id);
-        }
-    }, [channelsByServer, server.id]);
+        fetchUnreadForServer(server.id);
+    }, [server.id, fetchUnreadForServer]);
 
     const getInitials = (name: string): string => {
         const words = name.trim().split(' ');
@@ -45,23 +43,29 @@ export default function ServerItem({ server }: ServerItemProps) {
     };
 
     const isActive = currentServerId === server.id;
+    const hasUnread = isServerUnread(server.id);
 
     return (
-        <div
-            onClick={handleClick}
-            className={`
-                w-12 h-12 min-w-12 min-h-12 flex-shrink-0
-                flex items-center justify-center 
-                text-white font-bold text-lg cursor-pointer 
-                transition-all duration-200 mb-2 rounded-[16px]
-                ${isActive
-                    ? 'bg-blurple rounded-[16px]'
-                    : 'bg-gray-300 rounded-[16px] hover:bg-blurple hover:rounded-[16px]'
-                }
-            `}
-            title={server.name}
-        >
-            {getInitials(server.name)}
+        <div className="relative mb-2">
+            <div
+                onClick={handleClick}
+                className={`
+                    w-12 h-12 min-w-12 min-h-12 flex-shrink-0
+                    flex items-center justify-center
+                    text-white font-bold text-lg cursor-pointer
+                    transition-all duration-200 rounded-[16px]
+                    ${isActive
+                        ? 'bg-blurple rounded-[16px]'
+                        : 'bg-gray-300 rounded-[16px] hover:bg-blurple hover:rounded-[16px]'
+                    }
+                `}
+                title={server.name}
+            >
+                {getInitials(server.name)}
+            </div>
+            {hasUnread && !isActive && (
+                <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-backgroundPrimary" />
+            )}
         </div>
     );
 }

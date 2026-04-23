@@ -17,6 +17,7 @@ interface PrivateChannelState {
   createOrGetPrivateChannel: (currentUserId: string, recipientId: string) => Promise<PrivateChannelWithUser>;
   setCurrentPrivateChannel: (channel: PrivateChannelWithUser) => void;
   fetchMessages: (channelId: string) => Promise<void>;
+  invalidateChannel: (channelId: string) => void;
   sendMessage: (channelId: string, content: string) => Promise<void>;
   deleteMessage: (channelId: string, messageId: string) => Promise<void>;
   updateMessage: (channelId: string, messageId: string, content: string) => Promise<void>;
@@ -102,6 +103,14 @@ export const usePrivateChannelStore = create<PrivateChannelState>((set, get) => 
 
   setCurrentPrivateChannel: (channel) => {
     set({ currentPrivateChannel: channel });
+  },
+
+  invalidateChannel: (channelId: string) => {
+    set(state => {
+      const updated = { ...state.messagesByChannel };
+      delete updated[channelId];
+      return { messagesByChannel: updated };
+    });
   },
 
   fetchMessages: async (channelId: string) => {
