@@ -8,6 +8,7 @@ import { useParams, usePathname } from 'next/navigation';
 import UserPanel from "@/components/user/user-panel";
 import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { useState, createContext, useContext, useEffect } from 'react';
+import { useElectronNotifications } from '@/hooks/useElectronNotifications';
 
 interface MobileNavContextType {
     openNav: () => void;
@@ -33,6 +34,7 @@ export default function DashboardLayout({
     const [isMembersOpen, setIsMembersOpen] = useState(false);
     const [isNavOpen, setIsNavOpen] = useState(false);
     const { setCurrentServer, servers } = useServerStore();
+    useElectronNotifications();
 
     useEffect(() => {
         if (serverId && servers.length > 0) {
