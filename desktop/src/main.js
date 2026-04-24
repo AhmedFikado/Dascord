@@ -41,10 +41,11 @@ function startNextServer() {
     };
 
     if (app.isPackaged) {
-      const nextCliPath = path.join(clientDir, 'node_modules', 'next', 'dist', 'bin', 'next');
-      nextProcess = spawn('node', [nextCliPath, 'start', '-p', String(NEXT_PORT)], {
-        cwd: clientDir,
-        env,
+      const standaloneDir = path.join(process.resourcesPath, 'standalone');
+      const serverScript = path.join(standaloneDir, 'server.js');
+      nextProcess = spawn('node', [serverScript], {
+        cwd: standaloneDir,
+        env: { ...env, HOSTNAME: '127.0.0.1', PORT: String(NEXT_PORT) },
         stdio: IS_DEV ? 'inherit' : 'ignore',
       });
     } else {

@@ -1,6 +1,7 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 const path = require('path');
+const fs = require('fs');
 
 module.exports = {
   packagerConfig: {
@@ -10,11 +11,24 @@ module.exports = {
     executableName: 'Dascord',
     icon: path.join(__dirname, 'assets', 'icon'),
     extraResource: [
-      path.join(__dirname, '..', 'client', '.next'),
-      path.join(__dirname, '..', 'client', 'public'),
-      path.join(__dirname, '..', 'client', 'node_modules'),
-      path.join(__dirname, '..', 'client', 'package.json'),
+      path.join(__dirname, '..', 'client', '.next', 'standalone'),
     ],
+  },
+  hooks: {
+    preMake: async () => {
+      const standaloneDir = path.join(__dirname, '..', 'client', '.next', 'standalone');
+      const staticSrc = path.join(__dirname, '..', 'client', '.next', 'static');
+      const staticDst = path.join(standaloneDir, '.next', 'static');
+      const publicSrc = path.join(__dirname, '..', 'client', 'public');
+      const publicDst = path.join(standaloneDir, 'public');
+
+      if (fs.existsSync(staticSrc)) {
+        fs.cpSync(staticSrc, staticDst, { recursive: true });
+      }
+      if (fs.existsSync(publicSrc)) {
+        fs.cpSync(publicSrc, publicDst, { recursive: true });
+      }
+    },
   },
   rebuildConfig: {},
   makers: [
