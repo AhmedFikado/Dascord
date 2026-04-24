@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/app/lib/stores/use-auth-store';
 import { useServerStore } from '@/app/lib/stores/use-server-store';
+import { useChannelStore } from '@/app/lib/stores/use-channel-store';
 import { usePrivateChannelStore } from '@/app/lib/stores/use-private-channel-store';
 import { useUnreadStore } from '@/app/lib/stores/use-unread-store';
 import { Member } from '@/types/models/member';
@@ -426,6 +427,36 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           message.payload.channel_id,
           message.payload.first_unread_message_id
         );
+        break;
+
+      case 'ServerNameUpdated':
+        {
+          const { server_id, name } = message.payload;
+          useServerStore.setState(state => ({
+            servers: state.servers.map(s => s.id === server_id ? { ...s, name } : s),
+            currentServer: state.currentServer?.id === server_id
+              ? { ...state.currentServer, name }
+              : state.currentServer,
+          }));
+        }
+        break;
+
+      case 'ChannelNameUpdated':
+        {
+          const { channel_id, server_id, name } = message.payload;
+          useChannelStore.setState(state => ({
+            channels: state.channels.map(c => c.id === channel_id ? { ...c, name } : c),
+            currentChannel: state.currentChannel?.id === channel_id
+              ? { ...state.currentChannel, name }
+              : state.currentChannel,
+            channelsByServer: {
+              ...state.channelsByServer,
+              [server_id]: (state.channelsByServer[server_id] || []).map(
+                c => c.id === channel_id ? { ...c, name } : c
+              ),
+            },
+          }));
+        }
         break;
 
       case 'Error':
