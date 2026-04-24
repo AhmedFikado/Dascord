@@ -185,6 +185,19 @@ pub enum ServerMessage {
     ServerDeleted {
         server_id: String,
     },
+
+    /// Le nom d'un serveur a été modifié
+    ServerNameUpdated {
+        server_id: String,
+        name: String,
+    },
+
+    /// Le nom d'un channel a été modifié
+    ChannelNameUpdated {
+        channel_id: String,
+        server_id: String,
+        name: String,
+    },
 }
 
 /// Structure pour les données d'un message dans l'historique

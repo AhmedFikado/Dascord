@@ -117,6 +117,17 @@ pub async fn update_channel<CR: ChannelRepository, SR: ServerRepository>(
         .to_string();
 
     let channel = handler.update_channel_uc.execute(id, user_id, name).await?;
+
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_all(
+            crate::infrastructure::websocket::ServerMessage::ChannelNameUpdated {
+                channel_id: channel.id.clone(),
+                server_id: channel.server_id.clone(),
+                name: channel.name.clone(),
+            },
+        ).await;
+    }
+
     Ok((StatusCode::OK, Json(channel)))
 }
 
