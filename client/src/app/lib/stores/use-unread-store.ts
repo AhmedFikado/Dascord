@@ -61,7 +61,6 @@ export const useUnreadStore = create<UnreadState>((set, get) => ({
 
   addUnread: (serverId: string, channelId: string, firstMessageId: string) => {
     set((state) => {
-      if (state.unreadChannels[channelId]) return state;
       const updatedChannels = { ...state.unreadChannels, [channelId]: firstMessageId };
       const updatedMapping = { ...state.channelToServer, [channelId]: serverId };
       const updatedServers = new Set(state.unreadServers);
