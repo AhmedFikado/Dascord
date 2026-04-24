@@ -10,6 +10,7 @@ import TempBanDialog from './temp-ban-dialog';
 
 interface MemberContextMenuProps {
   targetMemberId: string;
+  targetMemberRole: Role;
   serverId: string;
   onClose: () => void;
   x: number;
@@ -18,6 +19,7 @@ interface MemberContextMenuProps {
 
 export default function MemberContextMenu({
   targetMemberId,
+  targetMemberRole,
   serverId,
   onClose,
   x,
@@ -32,7 +34,8 @@ export default function MemberContextMenu({
   const { createOrGetPrivateChannel } = usePrivateChannelStore();
 
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const hasPermission = currentUserRole === Role.OWNER || currentUserRole === Role.ADMIN;
+  const canModerateTarget = (currentUserRole === Role.OWNER) ||
+    (currentUserRole === Role.ADMIN && targetMemberRole !== Role.OWNER && targetMemberRole !== Role.ADMIN);
 
   const [showTempBan, setShowTempBan] = useState(false);
   const [showPermBan, setShowPermBan] = useState(false);
@@ -87,15 +90,12 @@ export default function MemberContextMenu({
         throw new Error('User IDs are missing');
       }
 
-      console.log('Opening/Creating DM with:', targetMemberId);
       const channel = await createOrGetPrivateChannel(userId, targetMemberId);
       console.log('Channel obtained:', channel.id);
       router.push(`/dms/${channel.id}`);
       onClose();
     } catch (error: any) {
       console.error('Erreur lors de l\'ouverture du message privé:', error);
-      // Still try to navigate even if there was an error, as the channel might exist
-      // This will be handled by the store's error state
     }
   };
 
@@ -116,7 +116,7 @@ export default function MemberContextMenu({
           >
             {t('DM.send_private_message')}
           </button>
-          {hasPermission && (
+          {canModerateTarget && (
             <>
               <div className="border-t border-gray-200 my-1"></div>
               <button
