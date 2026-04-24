@@ -170,6 +170,22 @@ pub enum ServerMessage {
         first_unread_message_id: String,
     },
 
+    ChannelCreated {
+        server_id: String,
+        channel_id: String,
+        channel_name: String,
+        channel_type: String,
+    },
+
+    ChannelDeleted {
+        server_id: String,
+        channel_id: String,
+    },
+
+    ServerDeleted {
+        server_id: String,
+    },
+
     /// Le nom d'un serveur a été modifié
     ServerNameUpdated {
         server_id: String,

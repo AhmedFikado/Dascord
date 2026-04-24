@@ -75,7 +75,7 @@ export type ServerMessage =
         status: string;
       };
     }
-    | {
+  | {
       type: 'UserAvatarUpdated';
       payload: {
         user_id: string;
@@ -121,13 +121,14 @@ export type ServerMessage =
       };
     }
   | {
-    type: 'ServerMemberUpdated';
-    payload: {
-      server_id: string;
-      user_id: string;
-      username: string;
-    };
-  }| {
+      type: 'ServerMemberUpdated';
+      payload: {
+        server_id: string;
+        user_id: string;
+        username: string;
+      };
+    }
+  | {
       type: 'MemberRoleUpdated';
       payload: {
         server_id: string;
@@ -196,6 +197,28 @@ export type ServerMessage =
         server_id: string;
         channel_id: string;
         first_unread_message_id: string;
+      };
+    }
+  | {
+      type: 'ChannelCreated';
+      payload: {
+        server_id: string;
+        channel_id: string;
+        channel_name: string;
+        channel_type: string;
+      };
+    }
+  | {
+      type: 'ChannelDeleted';
+      payload: {
+        server_id: string;
+        channel_id: string;
+      };
+    }
+  | {
+      type: 'ServerDeleted';
+      payload: {
+        server_id: string;
       };
     }
   | {

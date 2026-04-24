@@ -161,7 +161,17 @@ pub async fn delete_channel<CR: ChannelRepository, SR: ServerRepository>(
     let user_id = Uuid::parse_str(&claims.sub_id)
         .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
-    handler.delete_channel_uc.execute(id, user_id).await?;
+    let deleted = handler.delete_channel_uc.execute(id, user_id).await?;
+
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_all(
+            crate::infrastructure::websocket::ServerMessage::ChannelDeleted {
+                server_id: deleted.server_id.clone(),
+                channel_id: deleted.id.clone(),
+            },
+        ).await;
+    }
+
     Ok((
         StatusCode::OK,
         Json(serde_json::json!({"message": "Channel deleted"})),

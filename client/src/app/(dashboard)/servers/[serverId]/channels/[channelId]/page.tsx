@@ -18,7 +18,7 @@ export default function ChannelPage({
 
   const { serverId, channelId } = use(params);
 
-  const { channels, isLoading: channelsLoading } = useChannels(serverId);
+  const { channels = [], isLoading: channelsLoading } = useChannels(serverId);
 
   const currentChannel = channels.find(c => c.id === channelId);
 
