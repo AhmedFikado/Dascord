@@ -94,7 +94,7 @@ impl<CR: ChannelRepository, SR: ServerRepository> DeleteChannelUseCase<CR, SR> {
         }
     }
 
-    pub async fn execute(&self, channel_id: Uuid, user_id: Uuid) -> AppResult<()> {
+    pub async fn execute(&self, channel_id: Uuid, user_id: Uuid) -> AppResult<ChannelResponse> {
         let channel = self
             .channel_repo
             .find_by_id(channel_id)
@@ -113,7 +113,9 @@ impl<CR: ChannelRepository, SR: ServerRepository> DeleteChannelUseCase<CR, SR> {
             ));
         }
 
-        self.channel_repo.delete(channel_id).await
+        let response = ChannelResponse::from(channel);
+        self.channel_repo.delete(channel_id).await?;
+        Ok(response)
     }
 }
 

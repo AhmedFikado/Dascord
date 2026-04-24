@@ -169,6 +169,22 @@ pub enum ServerMessage {
         channel_id: String,
         first_unread_message_id: String,
     },
+
+    ChannelCreated {
+        server_id: String,
+        channel_id: String,
+        channel_name: String,
+        channel_type: String,
+    },
+
+    ChannelDeleted {
+        server_id: String,
+        channel_id: String,
+    },
+
+    ServerDeleted {
+        server_id: String,
+    },
 }
 
 /// Structure pour les données d'un message dans l'historique

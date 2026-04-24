@@ -248,6 +248,15 @@ pub async fn delete_server<SR: ServerRepository, CR: ChannelRepository, UR: User
         .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
     handler.delete_server_uc.execute(id, user_id).await?;
+
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_all(
+            crate::infrastructure::websocket::ServerMessage::ServerDeleted {
+                server_id: id.to_string(),
+            },
+        ).await;
+    }
+
     Ok((
         StatusCode::OK,
         Json(serde_json::json!({"message": "Server deleted"})),
@@ -732,6 +741,18 @@ pub async fn create_channel<SR: ServerRepository, CR: ChannelRepository, UR: Use
         .create_channel_uc
         .execute(id, user_id, request)
         .await?;
+
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_all(
+            crate::infrastructure::websocket::ServerMessage::ChannelCreated {
+                server_id: channel.server_id.clone(),
+                channel_id: channel.id.clone(),
+                channel_name: channel.name.clone(),
+                channel_type: "text".to_string(),
+            },
+        ).await;
+    }
+
     Ok((StatusCode::CREATED, Json(channel)))
 }
 

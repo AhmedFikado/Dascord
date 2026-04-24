@@ -2,6 +2,7 @@ use crate::domain::services::channel::*;
 use crate::infrastructure::repositories::ServerRepository;
 use crate::infrastructure::repositories::channel::ChannelRepository;
 use crate::infrastructure::security::JWTService;
+use crate::infrastructure::websocket::ConnectionManager;
 use crate::utils::error::AppError;
 use axum::{
     extract::{Path, State},
@@ -18,6 +19,7 @@ pub struct ChannelHandler<CR: ChannelRepository, SR: ServerRepository> {
     get_channel_info_uc: Arc<GetChannelInfoUseCase<CR, SR>>,
     update_channel_uc: Arc<UpdateChannelUseCase<CR, SR>>,
     delete_channel_uc: Arc<DeleteChannelUseCase<CR, SR>>,
+    ws_manager: Option<Arc<ConnectionManager>>,
 }
 
 impl<CR: ChannelRepository, SR: ServerRepository> ChannelHandler<CR, SR> {
@@ -33,7 +35,13 @@ impl<CR: ChannelRepository, SR: ServerRepository> ChannelHandler<CR, SR> {
                 server_repo.clone(),
             )),
             delete_channel_uc: Arc::new(DeleteChannelUseCase::new(channel_repo, server_repo)),
+            ws_manager: None,
         }
+    }
+
+    pub fn with_ws_manager(mut self, ws_manager: Arc<ConnectionManager>) -> Self {
+        self.ws_manager = Some(ws_manager);
+        self
     }
 }
 
@@ -142,7 +150,17 @@ pub async fn delete_channel<CR: ChannelRepository, SR: ServerRepository>(
     let user_id = Uuid::parse_str(&claims.sub_id)
         .map_err(|_| AppError::Unauthorized("Invalid user ID".to_string()))?;
 
-    handler.delete_channel_uc.execute(id, user_id).await?;
+    let deleted = handler.delete_channel_uc.execute(id, user_id).await?;
+
+    if let Some(ws_manager) = &handler.ws_manager {
+        ws_manager.broadcast_to_all(
+            crate::infrastructure::websocket::ServerMessage::ChannelDeleted {
+                server_id: deleted.server_id.clone(),
+                channel_id: deleted.id.clone(),
+            },
+        ).await;
+    }
+
     Ok((
         StatusCode::OK,
         Json(serde_json::json!({"message": "Channel deleted"})),
