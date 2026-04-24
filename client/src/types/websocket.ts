@@ -197,6 +197,28 @@ export type ServerMessage =
         channel_id: string;
         first_unread_message_id: string;
       };
+    }
+  | {
+      type: 'ChannelCreated';
+      payload: {
+        server_id: string;
+        channel_id: string;
+        channel_name: string;
+        channel_type: string;
+      };
+    }
+  | {
+      type: 'ChannelDeleted';
+      payload: {
+        server_id: string;
+        channel_id: string;
+      };
+    }
+  | {
+      type: 'ServerDeleted';
+      payload: {
+        server_id: string;
+      };
     };
 
 // État de la connexion WebSocket

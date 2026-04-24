@@ -462,6 +462,55 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         console.error('WebSocket error:', message.payload);
         set({ error: message.payload.message });
         break;
+
+      case 'ChannelCreated':
+        {
+          const { server_id, channel_id, channel_name } = message.payload;
+          useChannelStore.setState(state => {
+            const existingList = state.channelsByServer[server_id];
+            if (!existingList) return state;
+            if (existingList.some(ch => ch.id === channel_id)) return state;
+            const newChannel = { id: channel_id, name: channel_name, server_id, created_at: new Date() };
+            return {
+              channelsByServer: {
+                ...state.channelsByServer,
+                [server_id]: [...existingList, newChannel],
+              },
+            };
+          });
+        }
+        break;
+
+      case 'ChannelDeleted':
+        {
+          const { server_id, channel_id } = message.payload;
+          useChannelStore.setState(state => {
+            const updated = { ...state.channelsByServer };
+            if (updated[server_id]) {
+              updated[server_id] = updated[server_id].filter(ch => ch.id !== channel_id);
+            }
+            return { channelsByServer: updated };
+          });
+        }
+        break;
+
+      case 'ServerDeleted':
+        {
+          const { server_id } = message.payload;
+          const currentUserId = useAuthStore.getState().userId;
+          const serverStore = useServerStore.getState();
+          const isMember = serverStore.servers.some(s => s.id === server_id);
+          if (isMember) {
+            useServerStore.setState(state => ({
+              servers: state.servers.filter(s => s.id !== server_id),
+              currentServer: state.currentServer?.id === server_id ? null : state.currentServer,
+            }));
+            if (serverStore.currentServer?.id === server_id && currentUserId) {
+              window.location.href = '/servers';
+            }
+          }
+        }
+        break;
     }
   },
 
