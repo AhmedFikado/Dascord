@@ -196,7 +196,7 @@ mod tests {
         let private_message_controller = Arc::new(PrivateMessageController::new(
             jwt_service.clone(),
             mock_message_repo,
-            mock_private_channel_repo,
+            mock_private_channel_repo.clone(),
             mock_user_repo,
         ));
         let read_status_handler = Arc::new(ReadStatusHandler::new(
@@ -204,7 +204,7 @@ mod tests {
             mock_read_status_repo,
             mock_channel_repo.clone(),
             mock_server_repo.clone(),
-            mock_private_channel_repo.clone(),
+            mock_private_channel_repo,
         ));
 
         let _router = Router::new()
