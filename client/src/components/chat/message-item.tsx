@@ -296,9 +296,10 @@ export default function MessageItem({ message, onDelete, onUpdate, onAddReaction
         </div>
       </div>
 
-      {contextMenu && currentServer && (
+      {contextMenu && currentServer && targetMember && (
         <MemberContextMenu
           targetMemberId={message.user_id}
+          targetMemberRole={targetMember.role}
           serverId={currentServer.id}
           x={contextMenu.x}
           y={contextMenu.y}

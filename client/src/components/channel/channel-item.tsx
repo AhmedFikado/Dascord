@@ -156,7 +156,7 @@ export default function ChannelItem({ channel }: ChannelItemProps) {
                         style={{ alignSelf: 'center' }}
                         type="submit"
                     >
-                        {t('Channel_item.Delete')}
+                        {t('Channel_item.Delete_channel')}
                     </Button>
                 </div>
             </Dialog>

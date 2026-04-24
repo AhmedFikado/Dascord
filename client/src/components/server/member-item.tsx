@@ -59,15 +59,9 @@ export default function MemberItem({ member, isRole = false, serverId }: Memberi
   });
 
   const canModifyRole = () => {
-    if (currentUserRole === Role.OWNER) {
-      if (member.user_id === userId) {
-        return false;
-      }
-      return true;
-    }
-    if (currentUserRole === Role.ADMIN) {
-      return member.role !== Role.OWNER;
-    }
+    if (member.user_id === userId) return false;
+    if (currentUserRole === Role.OWNER) return true;
+    if (currentUserRole === Role.ADMIN) return member.role !== Role.OWNER && member.role !== Role.ADMIN;
     return false;
   };
 
@@ -77,9 +71,6 @@ export default function MemberItem({ member, isRole = false, serverId }: Memberi
 
   const canShowContextMenu = () => {
     if (member.user_id === userId) return false;
-
-    if (currentUserRole === Role.ADMIN && member.role === Role.OWNER) return false;
-
     return true;
   };
 
@@ -152,6 +143,7 @@ export default function MemberItem({ member, isRole = false, serverId }: Memberi
       {contextMenu && serverId && (
         <MemberContextMenu
           targetMemberId={member.user_id}
+          targetMemberRole={member.role}
           serverId={serverId}
           x={contextMenu.x}
           y={contextMenu.y}

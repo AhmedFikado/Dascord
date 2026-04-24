@@ -2,6 +2,7 @@ import { useAuthStore } from '@/app/lib/stores/use-auth-store';
 import { useServerStore } from '@/app/lib/stores/use-server-store';
 import { usePrivateChannelStore } from '@/app/lib/stores/use-private-channel-store';
 import { useUnreadStore } from '@/app/lib/stores/use-unread-store';
+import { useChannelStore } from '@/app/lib/stores/use-channel-store';
 import { Member } from '@/types/models/member';
 import { Role } from '@/types/models/role';
 import { Status } from '@/types/models/status';
@@ -28,6 +29,9 @@ interface WebSocketState {
   usersByChannel: Record<string, Set<string>>;
   // IDs des canaux privés reçus via PrivateChannelCreated (pour la détection dans NewMessage)
   knownPrivateChannelIds: Set<string>;
+
+  onIncomingMessage: ((senderName: string, preview: string) => void) | null;
+  setNotificationCallback: (cb: ((senderName: string, preview: string) => void) | null) => void;
 
   // Actions
   setStatus: (status: WebSocketStatus) => void;
@@ -56,6 +60,9 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
   typingByChannel: {},
   usersByChannel: {},
   knownPrivateChannelIds: new Set<string>(),
+  onIncomingMessage: null,
+
+  setNotificationCallback: (cb) => set({ onIncomingMessage: cb }),
 
   // Mettre à jour le statut de connexion
   setStatus: (status: WebSocketStatus) => set({ status }),
@@ -79,6 +86,14 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           content: message.payload.content,
           created_at: message.payload.created_at,
         });
+        // Notification Electron pour les messages d'autres utilisateurs
+        {
+          const cb = get().onIncomingMessage;
+          const currentUserId = useAuthStore.getState().userId;
+          if (cb && message.payload.user_id !== currentUserId) {
+            cb(message.payload.username, message.payload.content.slice(0, 100));
+          }
+        }
         // Si c'est un canal privé connu, remonter le canal en tête de liste
         {
           const channelId = message.payload.channel_id;
@@ -426,6 +441,21 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           message.payload.channel_id,
           message.payload.first_unread_message_id
         );
+        {
+          const cb = get().onIncomingMessage;
+          if (cb) {
+            const { channel_id, server_id } = message.payload;
+            if (server_id === 'private') {
+              const dm = usePrivateChannelStore.getState().privateChannels.find(ch => ch.id === channel_id);
+              const senderName = dm?.recipient_user?.username ?? 'Message privé';
+              cb(senderName, '');
+            } else {
+              const channelsByServer = useChannelStore.getState().channelsByServer;
+              const channel = Object.values(channelsByServer).flat().find(ch => ch.id === channel_id);
+              cb(`#${channel?.name ?? 'channel'}`, '');
+            }
+          }
+        }
         break;
 
       case 'Error':
@@ -578,5 +608,6 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
       typingByChannel: {},
       usersByChannel: {},
       knownPrivateChannelIds: new Set<string>(),
+      onIncomingMessage: null,
     }),
 }));
