@@ -71,11 +71,14 @@ pub fn create_router(
         )
         .with_ws_manager(ws_manager.clone()),
     );
-    let channel_handler = Arc::new(ChannelHandler::new(
-        jwt_service.clone(),
-        channel_repo.clone(),
-        server_repo.clone(),
-    ));
+    let channel_handler = Arc::new(
+        ChannelHandler::new(
+            jwt_service.clone(),
+            channel_repo.clone(),
+            server_repo.clone(),
+        )
+        .with_ws_manager(ws_manager.clone()),
+    );
     let private_channel_controller = Arc::new(
         PrivateChannelController::new(
             jwt_service.clone(),
