@@ -58,18 +58,7 @@ export const useChannelStore = create<ChannelState>((set) => ({
         set({ isLoading: true, error: null });
         try {
             const addChannel = await channelsApi.create(serverId, channelName);
-            set((state) => {
-                const updatedChannelsByServer = { ...state.channelsByServer };
-                if (updatedChannelsByServer[serverId]) {
-                    updatedChannelsByServer[serverId] = [...updatedChannelsByServer[serverId], addChannel];
-                }
-
-                return {
-                    channels: [...state.channels, addChannel],
-                    channelsByServer: updatedChannelsByServer,
-                    isLoading: false
-                };
-            });
+            set({ isLoading: false });
             return addChannel;
         } catch (error) {
             set({ error: t('Use_channel_store.Error_adding_channel'), isLoading: false });
@@ -81,18 +70,7 @@ export const useChannelStore = create<ChannelState>((set) => ({
         set({ isLoading: true, error: null });
         try {
             await channelsApi.delete(channelId);
-            set((state) => {
-                const updatedChannelsByServer = { ...state.channelsByServer };
-                Object.keys(updatedChannelsByServer).forEach((serverId) => {
-                    updatedChannelsByServer[serverId] = updatedChannelsByServer[serverId].filter((c) => c.id !== channelId);
-                });
-
-                return {
-                    channels: state.channels.filter((c) => c.id !== channelId),
-                    channelsByServer: updatedChannelsByServer,
-                    isLoading: false
-                };
-            });
+            set({ isLoading: false });
         } catch (error) {
             set({ error: t('Use_channel_store.Error_deleting_channel'), isLoading: false });
         }

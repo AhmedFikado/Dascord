@@ -20,7 +20,7 @@ export default function ServerSidebar({ serverId }: ServerSidebarProps) {
     const { t } = useTranslation();
     const { userId } = useCurrentUser();
     const { servers, members } = useServerStore();
-    const { channels, isLoading } = useChannels(serverId);
+    const { channels = [], isLoading } = useChannels(serverId);
 
     const server = servers.find(s => s.id === serverId);
     const currentMember = members.find(m => m.user_id === userId);
