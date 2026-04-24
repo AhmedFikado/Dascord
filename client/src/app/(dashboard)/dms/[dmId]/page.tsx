@@ -52,7 +52,6 @@ export default function DMPage() {
   }, [dmId, fetchMessages]);
 
   const messages = messagesByChannel[dmId] || [];
-  // Toujours lire depuis privateChannels pour avoir le statut à jour (mis à jour par WS)
   const channel = privateChannels.find(ch => ch.id === dmId) ?? currentPrivateChannel;
 
   return (

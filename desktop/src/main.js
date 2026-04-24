@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Notification, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Notification, shell } from 'electron';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import waitOn from 'wait-on';
@@ -9,7 +9,11 @@ if (started) app.quit();
 const NEXT_PORT = 3000;
 const NEXT_URL = `http://localhost:${NEXT_PORT}`;
 const IS_DEV = process.env.NODE_ENV !== 'production';
-const CLIENT_DIR = path.join(__dirname, '../../../client');
+const DEV_CLIENT_DIR = path.join(__dirname, '../../../client');
+
+function getClientDir() {
+  return app.isPackaged ? process.resourcesPath : DEV_CLIENT_DIR;
+}
 
 let nextProcess = null;
 let mainWindow = null;
@@ -27,12 +31,30 @@ function getLang() {
 
 function startNextServer() {
   return new Promise((resolve, reject) => {
-    const cmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-    nextProcess = spawn(cmd, ['run', 'start'], {
-      cwd: CLIENT_DIR,
-      env: { ...process.env, PORT: String(NEXT_PORT) },
-      stdio: IS_DEV ? 'inherit' : 'ignore',
-    });
+    const clientDir = getClientDir();
+    const env = {
+      ...process.env,
+      PORT: String(NEXT_PORT),
+      PATH: [process.env.PATH, '/opt/homebrew/bin', '/usr/local/bin', '/opt/local/bin']
+        .filter(Boolean)
+        .join(path.delimiter),
+    };
+
+    if (app.isPackaged) {
+      const nextCliPath = path.join(clientDir, 'node_modules', 'next', 'dist', 'bin', 'next');
+      nextProcess = spawn('node', [nextCliPath, 'start', '-p', String(NEXT_PORT)], {
+        cwd: clientDir,
+        env,
+        stdio: IS_DEV ? 'inherit' : 'ignore',
+      });
+    } else {
+      const cmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+      nextProcess = spawn(cmd, ['run', 'start'], {
+        cwd: clientDir,
+        env,
+        stdio: IS_DEV ? 'inherit' : 'ignore',
+      });
+    }
 
     nextProcess.on('error', reject);
 
@@ -63,6 +85,14 @@ function createWindow() {
     mainWindow.show();
   });
 
+  mainWindow.on('focus', () => {
+    mainWindow.webContents.send('window-focus-changed', true);
+  });
+
+  mainWindow.on('blur', () => {
+    mainWindow.webContents.send('window-focus-changed', false);
+  });
+
   // Open external links in the system browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
@@ -71,6 +101,11 @@ function createWindow() {
 
   if (IS_DEV) mainWindow.webContents.openDevTools({ mode: 'detach' });
 }
+
+// IPC: window focus state — renderer can poll or listen
+ipcMain.handle('is-window-focused', () => {
+  return mainWindow ? mainWindow.isFocused() : false;
+});
 
 // IPC: system notification from renderer
 ipcMain.on('notify', (_event, { title, body }) => {
@@ -99,6 +134,7 @@ app.whenReady().then(async () => {
     createWindow();
   } catch (err) {
     console.error('Failed to start Next.js server:', err);
+    dialog.showErrorBox('RustChat startup error', `Failed to start Next.js server:\n${String(err)}`);
     app.quit();
   }
 

@@ -1,29 +1,36 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useWebSocketStore } from "@/store/websocket";
-import { useAuthStore } from "@/app/lib/stores/use-auth-store";
 
 export function useElectronNotifications() {
-  const messagesByChannel = useWebSocketStore((s) => s.messagesByChannel);
-  const currentUserId = useAuthStore((s) => s.userId);
+  const setNotificationCallback = useWebSocketStore((s) => s.setNotificationCallback);
+  // Start as false — isWindowFocused() will correct it synchronously on mount.
+  // This avoids missing notifications in the brief window before the Promise resolves.
+  const windowFocusedRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || !window.electronAPI) return;
 
-    const allMessages = Object.values(messagesByChannel).flat();
-    if (allMessages.length === 0) return;
+    window.electronAPI.isWindowFocused().then((focused) => {
+      windowFocusedRef.current = focused;
+    });
 
-    const latest = allMessages[allMessages.length - 1];
-    if (!latest || latest.user_id === currentUserId) return;
+    const unsubscribe = window.electronAPI.onWindowFocusChanged((focused) => {
+      windowFocusedRef.current = focused;
+    });
 
-    // Only notify when the document is hidden (app is in background)
-    if (!document.hidden) return;
+    return unsubscribe;
+  }, []);
 
-    window.electronAPI.notifyMessage(
-      latest.username,
-      latest.content.slice(0, 100)
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messagesByChannel]);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.electronAPI) return;
+
+    setNotificationCallback((senderName, preview) => {
+      if (windowFocusedRef.current) return;
+      window.electronAPI!.notifyMessage(senderName, preview);
+    });
+
+    return () => setNotificationCallback(null);
+  }, [setNotificationCallback]);
 }

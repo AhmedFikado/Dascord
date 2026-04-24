@@ -20,7 +20,8 @@ export const updateUserInfo = async (userInfo: Partial<User>): Promise<User> => 
 // Upload avatar
 export const uploadAvatar = async (file: File): Promise<{ avatar_id: string }> => {
     const arrayBuffer = await file.arrayBuffer();
-    return await apiClient.post<{ avatar_id: string }>('/users/avatar', arrayBuffer, {
+    const bytes = new Uint8Array(arrayBuffer);
+    return await apiClient.post<{ avatar_id: string }>('/users/avatar', bytes, {
         headers: {
             'Content-Type': 'application/octet-stream',
         },

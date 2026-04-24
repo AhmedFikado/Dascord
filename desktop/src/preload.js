@@ -11,6 +11,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Get the current locale ('fr' or 'en')
   getLocale: () => ipcRenderer.invoke('get-locale'),
 
+  // Check if the Electron window currently has OS-level focus
+  isWindowFocused: () => ipcRenderer.invoke('is-window-focused'),
+
+  // Subscribe to window focus/blur events (callback receives boolean)
+  onWindowFocusChanged: (callback) => {
+    const handler = (_event, focused) => callback(focused);
+    ipcRenderer.on('window-focus-changed', handler);
+    return () => ipcRenderer.removeListener('window-focus-changed', handler);
+  },
+
   // Whether we are running inside Electron
   isElectron: true,
 });

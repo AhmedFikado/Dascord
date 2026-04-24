@@ -5,9 +5,9 @@ const path = require('path');
 module.exports = {
   packagerConfig: {
     asar: true,
-    name: 'RustChat',
-    productName: 'RustChat',
-    executableName: 'RustChat',
+    name: 'Dascord',
+    productName: 'Dascord',
+    executableName: 'Dascord',
     icon: path.join(__dirname, 'assets', 'icon'),
     extraResource: [
       path.join(__dirname, '..', 'client', '.next'),
@@ -21,7 +21,7 @@ module.exports = {
     {
       name: '@electron-forge/maker-squirrel',
       config: {
-        name: 'RustChat',
+        name: 'Dascord',
         setupIcon: path.join(__dirname, 'assets', 'icon.ico'),
       },
     },
@@ -30,12 +30,19 @@ module.exports = {
       platforms: ['darwin'],
     },
     {
+      name: '@electron-forge/maker-dmg',
+      config: {
+        name: 'Dascord',
+        format: 'ULFO',
+      },
+    },
+    {
       name: '@electron-forge/maker-deb',
       config: {
         options: {
-          name: 'rustchat',
-          bin: 'RustChat',
-          productName: 'RustChat',
+          name: 'Dascord',
+          bin: 'Dascord',
+          productName: 'Dascord',
           description: 'A Discord-like chat application',
           categories: ['Network', 'Chat'],
           icon: path.join(__dirname, 'assets', 'icon.png'),
@@ -46,9 +53,9 @@ module.exports = {
       name: '@electron-forge/maker-rpm',
       config: {
         options: {
-          name: 'rustchat',
-          bin: 'RustChat',
-          productName: 'RustChat',
+          name: 'Dascord',
+          bin: 'Dascord',
+          productName: 'Dascord',
           description: 'A Discord-like chat application',
           categories: ['Network'],
           icon: path.join(__dirname, 'assets', 'icon.png'),
