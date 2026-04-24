@@ -96,6 +96,9 @@ export default function MessageList({ channelId, messages, onDeleteMessage, onUp
     }
   }, [channelId, isChannelUnread, markChannelReadRemote]);
 
+  const markAsReadRef = useRef(markAsRead);
+  markAsReadRef.current = markAsRead;
+
   // Initial scroll: once per channel visit, wait for messages, then scroll to unread or bottom.
   // channelScrolledRef !== channelId handles both first visit and subsequent visits automatically.
   useEffect(() => {
@@ -115,6 +118,7 @@ export default function MessageList({ channelId, messages, onDeleteMessage, onUp
     } else {
       messagesEndRef.current?.scrollIntoView({ behavior: 'instant' });
     }
+    markAsReadRef.current();
   }, [channelId, sortedMessages.length, firstUnreadIndex, firstUnreadMessageId]);
 
   // Auto-scroll and mark-as-read only for messages that arrive AFTER the initial scroll

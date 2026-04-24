@@ -1,6 +1,6 @@
 use crate::application::dto::read_status_dto::{UnreadChannelDto, UnreadStatusResponse};
 use crate::infrastructure::repositories::read_status_repository::ReadStatusRepository;
-use crate::infrastructure::repositories::channel::ChannelRepository;
+use crate::infrastructure::repositories::channel::{ChannelRepository, PrivateChannelRepository};
 use crate::infrastructure::repositories::ServerRepository;
 use crate::infrastructure::security::JWTService;
 use crate::utils::error::AppError;
@@ -14,27 +14,30 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 #[derive(Clone)]
-pub struct ReadStatusHandler<RSR: ReadStatusRepository, CR: ChannelRepository, SR: ServerRepository> {
+pub struct ReadStatusHandler<RSR: ReadStatusRepository, CR: ChannelRepository, SR: ServerRepository, PCR: PrivateChannelRepository> {
     jwt_service: Arc<JWTService>,
     read_status_repo: RSR,
     channel_repo: CR,
     server_repo: SR,
+    private_channel_repo: PCR,
 }
 
-impl<RSR: ReadStatusRepository, CR: ChannelRepository, SR: ServerRepository>
-    ReadStatusHandler<RSR, CR, SR>
+impl<RSR: ReadStatusRepository, CR: ChannelRepository, SR: ServerRepository, PCR: PrivateChannelRepository>
+    ReadStatusHandler<RSR, CR, SR, PCR>
 {
     pub fn new(
         jwt_service: JWTService,
         read_status_repo: RSR,
         channel_repo: CR,
         server_repo: SR,
+        private_channel_repo: PCR,
     ) -> Self {
         Self {
             jwt_service: Arc::new(jwt_service),
             read_status_repo,
             channel_repo,
             server_repo,
+            private_channel_repo,
         }
     }
 }
@@ -67,31 +70,34 @@ pub async fn mark_channel_read<
     RSR: ReadStatusRepository,
     CR: ChannelRepository,
     SR: ServerRepository,
+    PCR: PrivateChannelRepository,
 >(
-    State(handler): State<Arc<ReadStatusHandler<RSR, CR, SR>>>,
+    State(handler): State<Arc<ReadStatusHandler<RSR, CR, SR, PCR>>>,
     Path(channel_id): Path<Uuid>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let user_id = extract_user_id(&headers, &handler.jwt_service)?;
 
-    let channel = handler
-        .channel_repo
-        .find_by_id(channel_id)
-        .await?
-        .ok_or_else(|| AppError::NotFound("Channel not found".to_string()))?;
+    // Vérifier si c'est un channel de serveur
+    if let Some(channel) = handler.channel_repo.find_by_id(channel_id).await? {
+        let is_member = handler.server_repo.is_member(channel.server_id, user_id).await?;
+        if !is_member {
+            return Err(AppError::Unauthorized("Not a member of this server".to_string()));
+        }
+    } else {
+        // Sinon vérifier si c'est un mp
+        let private_channel = handler
+            .private_channel_repo
+            .get_by_id(channel_id)
+            .await?
+            .ok_or_else(|| AppError::NotFound("Channel not found".to_string()))?;
 
-    let is_member = handler
-        .server_repo
-        .is_member(channel.server_id, user_id)
-        .await?;
-    if !is_member {
-        return Err(AppError::Unauthorized("Not a member of this server".to_string()));
+        if private_channel.user1 != user_id && private_channel.user2 != user_id {
+            return Err(AppError::Unauthorized("Not a participant of this private channel".to_string()));
+        }
     }
 
-    handler
-        .read_status_repo
-        .mark_read(user_id, channel_id)
-        .await?;
+    handler.read_status_repo.mark_read(user_id, channel_id).await?;
 
     Ok((StatusCode::OK, Json(serde_json::json!({"message": "Channel marked as read"}))))
 }
@@ -113,8 +119,9 @@ pub async fn get_unread_channels<
     RSR: ReadStatusRepository,
     CR: ChannelRepository,
     SR: ServerRepository,
+    PCR: PrivateChannelRepository,
 >(
-    State(handler): State<Arc<ReadStatusHandler<RSR, CR, SR>>>,
+    State(handler): State<Arc<ReadStatusHandler<RSR, CR, SR, PCR>>>,
     Path(server_id): Path<Uuid>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
@@ -159,8 +166,9 @@ pub async fn get_unread_private_channels<
     RSR: ReadStatusRepository,
     CR: ChannelRepository,
     SR: ServerRepository,
+    PCR: PrivateChannelRepository,
 >(
-    State(handler): State<Arc<ReadStatusHandler<RSR, CR, SR>>>,
+    State(handler): State<Arc<ReadStatusHandler<RSR, CR, SR, PCR>>>,
     headers: HeaderMap,
 ) -> Result<impl IntoResponse, AppError> {
     let user_id = extract_user_id(&headers, &handler.jwt_service)?;
@@ -193,6 +201,7 @@ mod tests {
     use crate::domain::value_objects::ServerRole;
     use crate::infrastructure::repositories::mocks::{
         mock_channel_repository::MockChannelRepository,
+        mock_private_channel_repository::MockPrivateChannelRepository,
         mock_read_status_repository::MockReadStatusRepository,
         mock_server_repository::MockServerRepository,
     };
@@ -201,7 +210,7 @@ mod tests {
         channel: Option<Channel>,
         server_id: Option<Uuid>,
         user_id: Option<Uuid>,
-    ) -> Arc<ReadStatusHandler<MockReadStatusRepository, MockChannelRepository, MockServerRepository>> {
+    ) -> Arc<ReadStatusHandler<MockReadStatusRepository, MockChannelRepository, MockServerRepository, MockPrivateChannelRepository>> {
         let jwt_service = crate::infrastructure::security::JWTService::new("test_secret".to_string());
         let mut channel_repo = MockChannelRepository::new();
         let mut server_repo = MockServerRepository::new();
@@ -216,6 +225,7 @@ mod tests {
             MockReadStatusRepository::new(),
             channel_repo,
             server_repo,
+            MockPrivateChannelRepository::new(),
         ))
     }
 

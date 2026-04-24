@@ -163,6 +163,10 @@ export const usePrivateChannelStore = create<PrivateChannelState>((set, get) => 
           privateChannels: sortedChannels,
         };
       });
+
+      const { markChannelReadRemote } = await import('./use-unread-store').then(m => m.useUnreadStore.getState());
+      markChannelReadRemote(channelId);
+
       // Re-sync channel order from server (which uses last_message_at DESC)
       get().fetchPrivateChannels();
     } catch (error) {

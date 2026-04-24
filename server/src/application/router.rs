@@ -108,6 +108,7 @@ pub fn create_router(
         read_status_repo,
         channel_repo,
         server_repo,
+        private_channel_repo.clone(),
     ));
 
     let cors = CorsLayer::permissive();
@@ -203,6 +204,7 @@ mod tests {
             mock_read_status_repo,
             mock_channel_repo.clone(),
             mock_server_repo.clone(),
+            mock_private_channel_repo.clone(),
         ));
 
         let _router = Router::new()
